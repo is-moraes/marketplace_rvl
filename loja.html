@@ -1,180 +1,151 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-br">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Lojas - ClosetPro RvL</title>
-<style>
-*{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',sans-serif}
-body{background:#f0f2f5;color:#333}
-header{background:linear-gradient(135deg,#6c3483,#a04000);color:#fff;padding:16px 24px;display:flex;justify-content:space-between;align-items:center;box-shadow:0 2px 8px rgba(0,0,0,0.2)}
-header h1{font-size:1.6rem;letter-spacing:1px}
-nav a{color:#fff;text-decoration:none;margin-left:16px;font-weight:500;padding:6px 12px;border-radius:6px;transition:background 0.2s}
-nav a:hover{background:rgba(255,255,255,0.2)}
-.page-title{background:#fff;padding:30px 24px;border-bottom:1px solid #ddd;text-align:center}
-.page-title h2{color:#6c3483;font-size:1.8rem}
-.page-title p{color:#777;margin-top:6px}
-.section{padding:40px 24px;max-width:1100px;margin:0 auto}
-.busca{display:flex;gap:12px;margin-bottom:30px}
-.busca input{flex:1;padding:12px 18px;border:2px solid #d7bde2;border-radius:30px;font-size:1rem;outline:none;transition:border 0.2s}
-.busca input:focus{border-color:#6c3483}
-.busca button{background:#6c3483;color:#fff;border:none;padding:12px 24px;border-radius:30px;cursor:pointer;font-weight:600;font-size:1rem}
-.lojas-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:24px}
-.loja-card{background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 3px 12px rgba(0,0,0,0.1);transition:transform 0.2s}
-.loja-card:hover{transform:translateY(-5px)}
-.loja-banner{height:120px;display:flex;align-items:center;justify-content:center;font-size:3.5rem}
-.loja-info{padding:20px}
-.loja-info h3{font-size:1.2rem;color:#333;margin-bottom:6px}
-.loja-info .desc{color:#777;font-size:0.9rem;margin-bottom:12px}
-.badges{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}
-.badge{padding:3px 10px;border-radius:12px;font-size:0.75rem;font-weight:600}
-.badge.ativo{background:#d5f5e3;color:#1e8449}
-.badge.cat{background:#e8daef;color:#6c3483}
-.badge.novo{background:#fef9e7;color:#d4ac0d}
-.btn-loja{display:block;text-align:center;background:linear-gradient(135deg,#6c3483,#a04000);color:#fff;padding:10px;border-radius:10px;text-decoration:none;font-weight:600;transition:opacity 0.2s}
-.btn-loja:hover{opacity:0.85}
-.stats{display:flex;gap:16px;margin-bottom:14px}
-.stat{text-align:center}
-.stat .num{font-weight:700;color:#6c3483;font-size:1.1rem}
-.stat .label{font-size:0.75rem;color:#888}
-footer{background:#2c3e50;color:#aaa;text-align:center;padding:20px;margin-top:40px;font-size:0.85rem}
-</style>
+    <meta charset="UTF-8">
+    <title>Lojas - ClosetPro</title>
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',sans-serif} body{background:#f0f2f5;color:#333} header{background:linear-gradient(135deg,#6c3483,#a04000);color:#fff;padding:16px 24px;display:flex;justify-content:space-between;align-items:center;box-shadow:0 2px 8px rgba(0,0,0,0.2)} header h1{font-size:1.6rem;letter-spacing:1px} nav a{color:#fff;text-decoration:none;margin-left:16px;font-weight:500;padding:6px 12px;border-radius:6px;transition:background 0.2s} nav a:hover{background:rgba(255,255,255,0.2)} .page-title{background:#fff;padding:30px 24px;border-bottom:1px solid #ddd;text-align:center} .page-title h2{color:#6c3483;font-size:1.8rem} .page-title p{color:#777;margin-top:6px} .section{padding:40px 24px;max-width:1100px;margin:0 auto} .busca{display:flex;gap:12px;margin-bottom:30px} .busca input{flex:1;padding:12px 18px;border:2px solid #d7bde2;border-radius:30px;font-size:1rem;outline:none;transition:border 0.2s} .busca input:focus{border-color:#6c3483} .busca button{background:#6c3483;color:#fff;border:none;padding:12px 24px;border-radius:30px;cursor:pointer;font-weight:600;font-size:1rem} .lojas-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:24px} .loja-card{background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 3px 12px rgba(0,0,0,0.1);transition:transform 0.2s} .loja-card:hover{transform:translateY(-5px)} .loja-banner{height:120px;display:flex;align-items:center;justify-content:center;font-size:3.5rem} .loja-info{padding:20px} .loja-info h3{font-size:1.2rem;color:#333;margin-bottom:6px} .loja-info .desc{color:#777;font-size:0.9rem;margin-bottom:12px} .badges{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px} .badge{padding:3px 10px;border-radius:12px;font-size:0.75rem;font-weight:600} .badge.ativo{background:#d5f5e3;color:#1e8449} .badge.cat{background:#e8daef;color:#6c3483} .badge.novo{background:#fef9e7;color:#d4ac0d} .btn-loja{display:block;text-align:center;background:linear-gradient(135deg,#6c3483,#a04000);color:#fff;padding:10px;border-radius:10px;text-decoration:none;font-weight:600;transition:opacity 0.2s} .btn-loja:hover{opacity:0.85} .stats{display:flex;gap:16px;margin-bottom:14px} .stat{text-align:center} .stat .num{font-size:1.3rem;font-weight:700;color:#6c3483} .stat .label{font-size:0.75rem;color:#888} footer{background:#2c3e50;color:#aaa;text-align:center;padding:20px;margin-top:40px;font-size:0.85rem}
+    </style>
 </head>
 <body>
-<header>
-  <h1>👗 ClosetPro</h1>
-  <nav>
-    <a href="index.html">Início</a>
-    <a href="loja.html">Lojas</a>
-    <a href="admin.html">Admin</a>
-  </nav>
-</header>
-<div class="page-title">
-  <h2>🏪 Lojas Parceiras</h2>
-  <p>Encontre sua loja favorita e compre com confiança</p>
-</div>
-<div class="section">
-  <div class="busca">
-    <input type="text" id="busca-input" placeholder="🔍 Buscar loja por nome ou categoria..." oninput="buscar()">
-    <button onclick="buscar()">Buscar</button>
-  </div>
-  <div class="lojas-grid" id="lojas-grid">
-    <div class="loja-card" data-nome="boutique elegance">
-      <div class="loja-banner" style="background:linear-gradient(135deg,#d7bde2,#f9e4b7)">👗</div>
-      <div class="loja-info">
-        <h3>Boutique Elegance</h3>
-        <div class="desc">Moda feminina sofisticada e acessível</div>
-        <div class="badges">
-          <span class="badge ativo">✓ Ativo</span>
-          <span class="badge cat">Roupas</span>
-          <span class="badge novo">★ Destaque</span>
-        </div>
-        <div class="stats">
-          <div class="stat"><div class="num">48</div><div class="label">Produtos</div></div>
-          <div class="stat"><div class="num">4.9</div><div class="label">Avaliação</div></div>
-          <div class="stat"><div class="num">320</div><div class="label">Vendas</div></div>
-        </div>
-        <a href="#" class="btn-loja">Visitar Loja</a>
-      </div>
+    <header>
+        <h1>👗 ClosetPro</h1>
+        <nav>
+            <a href="index.html">Início</a>
+            <a href="loja.html">Lojas</a>
+            <a href="admin.html">Admin</a>
+        </nav>
+    </header>
+
+    <div class="page-title">
+        <h2>Lojas Parceiras</h2>
+        <p>Encontre sua loja favorita e compre com confiança</p>
     </div>
-    <div class="loja-card" data-nome="sapatos style">
-      <div class="loja-banner" style="background:linear-gradient(135deg,#aed6f1,#a9dfbf)">👠</div>
-      <div class="loja-info">
-        <h3>Sapatos Style</h3>
-        <div class="desc">Calçados para todas as ocasiões</div>
-        <div class="badges">
-          <span class="badge ativo">✓ Ativo</span>
-          <span class="badge cat">Calçados</span>
+
+    <section class="section">
+        <div class="busca">
+            <input type="text" id="busca-input" placeholder="🔍 Buscar loja por nome ou categoria..." oninput="buscar()">
+            <button>Buscar</button>
         </div>
-        <div class="stats">
-          <div class="stat"><div class="num">32</div><div class="label">Produtos</div></div>
-          <div class="stat"><div class="num">4.7</div><div class="label">Avaliação</div></div>
-          <div class="stat"><div class="num">215</div><div class="label">Vendas</div></div>
+
+        <div class="lojas-grid">
+            <div class="loja-card" data-nome="boutique elegance">
+                <div class="loja-banner">👗</div>
+                <div class="loja-info">
+                    <h3>Boutique Elegance</h3>
+                    <p class="desc">Moda feminina sofisticada e acessível</p>
+                    <div class="badges"><span class="badge ativo">✓ Ativo</span><span class="badge cat">Roupas</span><span class="badge novo">★ Destaque</span></div>
+                    <div class="stats">
+                        <div class="stat"><div class="num">48</div><div class="label">Produtos</div></div>
+                        <div class="stat"><div class="num">4.9</div><div class="label">Avaliação</div></div>
+                        <div class="stat"><div class="num">320</div><div class="label">Vendas</div></div>
+                    </div>
+                    <a href="#" class="btn-loja">Visitar Loja</a>
+                </div>
+            </div>
+
+            <div class="loja-card" data-nome="sapatos style">
+                <div class="loja-banner">👠</div>
+                <div class="loja-info">
+                    <h3>Sapatos Style</h3>
+                    <p class="desc">Calçados para todas as ocasiões</p>
+                    <div class="badges"><span class="badge ativo">✓ Ativo</span><span class="badge cat">Calçados</span></div>
+                    <div class="stats">
+                        <div class="stat"><div class="num">32</div><div class="label">Produtos</div></div>
+                        <div class="stat"><div class="num">4.7</div><div class="label">Avaliação</div></div>
+                        <div class="stat"><div class="num">215</div><div class="label">Vendas</div></div>
+                    </div>
+                    <a href="#" class="btn-loja">Visitar Loja</a>
+                </div>
+            </div>
+
+            <div class="loja-card" data-nome="acessórios chic">
+                <div class="loja-banner">👜</div>
+                <div class="loja-info">
+                    <h3>Acessórios Chic</h3>
+                    <p class="desc">Bolsas, cintos e acessórios exclusivos</p>
+                    <div class="badges"><span class="badge ativo">✓ Ativo</span><span class="badge cat">Acessórios</span></div>
+                    <div class="stats">
+                        <div class="stat"><div class="num">60</div><div class="label">Produtos</div></div>
+                        <div class="stat"><div class="num">4.8</div><div class="label">Avaliação</div></div>
+                        <div class="stat"><div class="num">410</div><div class="label">Vendas</div></div>
+                    </div>
+                    <a href="#" class="btn-loja">Visitar Loja</a>
+                </div>
+            </div>
+
+            <div class="loja-card" data-nome="modamasc">
+                <div class="loja-banner">👔</div>
+                <div class="loja-info">
+                    <h3>ModaMasc</h3>
+                    <p class="desc">Moda masculina moderna e estilosa</p>
+                    <div class="badges"><span class="badge ativo">✓ Ativo</span><span class="badge cat">Roupas</span></div>
+                    <div class="stats">
+                        <div class="stat"><div class="num">25</div><div class="label">Produtos</div></div>
+                        <div class="stat"><div class="num">4.6</div><div class="label">Avaliação</div></div>
+                        <div class="stat"><div class="num">180</div><div class="label">Vendas</div></div>
+                    </div>
+                    <a href="#" class="btn-loja">Visitar Loja</a>
+                </div>
+            </div>
+
+            <div class="loja-card" data-nome="sneaker house">
+                <div class="loja-banner">👟</div>
+                <div class="loja-info">
+                    <h3>Sneaker House</h3>
+                    <p class="desc">Tênis e calçados esportivos</p>
+                    <div class="badges"><span class="badge ativo">✓ Ativo</span><span class="badge cat">Calçados</span><span class="badge novo">★ Destaque</span></div>
+                    <div class="stats">
+                        <div class="stat"><div class="num">55</div><div class="label">Produtos</div></div>
+                        <div class="stat"><div class="num">4.9</div><div class="label">Avaliação</div></div>
+                        <div class="stat"><div class="num">520</div><div class="label">Vendas</div></div>
+                    </div>
+                    <a href="#" class="btn-loja">Visitar Loja</a>
+                </div>
+            </div>
+
+            <div class="loja-card" data-nome="joias & cia">
+                <div class="loja-banner">💍</div>
+                <div class="loja-info">
+                    <h3>Joias & Cia</h3>
+                    <p class="desc">Bijuterias e semi-joias artesanais</p>
+                    <div class="badges"><span class="badge ativo">✓ Ativo</span><span class="badge cat">Acessórios</span></div>
+                    <div class="stats">
+                        <div class="stat"><div class="num">88</div><div class="label">Produtos</div></div>
+                        <div class="stat"><div class="num">4.8</div><div class="label">Avaliação</div></div>
+                        <div class="stat"><div class="num">290</div><div class="label">Vendas</div></div>
+                    </div>
+                    <a href="#" class="btn-loja">Visitar Loja</a>
+                </div>
+            </div>
         </div>
-        <a href="#" class="btn-loja">Visitar Loja</a>
-      </div>
-    </div>
-    <div class="loja-card" data-nome="acessorios chic">
-      <div class="loja-banner" style="background:linear-gradient(135deg,#f9e4b7,#fadbd8)">👜</div>
-      <div class="loja-info">
-        <h3>Acessórios Chic</h3>
-        <div class="desc">Bolsas, cintos e acessórios exclusivos</div>
-        <div class="badges">
-          <span class="badge ativo">✓ Ativo</span>
-          <span class="badge cat">Acessórios</span>
-        </div>
-        <div class="stats">
-          <div class="stat"><div class="num">60</div><div class="label">Produtos</div></div>
-          <div class="stat"><div class="num">4.8</div><div class="label">Avaliação</div></div>
-          <div class="stat"><div class="num">410</div><div class="label">Vendas</div></div>
-        </div>
-        <a href="#" class="btn-loja">Visitar Loja</a>
-      </div>
-    </div>
-    <div class="loja-card" data-nome="modamasc">
-      <div class="loja-banner" style="background:linear-gradient(135deg,#d5e8d4,#aed6f1)">👔</div>
-      <div class="loja-info">
-        <h3>ModaMasc</h3>
-        <div class="desc">Moda masculina moderna e estilosa</div>
-        <div class="badges">
-          <span class="badge ativo">✓ Ativo</span>
-          <span class="badge cat">Roupas</span>
-        </div>
-        <div class="stats">
-          <div class="stat"><div class="num">25</div><div class="label">Produtos</div></div>
-          <div class="stat"><div class="num">4.6</div><div class="label">Avaliação</div></div>
-          <div class="stat"><div class="num">180</div><div class="label">Vendas</div></div>
-        </div>
-        <a href="#" class="btn-loja">Visitar Loja</a>
-      </div>
-    </div>
-    <div class="loja-card" data-nome="sneaker house">
-      <div class="loja-banner" style="background:linear-gradient(135deg,#fdebd0,#d5f5e3)">👟</div>
-      <div class="loja-info">
-        <h3>Sneaker House</h3>
-        <div class="desc">Tênis e calçados esportivos</div>
-        <div class="badges">
-          <span class="badge ativo">✓ Ativo</span>
-          <span class="badge cat">Calçados</span>
-          <span class="badge novo">★ Destaque</span>
-        </div>
-        <div class="stats">
-          <div class="stat"><div class="num">55</div><div class="label">Produtos</div></div>
-          <div class="stat"><div class="num">4.9</div><div class="label">Avaliação</div></div>
-          <div class="stat"><div class="num">520</div><div class="label">Vendas</div></div>
-        </div>
-        <a href="#" class="btn-loja">Visitar Loja</a>
-      </div>
-    </div>
-    <div class="loja-card" data-nome="joias cia">
-      <div class="loja-banner" style="background:linear-gradient(135deg,#f8c471,#ec407a40)">💍</div>
-      <div class="loja-info">
-        <h3>Joias &amp; Cia</h3>
-        <div class="desc">Bijuterias e semi-joias artesanais</div>
-        <div class="badges">
-          <span class="badge ativo">✓ Ativo</span>
-          <span class="badge cat">Acessórios</span>
-        </div>
-        <div class="stats">
-          <div class="stat"><div class="num">88</div><div class="label">Produtos</div></div>
-          <div class="stat"><div class="num">4.8</div><div class="label">Avaliação</div></div>
-          <div class="stat"><div class="num">290</div><div class="label">Vendas</div></div>
-        </div>
-        <a href="#" class="btn-loja">Visitar Loja</a>
-      </div>
-    </div>
-  </div>
-</div>
-<footer>
-  <p>&copy; 2026 ClosetPro - Marketplace RvL | Todos os direitos reservados</p>
-</footer>
-<script>
-function buscar(){
-  const q=document.getElementById('busca-input').value.toLowerCase();
-  document.querySelectorAll('.loja-card').forEach(c=>{
-    c.style.display=c.dataset.nome.includes(q)?'block':'none';
-  });
-}
-</script>
+    </section>
+
+    <footer><p>&copy; 2026 ClosetPro - Marketplace RvL | Todos os direitos reservados</p></footer>
+
+    <script type="module">
+      import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js';
+      import { getAnalytics } from 'https://www.gstatic.com/firebasejs/12.15.0/firebase-analytics.js';
+      const firebaseConfig = {
+        apiKey: "AIzaSyDe2v375f4qcWTYxj_P6s77SD3GsYYzuUM",
+        authDomain: "rvl-marketplace.firebaseapp.com",
+        projectId: "rvl-marketplace",
+        storageBucket: "rvl-marketplace.firebasestorage.app",
+        messagingSenderId: "325572658544",
+        appId: "1:325572658544:web:ef6b3f13dfa0488fc97bb5",
+        measurementId: "G-C27X5ZWL8Q"
+      };
+      const app = initializeApp(firebaseConfig);
+      const analytics = getAnalytics(app);
+    </script>
+
+    <script>
+        function buscar(){ 
+            const q=document.getElementById('busca-input').value.toLowerCase(); 
+            document.querySelectorAll('.loja-card').forEach(c=>{ 
+                c.style.display=c.dataset.nome.includes(q)?'block':'none'; 
+            }); 
+        }
+    </script>
 </body>
 </html>
