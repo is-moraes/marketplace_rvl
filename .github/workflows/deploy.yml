@@ -9,11 +9,26 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout
+        uses: actions/checkout@v3
+
       - name: Install Netlify CLI
         run: npm install -g netlify-cli
+
       - name: Create and deploy site
-        run: |
-          netlify deploy --dir=. --prod --message='ClosetPro deploy' --site=marketplace-rvl-closetpro || netlify deploy --dir=. --prod --message='ClosetPro deploy'
         env:
           NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+        run: |
+          # Create site via API if it doesn't exist
+          SITE_ID=$(curl -s -X POST https://api.netlify.com/api/v1/sites \
+            -H "Authorization: Bearer $NETLIFY_AUTH_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d '{"name":"marketplace-rvl-closetpro"}' | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('id',''))")
+          
+          if [ -z "$SITE_ID" ]; then
+            # Site might already exist, get it
+            SITE_ID=$(curl -s "https://api.netlify.com/api/v1/sites?access_token=$NETLIFY_AUTH_TOKEN" | python3 -c "import sys,json; sites=json.load(sys.stdin); match=[s for s in sites if s.get('name')=='marketplace-rvl-closetpro']; print(match[0]['id'] if match else '')")
+          fi
+          
+          echo "SITE_ID: $SITE_ID"
+          netlify deploy --dir=. --prod --site="$SITE_ID" --auth="$NETLIFY_AUTH_TOKEN" --message='ClosetPro deploy'
