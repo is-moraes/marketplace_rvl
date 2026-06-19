@@ -1,0 +1,19 @@
+name: Deploy to Netlify
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Install Netlify CLI
+        run: npm install -g netlify-cli
+      - name: Create and deploy site
+        run: |
+          netlify deploy --dir=. --prod --message='ClosetPro deploy' --site=marketplace-rvl-closetpro || netlify deploy --dir=. --prod --message='ClosetPro deploy'
+        env:
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
