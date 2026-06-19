@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin - ClosetPro RvL</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',sans-serif}
+body{background:#1a1a2e;color:#eee;min-height:100vh}
+header{background:linear-gradient(135deg,#6c3483,#a04000);color:#fff;padding:16px 24px;display:flex;justify-content:space-between;align-items:center}
+header h1{font-size:1.5rem}
+nav a{color:#fff;text-decoration:none;margin-left:12px;padding:6px 12px;border-radius:6px;transition:background 0.2s}
+nav a:hover{background:rgba(255,255,255,0.2)}
+.admin-container{max-width:1100px;margin:30px auto;padding:0 20px}
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:16px;margin-bottom:30px}
+.stat-card{background:linear-gradient(135deg,#2d2d44,#3d2b4a);border-radius:12px;padding:20px;text-align:center;border:1px solid #6c348344}
+.stat-card .num{font-size:2.2rem;font-weight:700;color:#d7bde2}
+.stat-card .label{color:#aaa;font-size:0.85rem;margin-top:4px}
+.stat-card .icon{font-size:2rem;margin-bottom:8px}
+.panel{background:#16213e;border-radius:12px;padding:24px;margin-bottom:24px;border:1px solid #0f3460}
+.panel h3{color:#d7bde2;margin-bottom:20px;font-size:1.1rem;display:flex;align-items:center;gap:8px}
+.panel h3::before{content:'';display:inline-block;width:4px;height:18px;background:#6c3483;border-radius:2px}
+table{width:100%;border-collapse:collapse}
+table th{background:#0f3460;color:#d7bde2;padding:12px;text-align:left;font-size:0.85rem}
+table td{padding:12px;border-bottom:1px solid #2d2d44;font-size:0.9rem;color:#ccc}
+table tr:hover td{background:#1e2a4a}
+.badge{padding:3px 10px;border-radius:12px;font-size:0.75rem;font-weight:600;display:inline-block}
+.badge.ativo{background:#1a4731;color:#52be80}
+.badge.bloq{background:#4a1010;color:#e74c3c}
+.actions{display:flex;gap:6px}
+.btn-sm{padding:5px 12px;border:none;border-radius:6px;cursor:pointer;font-size:0.8rem;font-weight:600;transition:opacity 0.2s}
+.btn-sm:hover{opacity:0.8}
+.btn-green{background:#1e8449;color:#fff}
+.btn-red{background:#c0392b;color:#fff}
+.btn-blue{background:#1a5276;color:#fff}
+.btn-add{background:linear-gradient(135deg,#6c3483,#a04000);color:#fff;border:none;padding:10px 20px;border-radius:8px;cursor:pointer;font-weight:600;margin-bottom:16px}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
+.form-row input,.form-row select{background:#0f3460;border:1px solid #2d4a7a;color:#eee;padding:10px 14px;border-radius:8px;font-size:0.9rem;outline:none}
+.form-row input:focus,.form-row select:focus{border-color:#6c3483}
+.alert{padding:12px 16px;border-radius:8px;margin-bottom:16px;display:none}
+.alert.success{background:#1a4731;color:#52be80;border:1px solid #1e8449}
+.modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);align-items:center;justify-content:center;z-index:100}
+.modal.show{display:flex}
+.modal-box{background:#16213e;border-radius:16px;padding:30px;width:90%;max-width:480px;border:1px solid #6c3483}
+.modal-box h3{color:#d7bde2;margin-bottom:20px}
+.modal-box input{width:100%;background:#0f3460;border:1px solid #2d4a7a;color:#eee;padding:10px 14px;border-radius:8px;margin-bottom:12px;font-size:0.9rem;outline:none}
+.modal-box input:focus{border-color:#6c3483}
+.modal-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:8px}
+</style>
+</head>
+<body>
+<header>
+  <h1>👗 ClosetPro Admin</h1>
+  <nav>
+    <a href="index.html">Início</a>
+    <a href="loja.html">Lojas</a>
+    <a href="admin.html">🔒 Admin</a>
+  </nav>
+</header>
+<div class="admin-container">
+  <div class="stats-grid">
+    <div class="stat-card"><div class="icon">🏪</div><div class="num" id="total-lojas">6</div><div class="label">Lojas Ativas</div></div>
+    <div class="stat-card"><div class="icon">👗</div><div class="num" id="total-produtos">308</div><div class="label">Produtos</div></div>
+    <div class="stat-card"><div class="icon">💰</div><div class="num">R$ 12.4k</div><div class="label">Faturamento</div></div>
+    <div class="stat-card"><div class="icon">👤</div><div class="num">1.935</div><div class="label">Clientes</div></div>
+  </div>
+  <div class="panel">
+    <h3>Gerenciar Lojas</h3>
+    <button class="btn-add" onclick="abrirModal()">+ Nova Loja</button>
+    <div class="alert success" id="alerta"></div>
+    <table>
+      <thead><tr><th>Loja</th><th>Categoria</th><th>Produtos</th><th>Status</th><th>Ações</th></tr></thead>
+      <tbody id="tabela-lojas">
+        <tr>
+          <td>Boutique Elegance</td><td>Roupas</td><td>48</td>
+          <td><span class="badge ativo">Ativo</span></td>
+          <td class="actions">
+            <button class="btn-sm btn-blue" onclick="editarLoja(this)">Editar</button>
+            <button class="btn-sm btn-red" onclick="bloquearLoja(this)">Bloquear</button>
+          </td>
+        </tr>
+        <tr>
+          <td>Sapatos Style</td><td>Calçados</td><td>32</td>
+          <td><span class="badge ativo">Ativo</span></td>
+          <td class="actions">
+            <button class="btn-sm btn-blue" onclick="editarLoja(this)">Editar</button>
+            <button class="btn-sm btn-red" onclick="bloquearLoja(this)">Bloquear</button>
+          </td>
+        </tr>
+        <tr>
+          <td>Acessórios Chic</td><td>Acessórios</td><td>60</td>
+          <td><span class="badge ativo">Ativo</span></td>
+          <td class="actions">
+            <button class="btn-sm btn-blue" onclick="editarLoja(this)">Editar</button>
+            <button class="btn-sm btn-red" onclick="bloquearLoja(this)">Bloquear</button>
+          </td>
+        </tr>
+        <tr>
+          <td>ModaMasc</td><td>Roupas</td><td>25</td>
+          <td><span class="badge ativo">Ativo</span></td>
+          <td class="actions">
+            <button class="btn-sm btn-blue" onclick="editarLoja(this)">Editar</button>
+            <button class="btn-sm btn-red" onclick="bloquearLoja(this)">Bloquear</button>
+          </td>
+        </tr>
+        <tr>
+          <td>Sneaker House</td><td>Calçados</td><td>55</td>
+          <td><span class="badge ativo">Ativo</span></td>
+          <td class="actions">
+            <button class="btn-sm btn-blue" onclick="editarLoja(this)">Editar</button>
+            <button class="btn-sm btn-red" onclick="bloquearLoja(this)">Bloquear</button>
+          </td>
+        </tr>
+        <tr>
+          <td>Joias &amp; Cia</td><td>Acessórios</td><td>88</td>
+          <td><span class="badge ativo">Ativo</span></td>
+          <td class="actions">
+            <button class="btn-sm btn-blue" onclick="editarLoja(this)">Editar</button>
+            <button class="btn-sm btn-red" onclick="bloquearLoja(this)">Bloquear</button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+<div class="modal" id="modal-loja">
+  <div class="modal-box">
+    <h3>🏪 Cadastrar Nova Loja</h3>
+    <input type="text" id="nome-loja" placeholder="Nome da Loja">
+    <input type="text" id="cat-loja" placeholder="Categoria (Roupas, Calçados, Acessórios)">
+    <input type="email" id="email-loja" placeholder="E-mail do responsável">
+    <div class="modal-actions">
+      <button class="btn-sm btn-red" onclick="fecharModal()">Cancelar</button>
+      <button class="btn-sm btn-green" onclick="salvarLoja()">Salvar Loja</button>
+    </div>
+  </div>
+</div>
+<script>
+function abrirModal(){document.getElementById('modal-loja').classList.add('show')}
+function fecharModal(){document.getElementById('modal-loja').classList.remove('show')}
+function salvarLoja(){
+  const nome=document.getElementById('nome-loja').value;
+  const cat=document.getElementById('cat-loja').value;
+  if(!nome||!cat){alert('Preencha nome e categoria!');return;}
+  const tbody=document.getElementById('tabela-lojas');
+  const tr=document.createElement('tr');
+  tr.innerHTML=`<td>${nome}</td><td>${cat}</td><td>0</td><td><span class="badge ativo">Ativo</span></td><td class="actions"><button class="btn-sm btn-blue" onclick="editarLoja(this)">Editar</button><button class="btn-sm btn-red" onclick="bloquearLoja(this)">Bloquear</button></td>`;
+  tbody.appendChild(tr);
+  document.getElementById('total-lojas').textContent=tbody.rows.length;
+  fecharModal();
+  mostrarAlerta('Loja cadastrada com sucesso!');
+  document.getElementById('nome-loja').value='';
+  document.getElementById('cat-loja').value='';
+  document.getElementById('email-loja').value='';
+}
+function bloquearLoja(btn){
+  const td=btn.closest('tr').querySelector('.badge');
+  if(td.classList.contains('ativo')){td.classList.remove('ativo');td.classList.add('bloq');td.textContent='Bloqueado';btn.textContent='Ativar';}
+  else{td.classList.remove('bloq');td.classList.add('ativo');td.textContent='Ativo';btn.textContent='Bloquear';}
+}
+function editarLoja(btn){const nome=btn.closest('tr').querySelector('td').textContent;alert('Editar: '+nome+' (em breve)');}
+function mostrarAlerta(msg){const a=document.getElementById('alerta');a.textContent=msg;a.style.display='block';setTimeout(()=>a.style.display='none',3000);}
+</script>
+</body>
+</html>
