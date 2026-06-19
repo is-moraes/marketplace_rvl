@@ -7,7 +7,25 @@
         *{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',sans-serif} body{background:#1a1a2e;color:#eee;min-height:100vh} header{background:linear-gradient(135deg,#6c3483,#a04000);color:#fff;padding:16px 24px;display:flex;justify-content:space-between;align-items:center} header h1{font-size:1.5rem} nav a{color:#fff;text-decoration:none;margin-left:12px;padding:6px 12px;border-radius:6px;transition:background 0.2s} nav a:hover{background:rgba(255,255,255,0.2)} .admin-container{max-width:1100px;margin:30px auto;padding:0 20px} .stats-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:16px;margin-bottom:30px} .stat-card{background:linear-gradient(135deg,#2d2d44,#3d2b4a);border-radius:12px;padding:20px;text-align:center;border:1px solid #6c348344} .stat-card .num{font-size:2.2rem;font-weight:700;color:#d7bde2} .stat-card .label{color:#aaa;font-size:0.85rem;margin-top:4px} .stat-card .icon{font-size:2rem;margin-bottom:8px} .panel{background:#16213e;border-radius:12px;padding:24px;margin-bottom:24px;border:1px solid #0f3460} .panel h3{color:#d7bde2;margin-bottom:20px;font-size:1.1rem;display:flex;align-items:center;gap:8px} .panel h3::before{content:'';display:inline-block;width:4px;height:18px;background:#6c3483;border-radius:2px} table{width:100%;border-collapse:collapse} table th{background:#0f3460;color:#d7bde2;padding:12px;text-align:left;font-size:0.85rem} table td{padding:12px;border-bottom:1px solid #2d2d44;font-size:0.9rem;color:#ccc} table tr:hover td{background:#1e2a4a} .badge{padding:3px 10px;border-radius:12px;font-size:0.75rem;font-weight:600;display:inline-block} .badge.ativo{background:#1a4731;color:#52be80} .badge.bloq{background:#4a1010;color:#e74c3c} .actions{display:flex;gap:6px} .btn-sm{padding:5px 12px;border:none;border-radius:6px;cursor:pointer;font-size:0.8rem;font-weight:600;transition:opacity 0.2s} .btn-sm:hover{opacity:0.8} .btn-green{background:#1e8449;color:#fff} .btn-red{background:#c0392b;color:#fff} .btn-blue{background:#1a5276;color:#fff} .btn-add{background:linear-gradient(135deg,#6c3483,#a04000);color:#fff;border:none;padding:10px 20px;border-radius:8px;cursor:pointer;font-weight:600;margin-bottom:16px} .form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px} .form-row input,.form-row select{background:#0f3460;border:1px solid #2d4a7a;color:#eee;padding:10px 14px;border-radius:8px;font-size:0.9rem;outline:none} .form-row input:focus,.form-row select:focus{border-color:#6c3483} footer{background:#0f1420;color:#888;text-align:center;padding:20px;margin-top:40px;font-size:0.85rem} #alerta{position:fixed;top:20px;right:20px;background:linear-gradient(135deg,#27ae60,#2ecc71);color:#fff;padding:16px 28px;border-radius:10px;display:none;box-shadow:0 4px 20px rgba(0,0,0,0.3);z-index:1000}
     </style>
 </head>
+        <script src="https://www.gstatic.com/firebasejs/11.0.2/firebase-app-compat.js"></script>
+        <script src="https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore-compat.js"></script>
+        <script src="https://www.gstatic.com/firebasejs/11.0.2/firebase-auth-compat.js"></script>
+        <script>
+                  const firebaseConfig = {
+                              apiKey: "AIzaSyDe2v375f4qcWTYxj_P6s77SD3GsYYzuUM",
+                              authDomain: "rvl-marketplace.firebaseapp.com",
+                              projectId: "rvl-marketplace",
+                              storageBucket: "rvl-marketplace.firebasestorage.app",
+                              messagingSenderId: "325572658544",
+                              appId: "1:325572658544:web:ef6b3f13dfa0488fc97bb5",
+                              measurementId: "G-C2ZX5ZWL8Q"
+                                        };
+                  firebase.initializeApp(firebaseConfig);
+                </script>
+    
 <body>
+
+    
     <header>
         <h1>👗 ClosetPro Admin</h1>
         <nav>
