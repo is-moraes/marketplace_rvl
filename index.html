@@ -119,6 +119,12 @@
   @media(max-width:768px){.charts-row{grid-template-columns:1fr}}
   .chart-card{background:#fff;border:1px solid var(--border);border-radius:var(--r);padding:20px}
   .chart-card h3{font-size:.78rem;color:var(--muted);margin-bottom:16px;text-transform:uppercase;letter-spacing:.05em;font-weight:700}
+  .taxa-item{text-align:center}
+  .taxa-item label{display:block;font-size:.74rem;color:var(--muted);font-weight:600;margin-bottom:5px}
+  .taxa-item .taxa-input-wrap{position:relative}
+  .taxa-item input{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:8px 22px 8px 8px;color:var(--text);font-size:.86rem;text-align:center}
+  .taxa-item input:focus{outline:none;border-color:var(--purple);background:#fff}
+  .taxa-item .taxa-pct{position:absolute;right:8px;top:50%;transform:translateY(-50%);font-size:.78rem;color:var(--muted);pointer-events:none}
 
   /* Table */
   .table-wrap{background:#fff;border:1px solid var(--border);border-radius:var(--r);overflow:hidden;overflow-x:auto}
@@ -345,6 +351,11 @@
             <div class="fg"><label>Nome (QR Code)</label><input type="text" id="cfg-pix-nome" placeholder="Seu Nome"/></div>
             <div class="fg"><label>Cidade</label><input type="text" id="cfg-pix-cidade" placeholder="São Paulo"/></div>
           </div>
+        </div>
+        <div class="chart-card" style="margin-bottom:16px">
+          <h3>Taxas de parcelamento no cartão</h3>
+          <p style="font-size:.8rem;color:var(--muted);margin-bottom:14px">Defina a taxa de juros (% ao mês) cobrada em cada quantidade de parcelas. Deixe em branco ou 0 para parcelar sem juros. Essas taxas aparecem automaticamente nas opções de pagamento da sua loja.</p>
+          <div id="taxas-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:10px"></div>
         </div>
         <button class="btn btn-primary" onclick="salvarConfig()">💾 Salvar configurações</button>
       </div>
@@ -829,9 +840,33 @@ function carregarFormCfg(){
   document.getElementById('cfg-pix').value=CONFIG.pixChave||'';
   document.getElementById('cfg-pix-nome').value=CONFIG.pixNome||'';
   document.getElementById('cfg-pix-cidade').value=CONFIG.pixCidade||'';
+  renderTaxasGrid();
 }
+
+function renderTaxasGrid(){
+  const grid=document.getElementById('taxas-grid');
+  if(!grid) return;
+  const taxas=CONFIG.taxasJuros||{};
+  let html='';
+  for(let n=2;n<=12;n++){
+    const val=(taxas[n]!=null&&taxas[n]!==0)?taxas[n]:'';
+    html+=`<div class="taxa-item"><label>${n}x</label><div class="taxa-input-wrap"><input type="number" step="0.01" min="0" max="20" id="taxa-${n}" value="${val}" placeholder="0"/><span class="taxa-pct">%</span></div></div>`;
+  }
+  grid.innerHTML=html;
+}
+
+function coletarTaxasGrid(){
+  const taxas={};
+  for(let n=2;n<=12;n++){
+    const el=document.getElementById(`taxa-${n}`);
+    const v=parseFloat(el?.value);
+    if(!isNaN(v)&&v>0) taxas[n]=v;
+  }
+  return taxas;
+}
+
 async function salvarConfig(){
-  CONFIG={nomeLoja:document.getElementById('cfg-loja').value,subtitulo:document.getElementById('cfg-slogan').value,whatsapp:document.getElementById('cfg-whats').value,pixChave:document.getElementById('cfg-pix').value,pixNome:document.getElementById('cfg-pix-nome').value,pixCidade:document.getElementById('cfg-pix-cidade').value};
+  CONFIG={nomeLoja:document.getElementById('cfg-loja').value,subtitulo:document.getElementById('cfg-slogan').value,whatsapp:document.getElementById('cfg-whats').value,pixChave:document.getElementById('cfg-pix').value,pixNome:document.getElementById('cfg-pix-nome').value,pixCidade:document.getElementById('cfg-pix-cidade').value,taxasJuros:coletarTaxasGrid()};
   await db.collection('config').doc(uid).set(CONFIG,{merge:true});
   await db.collection('vendedores').doc(VENDEDOR_DOC.id).update({nomeLoja:CONFIG.nomeLoja,whatsapp:CONFIG.whatsapp});
   document.getElementById('sb-loja-nome').textContent=CONFIG.nomeLoja||'Minha Loja';
