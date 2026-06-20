@@ -1,930 +1,788 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Meu Closet - Super Admin</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<!-- MODO DEMO: substitui o Firebase real por uma versão local (localStorage). Para publicar de verdade, troque este script pelos 3 scripts reais do Firebase (veja GUIA-PUBLICAR.html) -->
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Meu Closet – Super Admin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
 <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
-<!-- <script src="firebase-demo-shim.js"></script> -->
 <style>
-:root {
---bg: #F3F0FA;
---surface: #FFFFFF;
---border: #E7E2F4;
---purple: #7C3AED;
---purple-dark: #5B21B6;
---purple-light: #EDE7FB;
---sidebar: #1A1830;
---sidebar-hover: #252140;
---sidebar-text: #A8A4C0;
---text: #1F1B2E;
---muted: #6B6B80;
---success: #16A34A;
---danger: #DC2626;
---warning: #D97706;
---info: #2563EB;
---font-head: 'Poppins', sans-serif;
---font-body: 'Inter', sans-serif;
---r: 14px;
---sb-w: 230px;
-}
-*, *::before, *::after {
-box-sizing: border-box;
-margin: 0;
-padding: 0;
-}
-body {
-font-family: var(--font-body);
-background: var(--bg);
-color: var(--text);
-min-height: 100vh;
--webkit-font-smoothing: antialiased;
-}
-button {
-cursor: pointer;
-border: none;
-font-family: var(--font-body);
-}
-input, select, textarea {
-font-family: var(--font-body);
-}
-::-webkit-scrollbar {
-width: 6px;
-}
-::-webkit-scrollbar-thumb {
-background: var(--border);
-border-radius: 10px;
-}
-.loading {
-position: fixed;
-inset: 0;
-background: var(--bg);
-display: flex;
-flex-direction: column;
-align-items: center;
-justify-content: center;
-gap: 14px;
-z-index: 999;
-}
-.spin {
-width: 32px;
-height: 32px;
-border: 3px solid var(--border);
-border-top-color: var(--purple);
-border-radius: 50%;
-animation: spin 0.8s linear infinite;
-}
-@keyframes spin {
-to { transform: rotate(360deg); }
-}
-.auth-screen {
-display: none;
-min-height: 100vh;
-align-items: center;
-justify-content: center;
-background: linear-gradient(160deg, #F3F0FA 0%, #EDE4FB 100%);
-padding: 20px;
-}
-.auth-screen.active {
-display: flex;
-}
-.auth-box {
-background: #fff;
-border: 1px solid var(--border);
-border-radius: 22px;
-padding: 44px 38px;
-width: 100%;
-max-width: 410px;
-text-align: center;
-box-shadow: 0 14px 40px rgba(124, 58, 237, 0.10);
-}
-.auth-logo {
-font-family: var(--font-head);
-font-weight: 800;
-font-size: 1.7rem;
-color: var(--purple-dark);
-margin-bottom: 6px;
-}
-.auth-badge {
-display: inline-block;
-background: var(--purple-light);
-color: var(--purple-dark);
-border-radius: 20px;
-padding: 4px 13px;
-font-size: 0.74rem;
-font-weight: 700;
-margin-bottom: 18px;
-}
-.auth-sub {
-color: var(--muted);
-font-size: 0.88rem;
-margin-bottom: 28px;
-}
-.fg {
-margin-bottom: 15px;
-text-align: left;
-}
-.fg label {
-display: block;
-font-size: 0.74rem;
-color: var(--muted);
-margin-bottom: 6px;
-text-transform: uppercase;
-letter-spacing: 0.05em;
-font-weight: 600;
-}
-.fg input, .fg select, .fg textarea {
-width: 100%;
-background: var(--bg);
-border: 1px solid var(--border);
-border-radius: 9px;
-padding: 10px 14px;
-color: var(--text);
-font-size: 0.92rem;
-}
-.fg input:focus, .fg select:focus, .fg textarea:focus {
-outline: none;
-border-color: var(--purple);
-background: #fff;
-}
-.fg textarea {
-resize: vertical;
-min-height: 74px;
-}
-.form-row {
-display: grid;
-grid-template-columns: 1fr 1fr;
-gap: 12px;
-}
-.btn {
-display: inline-flex;
-align-items: center;
-justify-content: center;
-gap: 7px;
-padding: 10px 20px;
-border-radius: 10px;
-font-weight: 600;
-font-size: 0.86rem;
-transition: opacity 0.15s, transform 0.1s, background 0.15s;
-}
-.btn:active {
-transform: scale(0.97);
-}
-.btn-primary {
-background: var(--purple);
-color: #fff;
-}
-.btn-primary:hover {
-background: var(--purple-dark);
-}
-.btn-secondary {
-background: var(--bg);
-color: var(--text);
-border: 1px solid var(--border);
-}
-.btn-secondary:hover {
-border-color: var(--purple);
-}
-.btn-success {
-background: #DCFCE7;
-color: var(--success);
-}
-.btn-success:hover {
-background: #BBF7D0;
-}
-.btn-warning {
-background: #FEF3C7;
-color: var(--warning);
-}
-.btn-warning:hover {
-background: #FDE68A;
-}
-.btn-danger {
-background: #FEE2E2;
-color: var(--danger);
-}
-.btn-danger:hover {
-background: #FECACA;
-}
-.btn-full {
-width: 100%;
-}
-.btn-sm {
-padding: 7px 15px;
-font-size: 0.8rem;
-}
-.btn-xs {
-padding: 5px 11px;
-font-size: 0.74rem;
-}
-.app {
-display: none;
-}
-.app.active {
-display: flex;
-min-height: 100vh;
-}
-.sidebar {
-width: var(--sb-w);
-background: var(--sidebar);
-display: flex;
-flex-direction: column;
-position: sticky;
-top: 0;
-height: 100vh;
-overflow-y: auto;
-flex-shrink: 0;
-}
-.sb-logo {
-padding: 24px 20px 18px;
-}
-.sb-logo-text {
-font-family: var(--font-head);
-font-weight: 800;
-font-size: 1.2rem;
-color: #fff;
-display: flex;
-align-items: center;
-gap: 8px;
-}
-.sb-badge {
-display: inline-block;
-background: rgba(124, 58, 237, 0.25);
-color: #D8B4FE;
-border-radius: 20px;
-padding: 2px 10px;
-font-size: 0.65rem;
-margin-top: 6px;
-font-weight: 700;
-}
-.nav-section {
-padding: 16px 18px 6px;
-font-size: 0.65rem;
-color: #6E6A90;
-text-transform: uppercase;
-letter-spacing: 0.1em;
-font-weight: 700;
-}
-.nav-item {
-display: flex;
-align-items: center;
-gap: 10px;
-padding: 10px 16px;
-border-radius: 9px;
-margin: 2px 10px;
-font-size: 0.86rem;
-color: var(--sidebar-text);
-cursor: pointer;
-transition: all 0.15s;
-}
-.nav-item:hover {
-background: var(--sidebar-hover);
-color: #fff;
-}
-.nav-item.active {
-background: var(--purple);
-color: #fff;
-}
-.nav-item svg {
-flex-shrink: 0;
-width: 16px;
-height: 16px;
-}
-.sb-bottom {
-margin-top: auto;
-padding: 16px;
-border-top: 1px solid #2A2650;
-}
-.user-chip {
-display: flex;
-align-items: center;
-gap: 10px;
-font-size: 0.8rem;
-color: var(--sidebar-text);
-}
-.user-av {
-width: 32px;
-height: 32px;
-border-radius: 50%;
-background: linear-gradient(135deg, var(--purple), #EC4899);
-color: #fff;
-font-weight: 700;
-font-size: 0.8rem;
-display: flex;
-align-items: center;
-justify-content: center;
-flex-shrink: 0;
-}
-.main {
-flex: 1;
-overflow-y: auto;
-}
-.topbar {
-background: #fff;
-border-bottom: 1px solid var(--border);
-padding: 16px 28px;
-display: flex;
-align-items: center;
-justify-content: space-between;
-gap: 12px;
-position: sticky;
-top: 0;
-z-index: 10;
-}
-.topbar-title {
-font-family: var(--font-head);
-font-weight: 700;
-font-size: 1.2rem;
-}
-.page {
-padding: 26px 28px;
-display: none;
-}
-.page.active {
-display: block;
-}
-.stats-grid {
-display: grid;
-grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
-gap: 16px;
-margin-bottom: 22px;
-}
-.stat-card {
-background: #fff;
-border: 1px solid var(--border);
-border-radius: var(--r);
-padding: 18px;
-}
-.stat-label {
-font-size: 0.74rem;
-color: var(--muted);
-text-transform: uppercase;
-letter-spacing: 0.05em;
-margin-bottom: 7px;
-font-weight: 600;
-}
-.stat-value {
-font-family: var(--font-head);
-font-weight: 800;
-font-size: 1.7rem;
-color: var(--text);
-}
-.stat-sub {
-font-size: 0.74rem;
-color: var(--muted);
-margin-top: 6px;
-}
-.table-wrap {
-background: #fff;
-border: 1px solid var(--border);
-border-radius: var(--r);
-overflow: hidden;
-overflow-x: auto;
-}
-table {
-width: 100%;
-border-collapse: collapse;
-font-size: 0.86rem;
-}
-th {
-background: var(--bg);
-padding: 11px 16px;
-text-align: left;
-font-size: 0.7rem;
-text-transform: uppercase;
-letter-spacing: 0.05em;
-color: var(--muted);
-font-weight: 700;
-white-space: nowrap;
-}
-td {
-padding: 11px 16px;
-border-top: 1px solid var(--border);
-vertical-align: middle;
-}
-tr:hover td {
-background: #FAF9FD;
-}
-.badge-status {
-display: inline-block;
-padding: 3px 10px;
-border-radius: 20px;
-font-size: 0.72rem;
-font-weight: 600;
-}
-.badge-ativo {
-background: #DCFCE7;
-color: var(--success);
-}
-.badge-trial {
-background: #FEF3C7;
-color: var(--warning);
-}
-.badge-expirado {
-background: #FEE2E2;
-color: var(--danger);
-}
-.badge-bloqueado {
-background: #F1F0F5;
-color: var(--muted);
-}
-.vend-grid {
-display: grid;
-grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
-gap: 16px;
-}
-.vend-card {
-background: #fff;
-border: 1px solid var(--border);
-border-radius: var(--r);
-padding: 18px;
-}
-.vend-header {
-display: flex;
-align-items: center;
-gap: 12px;
-margin-bottom: 14px;
-}
-.vend-avatar {
-width: 40px;
-height: 40px;
-border-radius: 11px;
-background: linear-gradient(135deg, var(--purple), #EC4899);
-color: #fff;
-font-weight: 700;
-font-size: 0.95rem;
-display: flex;
-align-items: center;
-justify-content: center;
-flex-shrink: 0;
-}
-.vend-name {
-font-weight: 700;
-font-size: 0.92rem;
-}
-.vend-email {
-font-size: 0.76rem;
-color: var(--muted);
-}
-.vend-meta {
-display: flex;
-gap: 16px;
-margin-bottom: 14px;
-font-size: 0.8rem;
-color: var(--muted);
-}
-.vend-meta strong {
-color: var(--text);
-}
-.progress-bar {
-background: var(--bg);
-border-radius: 20px;
-height: 6px;
-overflow: hidden;
-margin-bottom: 14px;
-}
-.progress-fill {
-height: 100%;
-border-radius: 20px;
-}
-.vend-actions {
-display: flex;
-gap: 6px;
-flex-wrap: wrap;
-}
-.plan-grid {
-display: grid;
-grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
-gap: 14px;
-margin-bottom: 20px;
-}
-.plan-card {
-background: #fff;
-border: 2px solid var(--border);
-border-radius: var(--r);
-padding: 18px;
-}
-.plan-name {
-font-weight: 700;
-font-size: 0.98rem;
-margin-bottom: 4px;
-}
-.plan-price {
-font-family: var(--font-head);
-font-size: 1.35rem;
-font-weight: 800;
-color: var(--purple-dark);
-}
-.plan-price span {
-font-size: 0.72rem;
-color: var(--muted);
-font-weight: 400;
-}
-.plan-features {
-font-size: 0.76rem;
-color: var(--muted);
-margin-top: 8px;
-line-height: 1.7;
-white-space: pre-line;
-}
-.tabs {
-display: flex;
-gap: 4px;
-background: var(--bg);
-border-radius: 11px;
-padding: 4px;
-margin-bottom: 20px;
-}
-.tab {
-flex: 1;
-text-align: center;
-padding: 7px 10px;
-border-radius: 8px;
-font-size: 0.82rem;
-font-weight: 600;
-color: var(--muted);
-cursor: pointer;
-transition: all 0.15s;
-}
-.tab.active {
-background: var(--purple);
-color: #fff;
-}
-.link-box {
-background: var(--bg);
-border: 1px solid var(--border);
-border-radius: 9px;
-padding: 10px 14px;
-font-size: 0.82rem;
-color: var(--muted);
-word-break: break-all;
-display: flex;
-align-items: center;
-justify-content: space-between;
-gap: 8px;
-margin-top: 8px;
-}
-.link-box code {
-color: var(--purple-dark);
-flex: 1;
-}
-.modal-bg {
-display: none;
-position: fixed;
-inset: 0;
-background: rgba(31, 27, 46, 0.55);
-z-index: 500;
-align-items: center;
-justify-content: center;
-padding: 16px;
-backdrop-filter: blur(2px);
-}
-.modal-bg.open {
-display: flex;
-}
-.modal {
-background: #fff;
-border-radius: 18px;
-padding: 28px;
-width: 100%;
-max-width: 500px;
-max-height: 90vh;
-overflow-y: auto;
-position: relative;
-box-shadow: 0 24px 60px rgba(31, 27, 46, 0.2);
-}
-.modal h2 {
-font-family: var(--font-head);
-font-weight: 700;
-font-size: 1.25rem;
-margin-bottom: 18px;
-color: var(--purple-dark);
-}
-.modal-close {
-position: absolute;
-top: 16px;
-right: 16px;
-background: var(--bg);
-width: 30px;
-height: 30px;
-border-radius: 50%;
-color: var(--muted);
-font-size: 1.05rem;
-display: flex;
-align-items: center;
-justify-content: center;
-}
-.modal-close:hover {
-background: var(--purple-light);
-color: var(--purple-dark);
-}
-.toast-area {
-position: fixed;
-bottom: 22px;
-right: 22px;
-z-index: 9999;
-display: flex;
-flex-direction: column;
-gap: 8px;
-}
-.toast {
-background: #fff;
-border: 1px solid var(--border);
-border-left: 4px solid var(--purple);
-border-radius: 10px;
-padding: 12px 18px;
-font-size: 0.85rem;
-min-width: 220px;
-box-shadow: 0 8px 24px rgba(31, 27, 46, 0.12);
-animation: tin 0.25s ease;
-}
-.toast.success {
-border-left-color: var(--success);
-}
-.toast.error {
-border-left-color: var(--danger);
-}
-@keyframes tin {
-from { opacity: 0; transform: translateY(8px); }
-to { opacity: 1; transform: translateY(0); }
-}
-.menu-toggle {
-display: none;
-background: none;
-color: var(--text);
-font-size: 1.4rem;
-}
-@media (max-width: 768px) {
-.sidebar {
-position: fixed;
-left: -250px;
-top: 0;
-z-index: 200;
-height: 100vh;
-transition: left 0.22s;
-}
-.sidebar.open {
-left: 0;
-}
-.menu-toggle {
-display: block;
-}
-.main {
-width: 100%;
-}
-.page {
-padding: 16px;
-}
-.stats-grid {
-grid-template-columns: 1fr 1fr;
-}
-.form-row {
-grid-template-columns: 1fr;
-}
-}
+  :root{
+    --bg:#F3F0FA; --surface:#FFFFFF; --border:#E7E2F4;
+    --purple:#7C3AED; --purple-dark:#5B21B6; --purple-light:#EDE7FB;
+    --sidebar:#1A1830; --sidebar-hover:#252140; --sidebar-text:#A8A4C0;
+    --text:#1F1B2E; --muted:#6B6B80;
+    --success:#16A34A; --danger:#DC2626; --warning:#D97706; --info:#2563EB;
+    --font-head:'Poppins',sans-serif; --font-body:'Inter',sans-serif;
+    --r:14px; --sb-w:230px;
+  }
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:var(--font-body);background:var(--bg);color:var(--text);min-height:100vh;-webkit-font-smoothing:antialiased}
+  button{cursor:pointer;border:none;font-family:var(--font-body)}
+  input,select,textarea{font-family:var(--font-body)}
+  ::-webkit-scrollbar{width:6px}::-webkit-scrollbar-thumb{background:var(--border);border-radius:10px}
+
+  #loading{position:fixed;inset:0;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;z-index:999}
+  .spin{width:32px;height:32px;border:3px solid var(--border);border-top-color:var(--purple);border-radius:50%;animation:spin .8s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+
+  /* Auth */
+  #auth-screen{display:none;min-height:100vh;align-items:center;justify-content:center;background:linear-gradient(160deg,#F3F0FA 0%,#EDE4FB 100%);padding:20px}
+  #auth-screen.active{display:flex}
+  .auth-box{background:#fff;border:1px solid var(--border);border-radius:22px;padding:44px 38px;width:100%;max-width:410px;text-align:center;box-shadow:0 14px 40px rgba(124,58,237,.1)}
+  .auth-logo{font-family:var(--font-head);font-weight:800;font-size:1.7rem;color:var(--purple-dark);margin-bottom:6px}
+  .auth-badge{display:inline-block;background:var(--purple-light);color:var(--purple-dark);border-radius:20px;padding:4px 13px;font-size:.74rem;font-weight:700;margin-bottom:18px}
+  .auth-sub{color:var(--muted);font-size:.88rem;margin-bottom:28px}
+
+  /* Form */
+  .fg{margin-bottom:15px;text-align:left}
+  .fg label{display:block;font-size:.74rem;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:.05em;font-weight:600}
+  .fg input,.fg select,.fg textarea{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:9px;padding:10px 14px;color:var(--text);font-size:.92rem}
+  .fg input:focus,.fg select:focus,.fg textarea:focus{outline:none;border-color:var(--purple);background:#fff}
+  .fg textarea{resize:vertical;min-height:74px}
+  .form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+
+  /* Buttons */
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;padding:10px 20px;border-radius:10px;font-weight:600;font-size:.86rem;transition:opacity .15s,transform .1s,background .15s}
+  .btn:active{transform:scale(.97)}
+  .btn-primary{background:var(--purple);color:#fff}.btn-primary:hover{background:var(--purple-dark)}
+  .btn-secondary{background:var(--bg);color:var(--text);border:1px solid var(--border)}.btn-secondary:hover{border-color:var(--purple)}
+  .btn-success{background:#DCFCE7;color:var(--success)}.btn-success:hover{background:#BBF7D0}
+  .btn-warning{background:#FEF3C7;color:var(--warning)}.btn-warning:hover{background:#FDE68A}
+  .btn-danger{background:#FEE2E2;color:var(--danger)}.btn-danger:hover{background:#FECACA}
+  .btn-full{width:100%}
+  .btn-sm{padding:7px 15px;font-size:.8rem}
+  .btn-xs{padding:5px 11px;font-size:.74rem}
+
+  /* Layout */
+  #app{display:none}
+  #app.active{display:flex;min-height:100vh}
+  .sidebar{width:var(--sb-w);background:var(--sidebar);display:flex;flex-direction:column;position:sticky;top:0;height:100vh;overflow-y:auto;flex-shrink:0}
+  .sb-logo{padding:24px 20px 18px}
+  .sb-logo-text{font-family:var(--font-head);font-weight:800;font-size:1.2rem;color:#fff;display:flex;align-items:center;gap:8px}
+  .sb-badge{display:inline-block;background:rgba(124,58,237,.25);color:#D8B4FE;border-radius:20px;padding:2px 10px;font-size:.65rem;margin-top:6px;font-weight:700}
+  .nav-section{padding:16px 18px 6px;font-size:.65rem;color:#6E6A90;text-transform:uppercase;letter-spacing:.1em;font-weight:700}
+  .nav-item{display:flex;align-items:center;gap:10px;padding:10px 16px;border-radius:9px;margin:2px 10px;font-size:.86rem;color:var(--sidebar-text);cursor:pointer;transition:all .15s}
+  .nav-item:hover{background:var(--sidebar-hover);color:#fff}
+  .nav-item.active{background:var(--purple);color:#fff}
+  .nav-item svg{flex-shrink:0;width:16px;height:16px}
+  .sb-bottom{margin-top:auto;padding:16px;border-top:1px solid #2A2650}
+  .user-chip{display:flex;align-items:center;gap:10px;font-size:.8rem;color:var(--sidebar-text)}
+  .user-av{width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,var(--purple),#EC4899);color:#fff;font-weight:700;font-size:.8rem;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+
+  .main{flex:1;overflow-y:auto}
+  .topbar{background:#fff;border-bottom:1px solid var(--border);padding:16px 28px;display:flex;align-items:center;justify-content:space-between;gap:12px;position:sticky;top:0;z-index:10}
+  .topbar-title{font-family:var(--font-head);font-weight:700;font-size:1.2rem}
+  .page{padding:26px 28px;display:none}
+  .page.active{display:block}
+
+  /* Stats */
+  .stats-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:16px;margin-bottom:22px}
+  .stat-card{background:#fff;border:1px solid var(--border);border-radius:var(--r);padding:18px}
+  .stat-label{font-size:.74rem;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:7px;font-weight:600}
+  .stat-value{font-family:var(--font-head);font-weight:800;font-size:1.7rem;color:var(--text)}
+  .stat-sub{font-size:.74rem;color:var(--muted);margin-top:6px}
+
+  /* Table */
+  .table-wrap{background:#fff;border:1px solid var(--border);border-radius:var(--r);overflow:hidden;overflow-x:auto}
+  table{width:100%;border-collapse:collapse;font-size:.86rem}
+  th{background:var(--bg);padding:11px 16px;text-align:left;font-size:.7rem;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:700;white-space:nowrap}
+  td{padding:11px 16px;border-top:1px solid var(--border);vertical-align:middle}
+  tr:hover td{background:#FAF9FD}
+
+  /* Badges */
+  .badge-status{display:inline-block;padding:3px 10px;border-radius:20px;font-size:.72rem;font-weight:600}
+  .badge-ativo{background:#DCFCE7;color:var(--success)}
+  .badge-trial{background:#FEF3C7;color:var(--warning)}
+  .badge-expirado{background:#FEE2E2;color:var(--danger)}
+  .badge-bloqueado{background:#F1F0F5;color:var(--muted)}
+
+  /* Vendedor card */
+  .vend-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:16px}
+  .vend-card{background:#fff;border:1px solid var(--border);border-radius:var(--r);padding:18px}
+  .vend-header{display:flex;align-items:center;gap:12px;margin-bottom:14px}
+  .vend-avatar{width:40px;height:40px;border-radius:11px;background:linear-gradient(135deg,var(--purple),#EC4899);color:#fff;font-weight:700;font-size:.95rem;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+  .vend-name{font-weight:700;font-size:.92rem}
+  .vend-email{font-size:.76rem;color:var(--muted)}
+  .vend-meta{display:flex;gap:16px;margin-bottom:14px;font-size:.8rem;color:var(--muted)}
+  .vend-meta strong{color:var(--text)}
+  .progress-bar{background:var(--bg);border-radius:20px;height:6px;overflow:hidden;margin-bottom:14px}
+  .progress-fill{height:100%;border-radius:20px}
+  .vend-actions{display:flex;gap:6px;flex-wrap:wrap}
+
+  /* Plan cards */
+  .plan-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:14px;margin-bottom:20px}
+  .plan-card{background:#fff;border:2px solid var(--border);border-radius:var(--r);padding:18px}
+  .plan-name{font-weight:700;font-size:.98rem;margin-bottom:4px}
+  .plan-price{font-family:var(--font-head);font-size:1.35rem;font-weight:800;color:var(--purple-dark)}
+  .plan-price span{font-size:.72rem;color:var(--muted);font-weight:400}
+  .plan-features{font-size:.76rem;color:var(--muted);margin-top:8px;line-height:1.7;white-space:pre-line}
+
+  /* Tabs */
+  .tabs{display:flex;gap:4px;background:var(--bg);border-radius:11px;padding:4px;margin-bottom:20px}
+  .tab{flex:1;text-align:center;padding:7px 10px;border-radius:8px;font-size:.82rem;font-weight:600;color:var(--muted);cursor:pointer;transition:all .15s}
+  .tab.active{background:var(--purple);color:#fff}
+
+  /* Link box */
+  .link-box{background:var(--bg);border:1px solid var(--border);border-radius:9px;padding:10px 14px;font-size:.82rem;color:var(--muted);word-break:break-all;display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:8px}
+  .link-box code{color:var(--purple-dark);flex:1}
+
+  /* Modal */
+  .modal-bg{display:none;position:fixed;inset:0;background:rgba(31,27,46,.55);z-index:500;align-items:center;justify-content:center;padding:16px;backdrop-filter:blur(2px)}
+  .modal-bg.open{display:flex}
+  .modal{background:#fff;border-radius:18px;padding:28px;width:100%;max-width:500px;max-height:90vh;overflow-y:auto;position:relative;box-shadow:0 24px 60px rgba(31,27,46,.2)}
+  .modal h2{font-family:var(--font-head);font-weight:700;font-size:1.25rem;margin-bottom:18px;color:var(--purple-dark)}
+  .modal-close{position:absolute;top:16px;right:16px;background:var(--bg);width:30px;height:30px;border-radius:50%;color:var(--muted);font-size:1.05rem;display:flex;align-items:center;justify-content:center}
+  .modal-close:hover{background:var(--purple-light);color:var(--purple-dark)}
+
+  /* Toast */
+  #toast-area{position:fixed;bottom:22px;right:22px;z-index:9999;display:flex;flex-direction:column;gap:8px}
+  .toast{background:#fff;border:1px solid var(--border);border-left:4px solid var(--purple);border-radius:10px;padding:12px 18px;font-size:.85rem;min-width:220px;box-shadow:0 8px 24px rgba(31,27,46,.12);animation:tin .25s ease}
+  .toast.success{border-left-color:var(--success)}
+  .toast.error{border-left-color:var(--danger)}
+  @keyframes tin{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+
+  .menu-toggle{display:none;background:none;color:var(--text);font-size:1.4rem}
+  @media(max-width:768px){
+    .sidebar{position:fixed;left:-250px;top:0;z-index:200;height:100vh;transition:left .22s}
+    .sidebar.open{left:0}
+    .menu-toggle{display:block}
+    .main{width:100%}
+    .page{padding:16px}
+    .stats-grid{grid-template-columns:1fr 1fr}
+    .form-row{grid-template-columns:1fr}
+  }
 </style>
-</head><body>
-        <div class="app">
-        <aside class="sidebar">
-            <div class="side-brand">
-                <span class="emoji">&#128095;</span>
-                <strong>ClosetPro</strong>
-            </div>
-            <nav class="side-nav">
-                <a href="/" class="nav-item"><span class="emoji">&#127968;</span> In&iacute;cio</a>
-                <a href="/loja" class="nav-item"><span class="emoji">&#128095;</span> Lojas</a>
-                <a href="/admin" class="nav-item active"><span class="emoji">&#128274;</span> Admin</a>
-            </nav>
-        </aside>
-        <main class="main">
-            <header class="top-bar">
-                <button class="menu-toggle" onclick="toggleSidebar()">&#9776;</button>
-                <h1 class="brand"><span class="emoji">&#128095;</span> ClosetPro Admin</h1>
-                <nav class="top-nav">
-                    <a href="/">In&iacute;cio</a>
-                    <a href="/loja">Lojas</a>
-                    <a href="/admin" class="active">&#128274; Admin</a>
-                </nav>
-            </header>
-            <div class="page">
-                <div class="stats-grid">
-                    <div class="stat-card stat-primary">
-                        <span class="stat-emoji">&#127978;</span>
-                        <div class="stat-label">Lojas Ativas</div>
-                        <div class="stat-value" id="total-lojas">6</div>
-                    </div>
-                    <div class="stat-card">
-                        <span class="stat-emoji">&#128722;</span>
-                        <div class="stat-label">Produtos</div>
-                        <div class="stat-value">308</div>
-                    </div>
-                    <div class="stat-card">
-                        <span class="stat-emoji">&#128176;</span>
-                        <div class="stat-label">Faturamento</div>
-                        <div class="stat-value">R$ 48.920</div>
-                    </div>
-                    <div class="stat-card">
-                        <span class="stat-emoji">&#128101;</span>
-                        <div class="stat-label">Clientes</div>
-                        <div class="stat-value">1,247</div>
-                    </div>
-                </div>
-                <section class="panel vend-section">
-                    <div class="panel-head">
-                        <h3 class="panel-title">Gerenciar Lojas</h3>
-                        <button class="btn btn-sm btn-add" onclick="showForm('nova-loja')">+ Nova Loja</button>
-                    </div>
-                    <div class="panel-body">
-                        <div class="table-wrap">
-                            <table class="vend-list" id="tabela-lojas">
-                                <thead>
-                                    <tr>
-                                        <th>Loja</th>
-                                        <th>Categoria</th>
-                                        <th>Produtos</th>
-                                        <th>Status</th>
-                                        <th>A&ccedil;&otilde;es</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <tr>
-                                        <td>Boutique Elegance</td>
-                                        <td>Roupas</td>
-                                        <td>48</td>
-                                        <td><span class="badge badge-active">Ativo</span></td>
-                                        <td class="vend-actions">
-                                            <button class="btn btn-sm btn-blue" onclick="editStore(this)">Editar</button>
-                                            <button class="btn btn-sm btn-red" onclick="toggleStatus(this)">Bloquear</button>
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <td>Sapatos Style</td>
-                                        <td>Cal&ccedil;ados</td>
-                                        <td>32</td>
-                                        <td><span class="badge badge-active">Ativo</span></td>
-                                        <td class="vend-actions">
-                                            <button class="btn btn-sm btn-blue" onclick="editStore(this)">Editar</button>
-                                            <button class="btn btn-sm btn-red" onclick="toggleStatus(this)">Bloquear</button>
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <td>Acess&oacute;rios Chic</td>
-                                        <td>Acess&oacute;rios</td>
-                                        <td>60</td>
-                                        <td><span class="badge badge-active">Ativo</span></td>
-                                        <td class="vend-actions">
-                                            <button class="btn btn-sm btn-blue" onclick="editStore(this)">Editar</button>
-                                            <button class="btn btn-sm btn-red" onclick="toggleStatus(this)">Bloquear</button>
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <td>ModaMasc</td>
-                                        <td>Roupas</td>
-                                        <td>25</td>
-                                        <td><span class="badge badge-active">Ativo</span></td>
-                                        <td class="vend-actions">
-                                            <button class="btn btn-sm btn-blue" onclick="editStore(this)">Editar</button>
-                                            <button class="btn btn-sm btn-red" onclick="toggleStatus(this)">Bloquear</button>
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <td>Sneaker House</td>
-                                        <td>Cal&ccedil;ados</td>
-                                        <td>55</td>
-                                        <td><span class="badge badge-active">Ativo</span></td>
-                                        <td class="vend-actions">
-                                            <button class="btn btn-sm btn-blue" onclick="editStore(this)">Editar</button>
-                                            <button class="btn btn-sm btn-red" onclick="toggleStatus(this)">Bloquear</button>
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <td>Joias &amp; Cia</td>
-                                        <td>Acess&oacute;rios</td>
-                                        <td>88</td>
-                                        <td><span class="badge badge-active">Ativo</span></td>
-                                        <td class="vend-actions">
-                                            <button class="btn btn-sm btn-blue" onclick="editStore(this)">Editar</button>
-                                            <button class="btn btn-sm btn-red" onclick="toggleStatus(this)">Bloquear</button>
-                                        </td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </section>
-                <section class="panel form-section" id="nova-loja" style="display:none;">
-                    <div class="panel-head">
-                        <h3 class="panel-title"><span class="emoji">&#127978;</span> Cadastrar Nova Loja</h3>
-                    </div>
-                    <div class="panel-body">
-                        <div class="form-row">
-                            <input type="text" id="nome-loja" placeholder="Nome da Loja">
-                            <input type="text" id="cat-loja" placeholder="Categoria (Roupas, Cal&ccedil;ados, Acess&oacute;rios)">
-                        </div>
-                        <div class="form-row">
-                            <input type="email" id="email-loja" placeholder="E-mail do respons&aacute;vel">
-                        </div>
-                        <div class="form-actions">
-                            <button class="btn btn-success" onclick="saveStore()">Salvar Loja</button>
-                            <button class="btn btn-gray" onclick="hideForm('nova-loja')">Cancelar</button>
-                        </div>
-                    </div>
-                </section>
-                <footer class="site-footer">
-                    <p>&copy; 2026 ClosetPro - Marketplace RvL | Admin</p>
-                </footer>
-            </div>
-        </main>
+</head>
+<body>
+
+<div id="loading">
+  <div style="font-family:'Poppins',sans-serif;font-weight:800;font-size:1.6rem;color:#7C3AED">👗 Meu Closet</div>
+  <div class="spin"></div>
+  <p style="color:#6B6B80;font-size:.82rem">Carregando…</p>
+</div>
+
+<!-- Auth -->
+<div id="auth-screen">
+  <div class="auth-box">
+    <div class="auth-logo">👗 Meu Closet</div>
+    <div class="auth-badge">⚡ Super Admin</div>
+    <p class="auth-sub">Gerencie todos os vendedores da plataforma</p>
+    <div class="fg"><label>E-mail do administrador</label><input type="email" id="login-email" placeholder="admin@seuemail.com"/></div>
+    <div class="fg"><label>Senha</label><input type="password" id="login-pass" placeholder="••••••••"/></div>
+    <button class="btn btn-primary btn-full" onclick="doLogin()">Entrar</button>
+    <p style="margin-top:14px;font-size:.76rem;color:var(--muted)">Acesso restrito ao administrador da plataforma.</p>
+  </div>
+</div>
+
+<!-- App -->
+<div id="app">
+  <aside class="sidebar" id="sidebar">
+    <div class="sb-logo">
+      <div class="sb-logo-text">👗 Meu Closet</div>
+      <div class="sb-badge">⚡ Super Admin</div>
     </div>
-    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
-    <script>
-        const firebaseConfig = {
-            apiKey: "AIzaSyDe2v375f4qcWTYxj_P6s77SD3GsYYzuUM",
-            authDomain: "rvl-marketplace.firebaseapp.com",
-            projectId: "rvl-marketplace",
-            storageBucket: "rvl-marketplace.appspot.com",
-            messagingSenderId: "325572658544",
-            appId: "1:325572658544:web:ef6b3f13dfa0488fc97bbs"
-        };
-        firebase.initializeApp(firebaseConfig);
+    <p class="nav-section">Gestão</p>
+    <div class="nav-item active" onclick="goPage('dashboard')">
+      <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+      Dashboard
+    </div>
+    <div class="nav-item" onclick="goPage('vendedores')">
+      <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
+      Vendedores
+    </div>
+    <div class="nav-item" onclick="goPage('planos')">
+      <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+      Planos
+    </div>
+    <p class="nav-section">Config.</p>
+    <div class="nav-item" onclick="goPage('configuracoes')">
+      <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+      Configurações
+    </div>
+    <div class="sb-bottom">
+      <div class="user-chip">
+        <div class="user-av" id="user-av">A</div>
+        <div>
+          <div id="user-name" style="color:#fff;font-size:.8rem;font-weight:600">Admin</div>
+          <div style="font-size:.68rem">Super Administrador</div>
+        </div>
+      </div>
+      <button class="btn btn-secondary btn-sm btn-full" style="margin-top:10px" onclick="doLogout()">Sair</button>
+    </div>
+  </aside>
 
-        function toggleSidebar() {
-            document.querySelector('.sidebar').classList.toggle('open');
-        }
+  <div class="main">
+    <div class="topbar">
+      <div style="display:flex;align-items:center;gap:10px">
+        <button class="menu-toggle" onclick="document.getElementById('sidebar').classList.toggle('open')">☰</button>
+        <div class="topbar-title" id="page-title">Dashboard</div>
+      </div>
+      <button class="btn btn-primary btn-sm" id="topbar-action-btn" onclick="openModal('modal-novo-vendedor')">+ Novo Vendedor</button>
+    </div>
 
-        function showForm(id) {
-            document.getElementById(id).style.display = 'block';
-        }
+    <!-- DASHBOARD -->
+    <div class="page active" id="page-dashboard">
+      <div class="stats-grid" id="dash-stats"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+        <div class="table-wrap" style="padding:18px">
+          <h3 style="font-size:.8rem;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:14px;font-weight:700">Vendedores recentes</h3>
+          <div id="dash-recentes"></div>
+        </div>
+        <div class="table-wrap" style="padding:18px">
+          <h3 style="font-size:.8rem;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:14px;font-weight:700">Expirando em 7 dias</h3>
+          <div id="dash-expirando"></div>
+        </div>
+      </div>
+    </div>
 
-        function hideForm(id) {
-            document.getElementById(id).style.display = 'none';
-        }
+    <!-- VENDEDORES -->
+    <div class="page" id="page-vendedores">
+      <div style="display:flex;gap:10px;margin-bottom:18px;flex-wrap:wrap;align-items:center">
+        <input type="text" id="busca-vendedor" placeholder="🔍 Buscar vendedor…" oninput="filtrarVendedores()" style="background:#fff;border:1px solid var(--border);border-radius:9px;padding:9px 14px;color:var(--text);font-size:.88rem;flex:1;min-width:200px"/>
+        <select id="filtro-status" onchange="filtrarVendedores()" style="background:#fff;border:1px solid var(--border);border-radius:9px;padding:9px 12px;color:var(--text);font-size:.85rem">
+          <option value="">Todos os status</option>
+          <option value="ativo">Ativos</option>
+          <option value="trial">Em teste</option>
+          <option value="expirado">Expirados</option>
+          <option value="bloqueado">Bloqueados</option>
+        </select>
+      </div>
+      <div class="vend-grid" id="vend-grid"></div>
+    </div>
 
-        function editStore(btn) {
-            const row = btn.closest('tr');
-            const nome = row.cells[0].textContent;
-            alert('Editar: ' + nome);
-        }
+    <!-- PLANOS -->
+    <div class="page" id="page-planos">
+      <div style="display:flex;justify-content:flex-end;margin-bottom:16px">
+        <button class="btn btn-primary btn-sm" onclick="openModal('modal-novo-plano')">+ Novo plano</button>
+      </div>
+      <div class="plan-grid" id="planos-grid"></div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Nome</th><th>Preço/mês</th><th>Duração</th><th>Vendedores</th><th>Ações</th></tr></thead>
+          <tbody id="tbody-planos"></tbody>
+        </table>
+      </div>
+    </div>
 
-        function toggleStatus(btn) {
-            const row = btn.closest('tr');
-            const badge = row.querySelector('.badge');
-            if (badge.classList.contains('badge-active')) {
-                badge.classList.remove('badge-active');
-                badge.classList.add('badge-blocked');
-                badge.textContent = 'Bloqueado';
-                btn.textContent = 'Ativar';
-            } else {
-                badge.classList.remove('badge-blocked');
-                badge.classList.add('badge-active');
-                badge.textContent = 'Ativo';
-                btn.textContent = 'Bloquear';
-            }
-        }
+    <!-- CONFIGURAÇÕES -->
+    <div class="page" id="page-configuracoes">
+      <div style="max-width:560px">
+        <div class="table-wrap" style="padding:20px;margin-bottom:20px">
+          <h3 style="font-size:.8rem;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:16px;font-weight:700">Plataforma</h3>
+          <div class="fg"><label>Nome da plataforma</label><input type="text" id="cfg-plataforma" placeholder="Meu Closet"/></div>
+          <div class="fg"><label>URL base do site (sem barra no final)</label><input type="text" id="cfg-url" placeholder="https://seusite.netlify.app"/></div>
+          <div class="fg"><label>WhatsApp de suporte (com DDI+DDD)</label><input type="text" id="cfg-whats-suporte" placeholder="5511999999999"/></div>
+        </div>
+        <div class="table-wrap" style="padding:20px;margin-bottom:20px">
+          <h3 style="font-size:.8rem;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:16px;font-weight:700">Trial gratuito</h3>
+          <div class="form-row">
+            <div class="fg"><label>Dias de teste</label><input type="number" id="cfg-trial-dias" value="7" min="1" max="30"/></div>
+          </div>
+        </div>
+        <button class="btn btn-primary" onclick="salvarConfigPlataforma()">💾 Salvar configurações</button>
+      </div>
+    </div>
+  </div>
+</div>
 
-        function saveStore() {
-            const nome = document.getElementById('nome-loja').value.trim();
-            const cat = document.getElementById('cat-loja').value.trim();
-            const email = document.getElementById('email-loja').value.trim();
-            if (!nome || !cat) {
-                alert('Preencha o nome e a categoria da loja.');
-                return;
-            }
-            const tbody = document.querySelector('#tabela-lojas tbody');
-            const row = document.createElement('tr');
-            row.innerHTML = `
-                <td>${nome}</td>
-                <td>${cat}</td>
-                <td>0</td>
-                <td><span class="badge badge-active">Ativo</span></td>
-                <td class="vend-actions">
-                    <button class="btn btn-sm btn-blue" onclick="editStore(this)">Editar</button>
-                    <button class="btn btn-sm btn-red" onclick="toggleStatus(this)">Bloquear</button>
-                </td>
-            `;
-            tbody.appendChild(row);
-            document.getElementById('nome-loja').value = '';
-            document.getElementById('cat-loja').value = '';
-            document.getElementById('email-loja').value = '';
-            hideForm('nova-loja');
-            alert('Loja cadastrada com sucesso!');
-            const total = document.getElementById('total-lojas');
-            total.textContent = parseInt(total.textContent) + 1;
-        }
-    </script>
+<!-- MODAIS -->
+<div class="modal-bg" id="modal-novo-vendedor">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('modal-novo-vendedor')">✕</button>
+    <h2 id="mv-titulo">Novo Vendedor</h2>
+    <input type="hidden" id="mv-id"/>
+    <div class="fg"><label>Nome completo</label><input type="text" id="mv-nome" placeholder="Maria Silva"/></div>
+    <div class="fg"><label>Nome da loja</label><input type="text" id="mv-loja" placeholder="Meu Closet"/></div>
+    <div class="fg"><label>E-mail (login do vendedor)</label><input type="email" id="mv-email" placeholder="maria@email.com"/></div>
+    <p style="font-size:.78rem;color:var(--muted);margin:-8px 0 16px">📌 O vendedor cria sua própria senha ao se cadastrar em <strong style="color:var(--text)">vendedor.html</strong> usando este e-mail. Você só controla o acesso aqui.</p>
+    <div class="fg"><label>WhatsApp</label><input type="text" id="mv-whats" placeholder="11999999999"/></div>
+    <div class="fg"><label>Plano</label><select id="mv-plano"></select></div>
+    <div class="fg"><label>Válido até</label><input type="date" id="mv-expira"/></div>
+    <div class="fg"><label>Observações internas</label><textarea id="mv-obs" placeholder="Notas sobre este vendedor…"></textarea></div>
+    <div style="display:flex;gap:10px;margin-top:8px">
+      <button class="btn btn-primary" onclick="salvarVendedor()">Salvar</button>
+      <button class="btn btn-secondary" onclick="closeModal('modal-novo-vendedor')">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-bg" id="modal-gerenciar">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('modal-gerenciar')">✕</button>
+    <h2 id="mg-titulo">Gerenciar Vendedor</h2>
+    <input type="hidden" id="mg-id"/>
+    <div class="tabs">
+      <div class="tab active" onclick="switchMgTab('plano', this)">Plano & Acesso</div>
+      <div class="tab" onclick="switchMgTab('link', this)">Link da Loja</div>
+      <div class="tab" onclick="switchMgTab('info', this)">Informações</div>
+    </div>
+    <div id="mg-tab-plano">
+      <div style="background:var(--bg);border-radius:11px;padding:14px;margin-bottom:16px" id="mg-status-atual"></div>
+      <div class="fg"><label>Alterar plano</label><select id="mg-plano-novo"></select></div>
+      <div class="fg"><label>Nova data de expiração</label><input type="date" id="mg-nova-expira"/></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn btn-success btn-sm" onclick="renovarAcesso()">✅ Ativar / Renovar</button>
+        <button class="btn btn-warning btn-sm" onclick="darTrial()">🕐 Dar 7 dias trial</button>
+        <button class="btn btn-danger btn-sm" onclick="bloquearVendedor()">🚫 Bloquear acesso</button>
+      </div>
+    </div>
+    <div id="mg-tab-link" style="display:none">
+      <p style="color:var(--muted);font-size:.85rem;margin-bottom:10px">Link público para os clientes deste vendedor comprarem — sem acesso ao painel.</p>
+      <div class="link-box"><code id="mg-link-loja"></code><button class="btn btn-primary btn-xs" onclick="copiarLink()">Copiar</button></div>
+      <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
+        <button class="btn btn-success btn-sm" onclick="compartilharWhats()">💬 Enviar no WhatsApp</button>
+      </div>
+    </div>
+    <div id="mg-tab-info" style="display:none">
+      <div class="fg"><label>Nome</label><input type="text" id="mg-nome"/></div>
+      <div class="fg"><label>Loja</label><input type="text" id="mg-loja"/></div>
+      <div class="fg"><label>WhatsApp</label><input type="text" id="mg-whats"/></div>
+      <div class="fg"><label>Observações</label><textarea id="mg-obs"></textarea></div>
+      <button class="btn btn-primary btn-sm" onclick="atualizarInfoVendedor()">Salvar informações</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-bg" id="modal-novo-plano">
+  <div class="modal" style="max-width:440px">
+    <button class="modal-close" onclick="closeModal('modal-novo-plano')">✕</button>
+    <h2>Criar Plano</h2>
+    <div class="fg"><label>Nome do plano</label><input type="text" id="np-nome" placeholder="Plano Básico"/></div>
+    <div class="form-row">
+      <div class="fg"><label>Preço mensal (R$)</label><input type="number" id="np-preco" step="0.01" placeholder="29.90"/></div>
+      <div class="fg"><label>Duração (dias)</label><input type="number" id="np-duracao" value="30"/></div>
+    </div>
+    <div class="fg"><label>Máx. produtos ativos</label><input type="number" id="np-produtos" placeholder="20"/></div>
+    <div class="fg"><label>Benefícios (1 por linha)</label><textarea id="np-desc" placeholder="20 produtos&#10;Suporte via WhatsApp"></textarea></div>
+    <div style="display:flex;gap:10px;margin-top:8px">
+      <button class="btn btn-primary" onclick="salvarPlano()">Criar plano</button>
+      <button class="btn btn-secondary" onclick="closeModal('modal-novo-plano')">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast-area"></div>
+
 <script>
-// MODO DEMO: ativa o painel sem auth
-const app = document.querySelector('.app');
-const loading = document.querySelector('.loading');
-if (loading) loading.style.display = 'none';
-if (app) app.classList.add('active');
+/* ══════════════════════════════════════════════════════════
+   FIREBASE CONFIG — use os MESMOS dados do vendedor.html
+   ══════════════════════════════════════════════════════════ */
+const firebaseConfig = {
+  apiKey:            "AIzaSyDe2v375f4qcWTYxj_P6s77SD3GsYYzuUM",
+  authDomain:        "rvl-marketplace.firebaseapp.com",
+  projectId:         "rvl-marketplace",
+  storageBucket:     "rvl-marketplace.appspot.com",
+  messagingSenderId: "325572658544",
+  appId:             "1:325572658544:web:ef6b3f13dfa0488fc97bb5"
+};
+
+/* ══════════════════════════════════════════════════════════
+   UID DO SUPER ADMIN — preencha após criar o usuário no Firebase
+   (Authentication → Users → copie o UID gerado). Deixe vazio ""
+   no primeiro acesso; depois preencha para restringir o acesso.
+   ══════════════════════════════════════════════════════════ */
+const SUPER_ADMIN_UID = "";
+
+let BASE_URL = window.location.origin;
+let db, auth, uid;
+let VENDEDORES = [], PLANOS = [], PLATFORM_CONFIG = {};
+let vendAtual = null;
+
+window.addEventListener('DOMContentLoaded', () => {
+  try {
+    firebase.initializeApp(firebaseConfig);
+    db   = firebase.firestore();
+    auth = firebase.auth();
+    auth.onAuthStateChanged(async user => {
+      document.getElementById('loading').style.display = 'none';
+      if (user) {
+        if (SUPER_ADMIN_UID && user.uid !== SUPER_ADMIN_UID) {
+          await auth.signOut();
+          showSection('auth-screen');
+          toast('Acesso restrito ao Super Admin.', 'error');
+          return;
+        }
+        uid = user.uid;
+        document.getElementById('user-av').textContent = (user.email||'A')[0].toUpperCase();
+        document.getElementById('user-name').textContent = user.email;
+        showSection('app');
+        await carregarTudo();
+      } else {
+        showSection('auth-screen');
+      }
+    });
+  } catch(e) {
+    console.error(e);
+    document.getElementById('loading').style.display = 'none';
+    showSection('auth-screen');
+    toast('Erro ao conectar ao Firebase. Verifique as configurações.', 'error');
+  }
+});
+
+async function doLogin() {
+  const em = document.getElementById('login-email').value;
+  const pw = document.getElementById('login-pass').value;
+  if (!em || !pw) { toast('Preencha e-mail e senha.', 'error'); return; }
+  try { await auth.signInWithEmailAndPassword(em, pw); }
+  catch(e) { toast('E-mail ou senha incorretos.', 'error'); }
+}
+async function doLogout() { await auth.signOut(); showSection('auth-screen'); }
+
+function showSection(id) {
+  ['auth-screen','app'].forEach(s => {
+    const el = document.getElementById(s);
+    el.classList.remove('active'); el.style.display = '';
+  });
+  document.getElementById(id).classList.add('active');
+}
+function goPage(p) {
+  document.querySelectorAll('.page').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+  document.getElementById('page-'+p).classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(n => {
+    if (n.textContent.trim().toLowerCase().includes(p.substring(0,5))) n.classList.add('active');
+  });
+  const titles = { dashboard:'Dashboard', vendedores:'Vendedores', planos:'Planos', configuracoes:'Configurações' };
+  document.getElementById('page-title').textContent = titles[p] || p;
+  document.getElementById('sidebar').classList.remove('open');
+  const btn = document.getElementById('topbar-action-btn');
+  if (p === 'planos') { btn.textContent = '+ Novo Plano'; btn.style.display=''; btn.onclick = () => openModal('modal-novo-plano'); }
+  else if (p === 'vendedores' || p === 'dashboard') { btn.textContent = '+ Novo Vendedor'; btn.style.display=''; btn.onclick = () => openModal('modal-novo-vendedor'); }
+  else { btn.style.display = 'none'; }
+  if (p === 'dashboard')      renderDashboard();
+  if (p === 'vendedores')     renderVendedores();
+  if (p === 'planos')         renderPlanos();
+  if (p === 'configuracoes')  carregarFormConfig();
+}
+
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+document.querySelectorAll('.modal-bg').forEach(bg => bg.addEventListener('click', e => { if (e.target === bg) bg.classList.remove('open'); }));
+function toast(msg, type='info') {
+  const d = document.createElement('div');
+  d.className = `toast ${type}`; d.textContent = msg;
+  document.getElementById('toast-area').appendChild(d);
+  setTimeout(()=>d.remove(), 3200);
+}
+
+const col = name => db.collection(name);
+
+async function carregarTudo() {
+  try {
+    const [vSnap, pSnap, cfgSnap] = await Promise.all([
+      col('vendedores').get(), col('planos').get(), col('platform_config').doc('main').get()
+    ]);
+    VENDEDORES = vSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+    PLANOS     = pSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+    PLATFORM_CONFIG = cfgSnap.exists ? cfgSnap.data() : {};
+    if (PLATFORM_CONFIG.baseUrl) BASE_URL = PLATFORM_CONFIG.baseUrl;
+    if (PLANOS.length === 0) await criarPlanosDefault();
+    preencherSelectPlanos();
+    renderDashboard();
+  } catch(e) { console.error(e); toast('Erro ao carregar dados.', 'error'); }
+}
+
+async function criarPlanosDefault() {
+  const defaults = [
+    { nome:'Trial',     preco:0,     duracao:7,  maxProdutos:5,   desc:'5 produtos\n7 dias grátis\nLoja pública' },
+    { nome:'Básico',    preco:29.90, duracao:30, maxProdutos:15,  desc:'15 produtos\nSuporte WhatsApp\nDashboard completo' },
+    { nome:'Pro',       preco:59.90, duracao:30, maxProdutos:50,  desc:'50 produtos\nSuporte prioritário\nRelatórios' },
+    { nome:'Ilimitado', preco:99.90, duracao:30, maxProdutos:999, desc:'Produtos ilimitados\nSuporte dedicado' },
+  ];
+  for (const p of defaults) {
+    const ref = await col('planos').add({ ...p, criadoEm: new Date().toISOString() });
+    PLANOS.push({ id: ref.id, ...p });
+  }
+}
+function preencherSelectPlanos() {
+  const opts = PLANOS.map(p => `<option value="${p.id}">${p.nome} – ${p.preco>0 ? 'R$ '+Number(p.preco).toFixed(2)+'/mês' : 'Gratuito'} (${p.duracao}d)</option>`).join('');
+  ['mv-plano','mg-plano-novo'].forEach(id => { const el = document.getElementById(id); if (el) el.innerHTML = opts; });
+}
+
+function diasRestantes(dateStr) {
+  if (!dateStr) return 0;
+  const hoje = new Date(); hoje.setHours(0,0,0,0);
+  const exp  = new Date(dateStr);
+  return Math.floor((exp - hoje)/(1000*60*60*24));
+}
+function calcExpira(dias) { const d = new Date(); d.setDate(d.getDate() + (dias||7)); return d.toISOString().split('T')[0]; }
+function statusVend(v) {
+  if (v.bloqueado) return 'bloqueado';
+  if (!v.expiraEm) return 'trial';
+  const dias = diasRestantes(v.expiraEm);
+  if (dias < 0) return 'expirado';
+  if ((v.planoNome||'').toLowerCase() === 'trial') return 'trial';
+  return 'ativo';
+}
+function badgeStatus(st) {
+  const map = { ativo:['badge-ativo','✅ Ativo'], trial:['badge-trial','🕐 Trial'], expirado:['badge-expirado','❌ Expirado'], bloqueado:['badge-bloqueado','⛔ Bloqueado'] };
+  const [cls, label] = map[st] || ['badge-bloqueado','—'];
+  return `<span class="badge-status ${cls}">${label}</span>`;
+}
+function fmt(n) { return Number(n||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+
+function renderDashboard() {
+  const ativos = VENDEDORES.filter(v => statusVend(v)==='ativo').length;
+  const trial  = VENDEDORES.filter(v => statusVend(v)==='trial').length;
+  const expirados = VENDEDORES.filter(v => statusVend(v)==='expirado').length;
+  document.getElementById('dash-stats').innerHTML = `
+    ${stat('Total de vendedores', VENDEDORES.length, 'Cadastrados na plataforma')}
+    ${stat('Ativos', ativos, 'Assinatura em dia')}
+    ${stat('Em teste', trial, 'Período trial ativo')}
+    ${stat('Expirados', expirados, 'Precisam renovar')}
+  `;
+  const recentes = [...VENDEDORES].sort((a,b)=>(b.criadoEm||'').localeCompare(a.criadoEm||'')).slice(0,5);
+  document.getElementById('dash-recentes').innerHTML = recentes.length ? recentes.map(v => `
+    <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)">
+      <div class="vend-avatar" style="width:30px;height:30px;font-size:.74rem">${(v.nomeLoja||v.nome||'V')[0].toUpperCase()}</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:.85rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${v.nomeLoja||v.nome||'-'}</div>
+        <div style="font-size:.72rem;color:var(--muted)">${v.email||''}</div>
+      </div>
+      ${badgeStatus(statusVend(v))}
+    </div>`).join('') : '<p style="color:var(--muted);font-size:.85rem">Nenhum vendedor ainda.</p>';
+
+  const hoje = new Date(); hoje.setHours(0,0,0,0);
+  const em7  = new Date(hoje); em7.setDate(em7.getDate()+7);
+  const expirando = VENDEDORES.filter(v => { if (!v.expiraEm || v.bloqueado) return false; const exp = new Date(v.expiraEm); return exp >= hoje && exp <= em7; });
+  document.getElementById('dash-expirando').innerHTML = expirando.length ? expirando.map(v => `
+    <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)">
+      <div style="width:30px;height:30px;border-radius:8px;background:#FEF3C7;color:var(--warning);font-weight:700;font-size:.8rem;display:flex;align-items:center;justify-content:center;flex-shrink:0">⚠️</div>
+      <div style="flex:1">
+        <div style="font-size:.85rem;font-weight:600">${v.nomeLoja||v.nome}</div>
+        <div style="font-size:.72rem;color:var(--warning)">Expira em ${diasRestantes(v.expiraEm)}d – ${v.expiraEm}</div>
+      </div>
+      <button class="btn btn-warning btn-xs" onclick="abrirGerenciar('${v.id}')">Renovar</button>
+    </div>`).join('') : '<p style="color:var(--muted);font-size:.85rem">✅ Nenhum vendedor expirando.</p>';
+}
+function stat(label, value, sub) { return `<div class="stat-card"><div class="stat-label">${label}</div><div class="stat-value">${value}</div><div class="stat-sub">${sub}</div></div>`; }
+
+function renderVendedores() { filtrarVendedores(); }
+function filtrarVendedores() {
+  const q  = (document.getElementById('busca-vendedor').value||'').toLowerCase();
+  const st = document.getElementById('filtro-status').value;
+  const list = VENDEDORES.filter(v => {
+    const matchQ = !q || (v.nome||'').toLowerCase().includes(q) || (v.nomeLoja||'').toLowerCase().includes(q) || (v.email||'').toLowerCase().includes(q);
+    const matchSt = !st || statusVend(v) === st;
+    return matchQ && matchSt;
+  });
+  renderVendedoresGrid(list);
+}
+function renderVendedoresGrid(list) {
+  const grid = document.getElementById('vend-grid');
+  if (!list.length) { grid.innerHTML = '<p style="color:var(--muted);padding:20px">Nenhum vendedor encontrado.</p>'; return; }
+  grid.innerHTML = list.map(v => {
+    const st  = statusVend(v);
+    const dr  = v.expiraEm ? diasRestantes(v.expiraEm) : null;
+    const pct = dr !== null ? Math.min(100, Math.max(0,(dr/30)*100)) : 0;
+    const cor = dr !== null && dr <= 3 ? 'var(--danger)' : (dr !== null && dr <= 7 ? 'var(--warning)' : 'var(--purple)');
+    return `
+    <div class="vend-card">
+      <div class="vend-header">
+        <div class="vend-avatar">${(v.nomeLoja||v.nome||'V')[0].toUpperCase()}</div>
+        <div style="flex:1;min-width:0">
+          <div class="vend-name">${v.nomeLoja||'Sem nome'}</div>
+          <div class="vend-email">${v.email||''}</div>
+        </div>
+        ${badgeStatus(st)}
+      </div>
+      <div class="vend-meta">
+        <span>Plano: <strong>${v.planoNome||'Trial'}</strong></span>
+        <span>Produtos: <strong>${v.totalProdutos||0}</strong></span>
+      </div>
+      ${dr !== null ? `
+        <div style="display:flex;justify-content:space-between;font-size:.72rem;color:var(--muted);margin-bottom:4px">
+          <span>Expira: ${v.expiraEm}</span><span style="color:${cor}">${dr>=0?dr+'d restantes':'expirado'}</span>
+        </div>
+        <div class="progress-bar"><div class="progress-fill" style="width:${pct}%;background:${cor}"></div></div>
+      ` : ''}
+      <div class="vend-actions">
+        <button class="btn btn-primary btn-xs" onclick="abrirGerenciar('${v.id}')">⚙️ Gerenciar</button>
+        <button class="btn btn-secondary btn-xs" onclick="copiarLinkLoja('${v.id}')">🔗 Link</button>
+        <button class="btn btn-danger btn-xs" onclick="excluirVendedor('${v.id}')">🗑️</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function salvarVendedor() {
+  const id    = document.getElementById('mv-id').value;
+  const nome  = document.getElementById('mv-nome').value.trim();
+  const loja  = document.getElementById('mv-loja').value.trim();
+  const email = document.getElementById('mv-email').value.trim();
+  const whats = document.getElementById('mv-whats').value.trim();
+  const planoId = document.getElementById('mv-plano').value;
+  const expiraManual = document.getElementById('mv-expira').value;
+  const obs   = document.getElementById('mv-obs').value.trim();
+  if (!nome || !loja || !email) { toast('Preencha nome, loja e e-mail.', 'error'); return; }
+  const plano  = PLANOS.find(p => p.id === planoId);
+  const expira = expiraManual || calcExpira(plano?.duracao || 7);
+  try {
+    if (!id) {
+      const docData = { nome, nomeLoja: loja, email, whatsapp: whats, planoId, planoNome: plano?.nome || 'Trial', expiraEm: expira, bloqueado: false, obs, criadoEm: new Date().toISOString(), totalProdutos: 0, totalVendas: 0 };
+      const ref = await col('vendedores').add(docData);
+      VENDEDORES.unshift({ id: ref.id, ...docData });
+      toast(`Vendedor "${loja}" criado! Envie o link de cadastro (vendedor.html) para ele usar o e-mail ${email} e criar a própria senha.`, 'success');
+    } else {
+      const data = { nome, nomeLoja: loja, whatsapp: whats, planoId, planoNome: plano?.nome||'Trial', expiraEm: expira, obs };
+      await col('vendedores').doc(id).update(data);
+      const idx = VENDEDORES.findIndex(v => v.id === id);
+      if (idx !== -1) Object.assign(VENDEDORES[idx], data);
+      toast('Vendedor atualizado!', 'success');
+    }
+    closeModal('modal-novo-vendedor');
+    document.getElementById('mv-id').value = '';
+    document.getElementById('mv-titulo').textContent = 'Novo Vendedor';
+    renderVendedores(); renderDashboard();
+  } catch(e) { console.error(e); toast('Erro: ' + e.message, 'error'); }
+}
+async function excluirVendedor(id) {
+  if (!confirm('Excluir este vendedor da lista de gerenciamento?')) return;
+  await col('vendedores').doc(id).delete();
+  VENDEDORES = VENDEDORES.filter(v => v.id !== id);
+  renderVendedores(); renderDashboard();
+  toast('Removido.', 'success');
+}
+
+function abrirGerenciar(id) {
+  vendAtual = VENDEDORES.find(v => v.id === id);
+  if (!vendAtual) return;
+  document.getElementById('mg-id').value = id;
+  document.getElementById('mg-titulo').textContent = `Gerenciar: ${vendAtual.nomeLoja||vendAtual.nome}`;
+  document.getElementById('mg-nome').value  = vendAtual.nome||'';
+  document.getElementById('mg-loja').value  = vendAtual.nomeLoja||'';
+  document.getElementById('mg-whats').value = vendAtual.whatsapp||'';
+  document.getElementById('mg-obs').value   = vendAtual.obs||'';
+  document.getElementById('mg-plano-novo').value = vendAtual.planoId||'';
+  document.getElementById('mg-nova-expira').value = vendAtual.expiraEm||'';
+  const dr = diasRestantes(vendAtual.expiraEm);
+  const cor = dr <= 3 ? 'var(--danger)' : dr <= 7 ? 'var(--warning)' : 'var(--purple)';
+  document.getElementById('mg-status-atual').innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+      <span style="font-size:.82rem;color:var(--muted)">Status atual</span>${badgeStatus(statusVend(vendAtual))}
+    </div>
+    <div style="font-size:.85rem;margin-bottom:4px"><strong>Plano:</strong> ${vendAtual.planoNome||'Trial'}</div>
+    <div style="font-size:.85rem;margin-bottom:8px"><strong>Expira em:</strong> ${vendAtual.expiraEm||'–'} ${dr>=0?`(${dr} dias)`:'(EXPIRADO)'}</div>
+    <div class="progress-bar"><div class="progress-fill" style="width:${Math.min(100,Math.max(0,(dr/30)*100))}%;background:${cor}"></div></div>
+  `;
+  const link = `${BASE_URL}/loja.html?loja=${id}`;
+  document.getElementById('mg-link-loja').textContent = link;
+  switchMgTab('plano', document.querySelector('#modal-gerenciar .tab'));
+  openModal('modal-gerenciar');
+}
+function switchMgTab(tab, el) {
+  document.querySelectorAll('#modal-gerenciar .tab').forEach(t => t.classList.remove('active'));
+  if (el) el.classList.add('active');
+  ['plano','link','info'].forEach(t => { document.getElementById(`mg-tab-${t}`).style.display = t===tab ? '' : 'none'; });
+}
+async function atualizarInfoVendedor() {
+  const id = document.getElementById('mg-id').value;
+  const data = { nome: document.getElementById('mg-nome').value, nomeLoja: document.getElementById('mg-loja').value, whatsapp: document.getElementById('mg-whats').value, obs: document.getElementById('mg-obs').value };
+  await col('vendedores').doc(id).update(data);
+  const idx = VENDEDORES.findIndex(v => v.id === id);
+  if (idx !== -1) Object.assign(VENDEDORES[idx], data);
+  renderVendedores();
+  toast('Informações atualizadas!', 'success');
+}
+async function renovarAcesso() {
+  const id      = document.getElementById('mg-id').value;
+  const planoId = document.getElementById('mg-plano-novo').value;
+  const expira  = document.getElementById('mg-nova-expira').value || calcExpira(30);
+  const plano   = PLANOS.find(p => p.id === planoId);
+  const data = { planoId, planoNome: plano?.nome||'Básico', expiraEm: expira, bloqueado: false };
+  await col('vendedores').doc(id).update(data);
+  const idx = VENDEDORES.findIndex(v => v.id === id);
+  if (idx !== -1) Object.assign(VENDEDORES[idx], data);
+  renderVendedores(); renderDashboard();
+  closeModal('modal-gerenciar');
+  toast('Acesso renovado com sucesso!', 'success');
+}
+async function darTrial() {
+  const id = document.getElementById('mg-id').value;
+  const trialP = PLANOS.find(p => p.nome === 'Trial');
+  const dias = PLATFORM_CONFIG.trialDias || 7;
+  const expira = calcExpira(dias);
+  const data = { planoId: trialP?.id||'', planoNome: 'Trial', expiraEm: expira, bloqueado: false };
+  await col('vendedores').doc(id).update(data);
+  const idx = VENDEDORES.findIndex(v => v.id === id);
+  if (idx !== -1) Object.assign(VENDEDORES[idx], data);
+  renderVendedores(); renderDashboard();
+  closeModal('modal-gerenciar');
+  toast(`Trial de ${dias} dias concedido!`, 'success');
+}
+async function bloquearVendedor() {
+  if (!confirm('Bloquear o acesso deste vendedor?')) return;
+  const id = document.getElementById('mg-id').value;
+  await col('vendedores').doc(id).update({ bloqueado: true });
+  const idx = VENDEDORES.findIndex(v => v.id === id);
+  if (idx !== -1) VENDEDORES[idx].bloqueado = true;
+  renderVendedores(); renderDashboard();
+  closeModal('modal-gerenciar');
+  toast('Vendedor bloqueado.', 'success');
+}
+
+function copiarLinkLoja(id) { const link = `${BASE_URL}/loja.html?loja=${id}`; navigator.clipboard.writeText(link).then(() => toast('Link copiado!', 'success')); }
+function copiarLink() { const txt = document.getElementById('mg-link-loja').textContent; navigator.clipboard.writeText(txt).then(() => toast('Link copiado!', 'success')); }
+function compartilharWhats() {
+  const txt = document.getElementById('mg-link-loja').textContent;
+  const num = vendAtual?.whatsapp || '';
+  const msg = encodeURIComponent(`Olá! Aqui está o link da sua loja: ${txt}`);
+  window.open(num ? `https://wa.me/55${num}?text=${msg}` : `https://wa.me/?text=${msg}`, '_blank');
+}
+
+function renderPlanos() {
+  document.getElementById('planos-grid').innerHTML = PLANOS.map(p => `
+    <div class="plan-card">
+      <div class="plan-name">${p.nome}</div>
+      <div class="plan-price">${p.preco>0 ? 'R$ '+Number(p.preco).toFixed(2) : 'Grátis'}<span>${p.preco>0?'/mês':''}</span></div>
+      <div style="font-size:.72rem;color:var(--muted);margin-top:4px">${p.duracao} dias</div>
+      <div class="plan-features">${p.desc||''}</div>
+    </div>`).join('');
+  const usandoMap = {};
+  VENDEDORES.forEach(v => { usandoMap[v.planoId] = (usandoMap[v.planoId]||0)+1; });
+  document.getElementById('tbody-planos').innerHTML = PLANOS.map(p => `
+    <tr>
+      <td style="font-weight:700">${p.nome}</td>
+      <td>${p.preco>0 ? 'R$ '+Number(p.preco).toFixed(2) : 'Grátis'}</td>
+      <td>${p.duracao}d</td>
+      <td>${usandoMap[p.id]||0} vendedores</td>
+      <td><button class="btn btn-danger btn-xs" onclick="excluirPlano('${p.id}')">🗑️</button></td>
+    </tr>`).join('');
+}
+async function salvarPlano() {
+  const data = { nome: document.getElementById('np-nome').value, preco: parseFloat(document.getElementById('np-preco').value)||0, duracao: parseInt(document.getElementById('np-duracao').value)||30, maxProdutos: parseInt(document.getElementById('np-produtos').value)||20, desc: document.getElementById('np-desc').value, criadoEm: new Date().toISOString() };
+  if (!data.nome) { toast('Nome obrigatório.', 'error'); return; }
+  const ref = await col('planos').add(data);
+  PLANOS.push({ id: ref.id, ...data });
+  preencherSelectPlanos();
+  closeModal('modal-novo-plano');
+  renderPlanos();
+  toast('Plano criado!', 'success');
+}
+async function excluirPlano(id) {
+  if (!confirm('Excluir este plano?')) return;
+  await col('planos').doc(id).delete();
+  PLANOS = PLANOS.filter(p => p.id !== id);
+  renderPlanos(); preencherSelectPlanos();
+  toast('Plano excluído.', 'success');
+}
+
+function carregarFormConfig() {
+  document.getElementById('cfg-plataforma').value    = PLATFORM_CONFIG.plataforma || 'Meu Closet';
+  document.getElementById('cfg-url').value           = PLATFORM_CONFIG.baseUrl || window.location.origin;
+  document.getElementById('cfg-whats-suporte').value  = PLATFORM_CONFIG.whatsSuporte || '';
+  document.getElementById('cfg-trial-dias').value    = PLATFORM_CONFIG.trialDias || 7;
+}
+async function salvarConfigPlataforma() {
+  PLATFORM_CONFIG = { plataforma: document.getElementById('cfg-plataforma').value, baseUrl: document.getElementById('cfg-url').value, whatsSuporte: document.getElementById('cfg-whats-suporte').value, trialDias: parseInt(document.getElementById('cfg-trial-dias').value)||7 };
+  BASE_URL = PLATFORM_CONFIG.baseUrl;
+  await col('platform_config').doc('main').set(PLATFORM_CONFIG, { merge: true });
+  toast('Configurações salvas!', 'success');
+}
 </script>
 </body>
 </html>
