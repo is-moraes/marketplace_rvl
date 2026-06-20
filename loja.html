@@ -1,151 +1,348 @@
 <!DOCTYPE html>
-<html lang="pt-br">
+<html lang="pt-BR">
 <head>
-    <meta charset="UTF-8">
-    <title>Lojas - ClosetPro</title>
-    <style>
-        *{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',sans-serif} body{background:#f0f2f5;color:#333} header{background:linear-gradient(135deg,#6c3483,#a04000);color:#fff;padding:16px 24px;display:flex;justify-content:space-between;align-items:center;box-shadow:0 2px 8px rgba(0,0,0,0.2)} header h1{font-size:1.6rem;letter-spacing:1px} nav a{color:#fff;text-decoration:none;margin-left:16px;font-weight:500;padding:6px 12px;border-radius:6px;transition:background 0.2s} nav a:hover{background:rgba(255,255,255,0.2)} .page-title{background:#fff;padding:30px 24px;border-bottom:1px solid #ddd;text-align:center} .page-title h2{color:#6c3483;font-size:1.8rem} .page-title p{color:#777;margin-top:6px} .section{padding:40px 24px;max-width:1100px;margin:0 auto} .busca{display:flex;gap:12px;margin-bottom:30px} .busca input{flex:1;padding:12px 18px;border:2px solid #d7bde2;border-radius:30px;font-size:1rem;outline:none;transition:border 0.2s} .busca input:focus{border-color:#6c3483} .busca button{background:#6c3483;color:#fff;border:none;padding:12px 24px;border-radius:30px;cursor:pointer;font-weight:600;font-size:1rem} .lojas-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:24px} .loja-card{background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 3px 12px rgba(0,0,0,0.1);transition:transform 0.2s} .loja-card:hover{transform:translateY(-5px)} .loja-banner{height:120px;display:flex;align-items:center;justify-content:center;font-size:3.5rem} .loja-info{padding:20px} .loja-info h3{font-size:1.2rem;color:#333;margin-bottom:6px} .loja-info .desc{color:#777;font-size:0.9rem;margin-bottom:12px} .badges{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px} .badge{padding:3px 10px;border-radius:12px;font-size:0.75rem;font-weight:600} .badge.ativo{background:#d5f5e3;color:#1e8449} .badge.cat{background:#e8daef;color:#6c3483} .badge.novo{background:#fef9e7;color:#d4ac0d} .btn-loja{display:block;text-align:center;background:linear-gradient(135deg,#6c3483,#a04000);color:#fff;padding:10px;border-radius:10px;text-decoration:none;font-weight:600;transition:opacity 0.2s} .btn-loja:hover{opacity:0.85} .stats{display:flex;gap:16px;margin-bottom:14px} .stat{text-align:center} .stat .num{font-size:1.3rem;font-weight:700;color:#6c3483} .stat .label{font-size:0.75rem;color:#888} footer{background:#2c3e50;color:#aaa;text-align:center;padding:20px;margin-top:40px;font-size:0.85rem}
-    </style>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Loja</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style>
+  :root{
+    --bg:#F3F0FA; --surface:#FFFFFF; --border:#E7E2F4;
+    --purple:#7C3AED; --purple-dark:#5B21B6; --purple-light:#EDE7FB;
+    --pink:#EC4899;
+    --text:#1F1B2E; --muted:#6B6B80;
+    --success:#16A34A; --danger:#DC2626; --warning:#D97706;
+    --font-head:'Poppins',sans-serif; --font-body:'Inter',sans-serif;
+    --r:14px; --r-sm:10px;
+  }
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:var(--font-body);background:var(--bg);color:var(--text);min-height:100vh;-webkit-font-smoothing:antialiased}
+  button{cursor:pointer;border:none;font-family:var(--font-body)}
+  input{font-family:var(--font-body)}
+  ::-webkit-scrollbar{width:6px}::-webkit-scrollbar-thumb{background:var(--border);border-radius:10px}
+
+  /* Loading */
+  #loading-screen{position:fixed;inset:0;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;z-index:999}
+  .load-logo{font-family:var(--font-head);font-weight:800;font-size:1.6rem;color:var(--purple)}
+  .spin{width:32px;height:32px;border:3px solid var(--border);border-top-color:var(--purple);border-radius:50%;animation:spin .8s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+
+  /* Offline */
+  #offline-screen{display:none;min-height:100vh;align-items:center;justify-content:center;background:var(--bg);padding:20px}
+  #offline-screen.active{display:flex}
+  .offline-box{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:40px 34px;text-align:center;max-width:400px;box-shadow:0 8px 28px rgba(124,58,237,.08)}
+
+  /* Header */
+  .topbar{background:#fff;border-bottom:1px solid var(--border);padding:14px 32px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px}
+  .topbar-eyebrow{font-size:.78rem;color:var(--muted)}
+  .topbar-title{font-family:var(--font-head);font-weight:800;font-size:1.15rem;color:var(--text);display:flex;align-items:center;gap:10px}
+
+  .loja-header{
+    background:linear-gradient(120deg,var(--purple) 0%, #6D28D9 60%, var(--purple-dark) 100%);
+    padding:30px 32px; display:flex; align-items:center; justify-content:space-between;
+    flex-wrap:wrap; gap:16px; color:#fff;
+  }
+  .brand{display:flex;align-items:center;gap:14px}
+  .brand-icon{width:46px;height:46px;border-radius:12px;background:rgba(255,255,255,.18);display:flex;align-items:center;justify-content:center;font-size:1.5rem;flex-shrink:0}
+  .brand-name{font-family:var(--font-head);font-weight:800;font-size:1.5rem;line-height:1.1}
+  .brand-sub{font-size:.85rem;color:rgba(255,255,255,.78);margin-top:2px}
+  .pay-row{display:flex;flex-direction:column;align-items:flex-end;gap:8px}
+  .pay-label{font-size:.72rem;color:rgba(255,255,255,.7);text-transform:uppercase;letter-spacing:.08em}
+  .pay-chips{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+  .pay-chip{background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.25);border-radius:20px;padding:5px 13px;font-size:.78rem;font-weight:600;display:flex;align-items:center;gap:5px}
+
+  /* Filtros */
+  .filtros{background:#fff;padding:16px 32px;border-bottom:1px solid var(--border);display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+  .busca{flex:1;min-width:200px;background:var(--bg);border:1px solid var(--border);border-radius:30px;padding:10px 18px;font-size:.9rem;color:var(--text)}
+  .busca:focus{outline:none;border-color:var(--purple)}
+  .filtro-chip{background:var(--bg);border:1px solid var(--border);border-radius:20px;padding:7px 16px;font-size:.82rem;color:var(--muted);font-weight:500;transition:all .15s}
+  .filtro-chip.active,.filtro-chip:hover{background:var(--purple-light);border-color:var(--purple);color:var(--purple-dark)}
+
+  /* Body */
+  .loja-body{padding:28px 32px;max-width:1400px;margin:0 auto}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:22px}
+
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;cursor:pointer;transition:transform .18s,box-shadow .18s;box-shadow:0 1px 2px rgba(31,27,46,.04)}
+  .card:hover{transform:translateY(-5px);box-shadow:0 16px 32px rgba(124,58,237,.14)}
+  .card-img{width:100%;aspect-ratio:3/4;background:linear-gradient(135deg,var(--purple-light),#fdf0f7);display:flex;align-items:center;justify-content:center;color:#c4b5fd;font-size:2.4rem;position:relative;overflow:hidden}
+  .card-img img{width:100%;height:100%;object-fit:cover}
+  .badge-stock{position:absolute;top:9px;right:9px;background:var(--danger);color:#fff;border-radius:20px;padding:3px 10px;font-size:.66rem;font-weight:700}
+  .card-info{padding:14px 15px 16px}
+  .card-name{font-weight:600;font-size:.92rem;margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--text)}
+  .card-price{color:var(--purple-dark);font-weight:800;font-size:1.1rem;font-family:var(--font-head)}
+  .card-parc{color:var(--muted);font-size:.74rem;margin-top:2px}
+  .btn-ver{margin-top:11px;width:100%;background:var(--purple);color:#fff;border-radius:9px;padding:9px;font-size:.84rem;font-weight:600;transition:background .15s}
+  .btn-ver:hover{background:var(--purple-dark)}
+
+  .empty{text-align:center;padding:70px 20px;color:var(--muted)}
+  .empty span{font-size:3rem;display:block;margin-bottom:14px}
+
+  /* Modal */
+  .modal-bg{display:none;position:fixed;inset:0;background:rgba(31,27,46,.55);z-index:500;align-items:center;justify-content:center;padding:16px;backdrop-filter:blur(2px)}
+  .modal-bg.open{display:flex}
+  .modal{background:#fff;border-radius:20px;padding:30px;width:100%;max-width:460px;max-height:92vh;overflow-y:auto;position:relative;box-shadow:0 24px 60px rgba(31,27,46,.25)}
+  .modal-close{position:absolute;top:18px;right:18px;background:var(--bg);width:32px;height:32px;border-radius:50%;color:var(--muted);font-size:1.1rem;display:flex;align-items:center;justify-content:center}
+  .modal-close:hover{background:var(--purple-light);color:var(--purple-dark)}
+
+  .det-img{width:100%;aspect-ratio:1;border-radius:14px;background:linear-gradient(135deg,var(--purple-light),#fdf0f7);display:flex;align-items:center;justify-content:center;color:#c4b5fd;font-size:3rem;margin-bottom:18px;overflow:hidden}
+  .det-img img{width:100%;height:100%;object-fit:cover}
+  .det-name{font-family:var(--font-head);font-weight:700;font-size:1.3rem;margin-bottom:6px}
+  .det-price{font-family:var(--font-head);font-size:1.9rem;font-weight:800;color:var(--purple-dark);margin-bottom:4px}
+  .det-parc{color:var(--muted);font-size:.8rem;margin-bottom:14px}
+  .det-desc{color:#4B5563;font-size:.9rem;line-height:1.6;margin-bottom:22px}
+
+  .btn-action{width:100%;padding:12px;border-radius:11px;font-weight:600;font-size:.9rem;margin-bottom:9px;display:flex;align-items:center;justify-content:center;gap:8px;transition:opacity .15s,transform .1s}
+  .btn-action:active{transform:scale(.98)}
+  .btn-pix{background:var(--purple);color:#fff}.btn-pix:hover{opacity:.9}
+  .btn-whats{background:#E9FBF0;border:1px solid #BBF7D0;color:#15803D}.btn-whats:hover{background:#DCFCE7}
+
+  .pix-qr{background:#fff;border:1px solid var(--border);border-radius:14px;padding:16px;display:inline-block;margin:6px auto}
+  .pix-chave{background:var(--bg);border-radius:10px;padding:11px 15px;font-size:.84rem;color:var(--muted);word-break:break-all;margin-bottom:12px}
+  .btn-copy{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:10px;font-size:.85rem;color:var(--text);font-weight:500}
+  .btn-copy:hover{border-color:var(--purple)}
+
+  /* Toast */
+  #toast-area{position:fixed;bottom:22px;right:22px;z-index:9999;display:flex;flex-direction:column;gap:8px}
+  .toast{background:#fff;border:1px solid var(--border);border-left:4px solid var(--purple);border-radius:10px;padding:12px 18px;font-size:.86rem;min-width:230px;box-shadow:0 8px 24px rgba(31,27,46,.12);animation:tin .25s ease}
+  .toast.success{border-left-color:var(--success)}
+  @keyframes tin{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+
+  @media(max-width:640px){
+    .loja-header,.filtros,.loja-body{padding-left:18px;padding-right:18px}
+    .grid{grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:14px}
+  }
+</style>
 </head>
 <body>
-    <header>
-        <h1>👗 ClosetPro</h1>
-        <nav>
-            <a href="index.html">Início</a>
-            <a href="loja.html">Lojas</a>
-            <a href="admin.html">Admin</a>
-        </nav>
-    </header>
 
-    <div class="page-title">
-        <h2>Lojas Parceiras</h2>
-        <p>Encontre sua loja favorita e compre com confiança</p>
+<div id="loading-screen">
+  <div class="load-logo">👗 Loja</div>
+  <div class="spin"></div>
+  <p style="color:var(--muted);font-size:.85rem">Carregando vitrine…</p>
+</div>
+
+<div id="offline-screen">
+  <div class="offline-box">
+    <div style="font-size:2.6rem;margin-bottom:12px">🔒</div>
+    <div style="font-family:var(--font-head);font-weight:700;font-size:1.3rem;color:var(--danger);margin-bottom:8px">Loja indisponível</div>
+    <p id="offline-msg" style="color:var(--muted);font-size:.9rem;line-height:1.6">Este link não está disponível no momento. Verifique com o vendedor.</p>
+  </div>
+</div>
+
+<div id="loja-app" style="display:none">
+  <div class="loja-header">
+    <div class="brand">
+      <div class="brand-icon">👗</div>
+      <div>
+        <div class="brand-name" id="brand-nome">Loja</div>
+        <div class="brand-sub" id="brand-slogan">Estilo que combina com você!</div>
+      </div>
     </div>
+    <div class="pay-row">
+      <span class="pay-label">Formas de pagamento</span>
+      <div class="pay-chips">
+        <div class="pay-chip">💠 PIX</div>
+        <div class="pay-chip">💳 Cartão</div>
+        <div class="pay-chip">💵 Dinheiro</div>
+      </div>
+    </div>
+  </div>
 
-    <section class="section">
-        <div class="busca">
-            <input type="text" id="busca-input" placeholder="🔍 Buscar loja por nome ou categoria..." oninput="buscar()">
-            <button>Buscar</button>
-        </div>
+  <div class="filtros">
+    <input class="busca" type="text" placeholder="🔍 Buscar produto…" oninput="filtrar(this.value)"/>
+    <div class="filtro-chip active" onclick="setOrdem('',this)">Todos</div>
+    <div class="filtro-chip" onclick="setOrdem('asc',this)">Menor preço</div>
+    <div class="filtro-chip" onclick="setOrdem('desc',this)">Maior preço</div>
+  </div>
 
-        <div class="lojas-grid">
-            <div class="loja-card" data-nome="boutique elegance">
-                <div class="loja-banner">👗</div>
-                <div class="loja-info">
-                    <h3>Boutique Elegance</h3>
-                    <p class="desc">Moda feminina sofisticada e acessível</p>
-                    <div class="badges"><span class="badge ativo">✓ Ativo</span><span class="badge cat">Roupas</span><span class="badge novo">★ Destaque</span></div>
-                    <div class="stats">
-                        <div class="stat"><div class="num">48</div><div class="label">Produtos</div></div>
-                        <div class="stat"><div class="num">4.9</div><div class="label">Avaliação</div></div>
-                        <div class="stat"><div class="num">320</div><div class="label">Vendas</div></div>
-                    </div>
-                    <a href="#" class="btn-loja">Visitar Loja</a>
-                </div>
-            </div>
+  <div class="loja-body">
+    <div class="grid" id="grid-produtos"></div>
+    <div class="empty" id="empty-state" style="display:none">
+      <span>🛍️</span>
+      <p>Nenhum produto disponível no momento.</p>
+    </div>
+  </div>
+</div>
 
-            <div class="loja-card" data-nome="sapatos style">
-                <div class="loja-banner">👠</div>
-                <div class="loja-info">
-                    <h3>Sapatos Style</h3>
-                    <p class="desc">Calçados para todas as ocasiões</p>
-                    <div class="badges"><span class="badge ativo">✓ Ativo</span><span class="badge cat">Calçados</span></div>
-                    <div class="stats">
-                        <div class="stat"><div class="num">32</div><div class="label">Produtos</div></div>
-                        <div class="stat"><div class="num">4.7</div><div class="label">Avaliação</div></div>
-                        <div class="stat"><div class="num">215</div><div class="label">Vendas</div></div>
-                    </div>
-                    <a href="#" class="btn-loja">Visitar Loja</a>
-                </div>
-            </div>
+<!-- Modal Detalhe -->
+<div class="modal-bg" id="modal-detalhe">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('modal-detalhe')">✕</button>
+    <div class="det-img" id="det-img">📷</div>
+    <div class="det-name" id="det-nome"></div>
+    <div class="det-price" id="det-preco"></div>
+    <div class="det-parc" id="det-parc"></div>
+    <div class="det-desc" id="det-desc"></div>
+    <button class="btn-action btn-pix" onclick="abrirPix()">💠 Pagar via PIX</button>
+    <button class="btn-action btn-whats" onclick="pedirWhats()">💬 Pedir pelo WhatsApp</button>
+  </div>
+</div>
 
-            <div class="loja-card" data-nome="acessórios chic">
-                <div class="loja-banner">👜</div>
-                <div class="loja-info">
-                    <h3>Acessórios Chic</h3>
-                    <p class="desc">Bolsas, cintos e acessórios exclusivos</p>
-                    <div class="badges"><span class="badge ativo">✓ Ativo</span><span class="badge cat">Acessórios</span></div>
-                    <div class="stats">
-                        <div class="stat"><div class="num">60</div><div class="label">Produtos</div></div>
-                        <div class="stat"><div class="num">4.8</div><div class="label">Avaliação</div></div>
-                        <div class="stat"><div class="num">410</div><div class="label">Vendas</div></div>
-                    </div>
-                    <a href="#" class="btn-loja">Visitar Loja</a>
-                </div>
-            </div>
+<!-- Modal PIX -->
+<div class="modal-bg" id="modal-pix">
+  <div class="modal" style="text-align:center;max-width:360px">
+    <button class="modal-close" onclick="closeModal('modal-pix')">✕</button>
+    <div style="font-family:var(--font-head);font-weight:700;font-size:1.2rem;margin-bottom:6px">Pagamento via PIX</div>
+    <p style="color:var(--muted);font-size:.83rem;margin-bottom:14px" id="pix-info"></p>
+    <div class="pix-qr" id="pix-qr"></div>
+    <p style="font-size:.76rem;color:var(--muted);margin:12px 0 5px">Chave PIX:</p>
+    <div class="pix-chave" id="pix-chave"></div>
+    <button class="btn-copy" onclick="copiarPix()">📋 Copiar chave PIX</button>
+    <p style="font-size:.76rem;color:var(--muted);margin-top:14px;line-height:1.5">Após pagar, envie o comprovante pelo WhatsApp para confirmar seu pedido.</p>
+  </div>
+</div>
 
-            <div class="loja-card" data-nome="modamasc">
-                <div class="loja-banner">👔</div>
-                <div class="loja-info">
-                    <h3>ModaMasc</h3>
-                    <p class="desc">Moda masculina moderna e estilosa</p>
-                    <div class="badges"><span class="badge ativo">✓ Ativo</span><span class="badge cat">Roupas</span></div>
-                    <div class="stats">
-                        <div class="stat"><div class="num">25</div><div class="label">Produtos</div></div>
-                        <div class="stat"><div class="num">4.6</div><div class="label">Avaliação</div></div>
-                        <div class="stat"><div class="num">180</div><div class="label">Vendas</div></div>
-                    </div>
-                    <a href="#" class="btn-loja">Visitar Loja</a>
-                </div>
-            </div>
+<div id="toast-area"></div>
 
-            <div class="loja-card" data-nome="sneaker house">
-                <div class="loja-banner">👟</div>
-                <div class="loja-info">
-                    <h3>Sneaker House</h3>
-                    <p class="desc">Tênis e calçados esportivos</p>
-                    <div class="badges"><span class="badge ativo">✓ Ativo</span><span class="badge cat">Calçados</span><span class="badge novo">★ Destaque</span></div>
-                    <div class="stats">
-                        <div class="stat"><div class="num">55</div><div class="label">Produtos</div></div>
-                        <div class="stat"><div class="num">4.9</div><div class="label">Avaliação</div></div>
-                        <div class="stat"><div class="num">520</div><div class="label">Vendas</div></div>
-                    </div>
-                    <a href="#" class="btn-loja">Visitar Loja</a>
-                </div>
-            </div>
+<script>
+/* ══════════════════════════════════════════════════════════
+   FIREBASE CONFIG — use os MESMOS dados do vendedor.html
+   ══════════════════════════════════════════════════════════ */
+const firebaseConfig = {
+  apiKey:            "AIzaSyDe2v375f4qcWTYxj_P6s77SD3GsYYzuUM",
+  authDomain:        "rvl-marketplace.firebaseapp.com",
+  projectId:         "rvl-marketplace",
+  storageBucket:     "rvl-marketplace.appspot.com",
+  messagingSenderId: "325572658544",
+  appId:             "1:325572658544:web:ef6b3f13dfa0488fc97bb5"
+};
 
-            <div class="loja-card" data-nome="joias & cia">
-                <div class="loja-banner">💍</div>
-                <div class="loja-info">
-                    <h3>Joias & Cia</h3>
-                    <p class="desc">Bijuterias e semi-joias artesanais</p>
-                    <div class="badges"><span class="badge ativo">✓ Ativo</span><span class="badge cat">Acessórios</span></div>
-                    <div class="stats">
-                        <div class="stat"><div class="num">88</div><div class="label">Produtos</div></div>
-                        <div class="stat"><div class="num">4.8</div><div class="label">Avaliação</div></div>
-                        <div class="stat"><div class="num">290</div><div class="label">Vendas</div></div>
-                    </div>
-                    <a href="#" class="btn-loja">Visitar Loja</a>
-                </div>
-            </div>
-        </div>
-    </section>
+let db;
+let VENDEDOR_ID = null;
+let CONFIG_LOJA = {};
+let VENDEDOR_DOC = {};
+let PRODUTOS = [];
+let produtoAtual = null;
+let ordemAtual = '';
 
-    <footer><p>&copy; 2026 ClosetPro - Marketplace RvL | Todos os direitos reservados</p></footer>
+window.addEventListener('DOMContentLoaded', async () => {
+  const params = new URLSearchParams(window.location.search);
+  VENDEDOR_ID = params.get('loja');
 
-    <script type="module">
-      import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js';
-      import { getAnalytics } from 'https://www.gstatic.com/firebasejs/12.15.0/firebase-analytics.js';
-      const firebaseConfig = {
-        apiKey: "AIzaSyDe2v375f4qcWTYxj_P6s77SD3GsYYzuUM",
-        authDomain: "rvl-marketplace.firebaseapp.com",
-        projectId: "rvl-marketplace",
-        storageBucket: "rvl-marketplace.firebasestorage.app",
-        messagingSenderId: "325572658544",
-        appId: "1:325572658544:web:ef6b3f13dfa0488fc97bb5",
-        measurementId: "G-C27X5ZWL8Q"
-      };
-      const app = initializeApp(firebaseConfig);
-      const analytics = getAnalytics(app);
-    </script>
+  if (!VENDEDOR_ID) {
+    mostrarOffline('Link de loja inválido. Peça ao vendedor o link correto.');
+    return;
+  }
+  try {
+    firebase.initializeApp(firebaseConfig);
+    db = firebase.firestore();
+    await carregarLoja();
+  } catch(e) {
+    console.error(e);
+    mostrarOffline('Não foi possível carregar a loja. Tente novamente em instantes.');
+  }
+});
 
-    <script>
-        function buscar(){ 
-            const q=document.getElementById('busca-input').value.toLowerCase(); 
-            document.querySelectorAll('.loja-card').forEach(c=>{ 
-                c.style.display=c.dataset.nome.includes(q)?'block':'none'; 
-            }); 
-        }
-    </script>
+function mostrarOffline(msg) {
+  document.getElementById('loading-screen').style.display = 'none';
+  document.getElementById('offline-msg').textContent = msg;
+  document.getElementById('offline-screen').classList.add('active');
+}
+
+async function carregarLoja() {
+  try {
+    const vDoc = await db.collection('vendedores').doc(VENDEDOR_ID).get();
+    if (vDoc.exists) {
+      VENDEDOR_DOC = vDoc.data();
+      const hoje = new Date(); hoje.setHours(0,0,0,0);
+      const expira = VENDEDOR_DOC.expiraEm ? new Date(VENDEDOR_DOC.expiraEm) : null;
+      const expirado = expira ? (expira < hoje) : false;
+      if (VENDEDOR_DOC.bloqueado || expirado) {
+        mostrarOffline('Esta loja está temporariamente indisponível. Entre em contato com o vendedor.');
+        return;
+      }
+    }
+    const cfgDoc = await db.collection('config').doc(VENDEDOR_ID).get();
+    CONFIG_LOJA = cfgDoc.exists ? cfgDoc.data() : {};
+
+    const pSnap = await db.collection('usuarios').doc(VENDEDOR_ID).collection('produtos')
+      .where('status','==','ativo').get();
+    PRODUTOS = pSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+    const nome = CONFIG_LOJA.nomeLoja || VENDEDOR_DOC.nomeLoja || 'Loja';
+    document.title = nome;
+    document.getElementById('brand-nome').textContent = nome;
+    document.getElementById('brand-slogan').textContent = CONFIG_LOJA.subtitulo || 'Estilo que combina com você!';
+
+    document.getElementById('loading-screen').style.display = 'none';
+    document.getElementById('loja-app').style.display = '';
+    render(PRODUTOS);
+  } catch(e) {
+    console.error(e);
+    mostrarOffline('Não foi possível carregar a loja. Verifique o link e tente novamente.');
+  }
+}
+
+function fmt(n){return Number(n||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})}
+function openModal(id){document.getElementById(id).classList.add('open')}
+function closeModal(id){document.getElementById(id).classList.remove('open')}
+document.querySelectorAll('.modal-bg').forEach(bg=>bg.addEventListener('click',e=>{if(e.target===bg)bg.classList.remove('open')}));
+function toast(msg,type='info'){const d=document.createElement('div');d.className=`toast ${type}`;d.textContent=msg;document.getElementById('toast-area').appendChild(d);setTimeout(()=>d.remove(),2800)}
+
+function render(lista) {
+  const grid=document.getElementById('grid-produtos'), empty=document.getElementById('empty-state');
+  if(!lista.length){grid.innerHTML='';empty.style.display='';return}
+  empty.style.display='none';
+  grid.innerHTML = lista.map(p => `
+    <div class="card" onclick="verDetalhe('${p.id}')">
+      <div class="card-img">
+        ${p.img?`<img src="${p.img}" alt="${p.nome}" loading="lazy"/>`:'📷'}
+        ${(p.estoque||0)===0?'<div class="badge-stock">Esgotado</div>':((p.estoque||0)<=2?'<div class="badge-stock">Últimas peças</div>':'')}
+      </div>
+      <div class="card-info">
+        <div class="card-name">${p.nome}</div>
+        <div class="card-price">R$ ${fmt(p.preco)}</div>
+        ${p.parcelamento?`<div class="card-parc">até ${p.parcelamento} sem juros</div>`:''}
+        <button class="btn-ver" onclick="event.stopPropagation();verDetalhe('${p.id}')">Ver detalhes</button>
+      </div>
+    </div>`).join('');
+}
+
+function filtrar(q) {
+  let lista = PRODUTOS.filter(p => (p.nome||'').toLowerCase().includes(q.toLowerCase()));
+  if (ordemAtual==='asc') lista.sort((a,b)=>a.preco-b.preco);
+  if (ordemAtual==='desc') lista.sort((a,b)=>b.preco-a.preco);
+  render(lista);
+}
+function setOrdem(o, el) {
+  ordemAtual = o;
+  document.querySelectorAll('.filtro-chip').forEach(c=>c.classList.remove('active'));
+  el.classList.add('active');
+  filtrar(document.querySelector('.busca').value);
+}
+
+function verDetalhe(id) {
+  produtoAtual = PRODUTOS.find(p=>p.id===id); if(!produtoAtual) return;
+  document.getElementById('det-img').innerHTML = produtoAtual.img?`<img src="${produtoAtual.img}" alt="${produtoAtual.nome}"/>`:'📷';
+  document.getElementById('det-nome').textContent = produtoAtual.nome;
+  document.getElementById('det-preco').textContent = 'R$ '+fmt(produtoAtual.preco);
+  document.getElementById('det-parc').textContent = produtoAtual.parcelamento?'até '+produtoAtual.parcelamento+' sem juros':'';
+  document.getElementById('det-desc').textContent = produtoAtual.desc||'';
+  openModal('modal-detalhe');
+}
+
+function abrirPix() {
+  if(!produtoAtual) return;
+  closeModal('modal-detalhe');
+  const chave = CONFIG_LOJA.pixChave||'';
+  document.getElementById('pix-info').textContent = `${produtoAtual.nome} – R$ ${fmt(produtoAtual.preco)}`;
+  document.getElementById('pix-chave').textContent = chave||'Chave PIX não configurada';
+  const qrDiv=document.getElementById('pix-qr'); qrDiv.innerHTML='';
+  if(chave){try{new QRCode(qrDiv,{text:chave,width:160,height:160})}catch(e){qrDiv.textContent=chave}}
+  openModal('modal-pix');
+}
+function copiarPix(){const t=document.getElementById('pix-chave').textContent;navigator.clipboard.writeText(t).then(()=>toast('Chave PIX copiada!','success'))}
+
+function pedirWhats() {
+  if(!produtoAtual) return;
+  const num = CONFIG_LOJA.whatsapp||VENDEDOR_DOC.whatsapp||'';
+  const msg = encodeURIComponent(`Olá! Tenho interesse no produto: ${produtoAtual.nome} (R$ ${fmt(produtoAtual.preco)})`);
+  window.open(num?`https://wa.me/55${num}?text=${msg}`:`https://wa.me/?text=${msg}`,'_blank');
+}
+</script>
 </body>
 </html>
