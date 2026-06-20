@@ -919,5 +919,12 @@ grid-template-columns: 1fr;
             total.textContent = parseInt(total.textContent) + 1;
         }
     </script>
+<script>
+// MODO DEMO: ativa o painel sem auth
+const app = document.querySelector('.app');
+const loading = document.querySelector('.loading');
+if (loading) loading.style.display = 'none';
+if (app) app.classList.add('active');
+</script>
 </body>
 </html>
