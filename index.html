@@ -9,6 +9,7 @@
 <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-storage-compat.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <style>
   :root{
@@ -53,6 +54,21 @@
   .fg input,.fg select,.fg textarea{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:9px;padding:10px 14px;color:var(--text);font-size:.92rem}
   .fg input:focus,.fg select:focus,.fg textarea:focus{outline:none;border-color:var(--purple);background:#fff}
   .fg textarea{resize:vertical;min-height:74px}
+
+  /* Upload de imagem do produto */
+  .img-upload-box{position:relative;width:100%;aspect-ratio:4/3;background:var(--bg);border:2px dashed var(--border);border-radius:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;cursor:pointer;overflow:hidden;transition:border-color .15s}
+  .img-upload-box:hover{border-color:var(--purple)}
+  .img-upload-box.has-image{border-style:solid}
+  .img-upload-box img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+  .img-upload-placeholder{display:flex;flex-direction:column;align-items:center;gap:6px;color:var(--muted);font-size:.82rem;pointer-events:none}
+  .img-upload-placeholder svg{width:28px;height:28px;opacity:.6}
+  .img-upload-box input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer}
+  .img-upload-remove{position:absolute;top:8px;right:8px;width:28px;height:28px;border-radius:50%;background:rgba(31,27,46,.65);color:#fff;display:flex;align-items:center;justify-content:center;font-size:.95rem;z-index:2}
+  .img-upload-remove:hover{background:var(--danger)}
+  .img-upload-progress{position:absolute;inset:0;background:rgba(255,255,255,.92);display:none;flex-direction:column;align-items:center;justify-content:center;gap:8px;z-index:3}
+  .img-upload-progress.active{display:flex}
+  .img-upload-bar{width:70%;height:6px;background:var(--border);border-radius:20px;overflow:hidden}
+  .img-upload-bar-fill{height:100%;width:0%;background:var(--purple);border-radius:20px;transition:width .2s}
   .form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 
   /* Buttons */
@@ -271,7 +287,7 @@
     <div class="page" id="page-produtos">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px">
         <div id="limite-msg" style="font-size:.8rem;color:var(--muted)"></div>
-        <button class="btn btn-primary btn-sm" onclick="openModal('modal-produto')">+ Novo produto</button>
+        <button class="btn btn-primary btn-sm" onclick="abrirModalNovoProduto()">+ Novo produto</button>
       </div>
       <div class="table-wrap">
         <table><thead><tr><th>Produto</th><th>Preço</th><th>Estoque</th><th>Status</th><th>Ações</th></tr></thead>
@@ -361,7 +377,23 @@
       <div class="fg"><label>Estoque</label><input type="number" id="mprod-estoque" placeholder="10"/></div>
     </div>
     <div class="fg"><label>Descrição</label><textarea id="mprod-desc" placeholder="Descreva o produto…"></textarea></div>
-    <div class="fg"><label>URL da foto</label><input type="text" id="mprod-img" placeholder="https://…"/></div>
+    <div class="fg">
+      <label>Foto do produto</label>
+      <div class="img-upload-box" id="img-upload-box" onclick="document.getElementById('mprod-img-file').click()">
+        <div class="img-upload-placeholder" id="img-upload-placeholder">
+          <svg fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          <span>Toque para escolher uma foto</span>
+        </div>
+        <img id="img-upload-preview" style="display:none"/>
+        <input type="file" id="mprod-img-file" accept="image/*" onchange="onSelecionarImagem(event)"/>
+        <button type="button" class="img-upload-remove" id="img-upload-remove" style="display:none" onclick="event.stopPropagation();removerImagemSelecionada()">✕</button>
+        <div class="img-upload-progress" id="img-upload-progress">
+          <div class="img-upload-bar"><div class="img-upload-bar-fill" id="img-upload-bar-fill"></div></div>
+          <span style="font-size:.78rem;color:var(--muted)">Enviando imagem…</span>
+        </div>
+      </div>
+      <input type="hidden" id="mprod-img"/>
+    </div>
     <div class="form-row">
       <div class="fg"><label>Parcelamento</label>
         <select id="mprod-parc">
@@ -430,18 +462,20 @@ const firebaseConfig = {
   appId:             "1:325572658544:web:ef6b3f13dfa0488fc97bb5"
 };
 
-let db, auth, uid;
+let db, auth, uid, storage;
 let VENDEDOR_DOC = null;
 let PLANOS = [], PLATFORM_CONFIG = {};
 let PRODUTOS = [], CLIENTES = [], VENDAS = [], CONFIG = {};
 let BASE_URL = window.location.origin;
 let chartV, chartP;
+let imagemSelecionadaFile = null; // arquivo de imagem escolhido, aguardando upload no salvar
 
 window.addEventListener('DOMContentLoaded', () => {
   try {
     firebase.initializeApp(firebaseConfig);
-    db   = firebase.firestore();
-    auth = firebase.auth();
+    db      = firebase.firestore();
+    auth    = firebase.auth();
+    storage = firebase.storage();
     auth.onAuthStateChanged(async user => {
       document.getElementById('loading').style.display = 'none';
       if (user) { uid = user.uid; await iniciarApp(user); }
@@ -586,7 +620,7 @@ function goPage(p){
   const btn=document.getElementById('topbar-btn');
   btn.textContent=btnMap[p]||'';
   btn.style.display=btnMap[p]?'':'none';
-  btn.onclick=()=>{ if(p==='produtos')openModal('modal-produto'); else if(p==='vendas')openModal('modal-venda'); else if(p==='clientes')openModal('modal-cliente'); };
+  btn.onclick=()=>{ if(p==='produtos')abrirModalNovoProduto(); else if(p==='vendas')openModal('modal-venda'); else if(p==='clientes')openModal('modal-cliente'); };
   if(p==='dashboard')renderDashboard();
   if(p==='produtos')renderProdutos();
   if(p==='vendas')renderVendas();
@@ -634,30 +668,108 @@ function renderProdutos(){
       <td class="td-actions"><button class="btn btn-secondary btn-xs" onclick="editarProduto('${p.id}')">✏️</button><button class="btn btn-danger btn-xs" onclick="excluirProduto('${p.id}')">🗑️</button></td>
     </tr>`).join(''):'<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:28px">Nenhum produto cadastrado.</td></tr>';
 }
+function abrirModalNovoProduto(){
+  resetarUploadImagem();
+  document.getElementById('mprod-id').value='';
+  document.getElementById('mprod-nome').value='';
+  document.getElementById('mprod-preco').value='';
+  document.getElementById('mprod-estoque').value='';
+  document.getElementById('mprod-desc').value='';
+  document.getElementById('mprod-parc').value='';
+  document.getElementById('mprod-status').value='ativo';
+  document.getElementById('mprod-titulo').textContent='Novo Produto';
+  openModal('modal-produto');
+}
 function editarProduto(id){
   const p=PRODUTOS.find(x=>x.id===id);if(!p)return;
+  resetarUploadImagem();
   document.getElementById('mprod-id').value=p.id;
   document.getElementById('mprod-nome').value=p.nome||'';
   document.getElementById('mprod-preco').value=p.preco||'';
   document.getElementById('mprod-estoque').value=p.estoque||'';
   document.getElementById('mprod-desc').value=p.desc||'';
   document.getElementById('mprod-img').value=p.img||'';
+  if(p.img){ mostrarPreviewImagem(p.img); }
   document.getElementById('mprod-parc').value=p.parcelamento||'';
   document.getElementById('mprod-status').value=p.status||'ativo';
   document.getElementById('mprod-titulo').textContent='Editar Produto';
   openModal('modal-produto');
 }
+
+/* ─── Upload de imagem do produto ──────────────────────── */
+function resetarUploadImagem(){
+  imagemSelecionadaFile = null;
+  document.getElementById('mprod-img').value='';
+  document.getElementById('mprod-img-file').value='';
+  document.getElementById('img-upload-placeholder').style.display='flex';
+  document.getElementById('img-upload-preview').style.display='none';
+  document.getElementById('img-upload-remove').style.display='none';
+  document.getElementById('img-upload-box').classList.remove('has-image');
+  document.getElementById('img-upload-progress').classList.remove('active');
+}
+function mostrarPreviewImagem(src){
+  const img=document.getElementById('img-upload-preview');
+  img.src=src;
+  img.style.display='block';
+  document.getElementById('img-upload-placeholder').style.display='none';
+  document.getElementById('img-upload-remove').style.display='flex';
+  document.getElementById('img-upload-box').classList.add('has-image');
+}
+function onSelecionarImagem(ev){
+  const file = ev.target.files && ev.target.files[0];
+  if (!file) return;
+  if (!file.type.startsWith('image/')) { toast('Selecione um arquivo de imagem.','error'); return; }
+  if (file.size > 5*1024*1024) { toast('Imagem muito grande (máx. 5MB).','error'); return; }
+  imagemSelecionadaFile = file;
+  const reader = new FileReader();
+  reader.onload = e => mostrarPreviewImagem(e.target.result);
+  reader.readAsDataURL(file);
+}
+function removerImagemSelecionada(){
+  resetarUploadImagem();
+}
+async function uploadImagemSeNecessario(produtoId){
+  if (!imagemSelecionadaFile) return document.getElementById('mprod-img').value || '';
+  const progress = document.getElementById('img-upload-progress');
+  const barFill  = document.getElementById('img-upload-bar-fill');
+  progress.classList.add('active');
+  barFill.style.width = '0%';
+  const ext = (imagemSelecionadaFile.name.split('.').pop()||'jpg').toLowerCase();
+  const path = `produtos/${uid}/${produtoId}_${Date.now()}.${ext}`;
+  const ref = storage.ref().child(path);
+  return new Promise((resolve, reject) => {
+    const task = ref.put(imagemSelecionadaFile);
+    task.on('state_changed',
+      snap => { const pct = Math.round((snap.bytesTransferred/snap.totalBytes)*100); barFill.style.width = pct+'%'; },
+      err  => { progress.classList.remove('active'); console.error(err); toast('Falha ao enviar imagem: '+err.message,'error'); reject(err); },
+      async () => {
+        const url = await task.snapshot.ref.getDownloadURL();
+        progress.classList.remove('active');
+        resolve(url);
+      }
+    );
+  });
+}
+
 async function salvarProduto(){
   const id=document.getElementById('mprod-id').value;
   const plano=PLANOS.find(p=>p.id===VENDEDOR_DOC?.planoId);
   const max=plano?.maxProdutos||999;
   if(!id&&PRODUTOS.filter(p=>p.status==='ativo').length>=max){toast(`Limite de ${max} produtos atingido no seu plano.`,'error');return}
-  const data={nome:document.getElementById('mprod-nome').value,preco:parseFloat(document.getElementById('mprod-preco').value)||0,estoque:parseInt(document.getElementById('mprod-estoque').value)||0,desc:document.getElementById('mprod-desc').value,img:document.getElementById('mprod-img').value,parcelamento:document.getElementById('mprod-parc').value,status:document.getElementById('mprod-status').value};
-  if(!data.nome){toast('Nome obrigatório.','error');return}
+  const nome=document.getElementById('mprod-nome').value;
+  if(!nome){toast('Nome obrigatório.','error');return}
+  let imgUrl;
+  try {
+    imgUrl = await uploadImagemSeNecessario(id || ('novo'+Date.now()));
+  } catch(e) {
+    return; // erro já mostrado em uploadImagemSeNecessario
+  }
+  const data={nome,preco:parseFloat(document.getElementById('mprod-preco').value)||0,estoque:parseInt(document.getElementById('mprod-estoque').value)||0,desc:document.getElementById('mprod-desc').value,img:imgUrl,parcelamento:document.getElementById('mprod-parc').value,status:document.getElementById('mprod-status').value};
   if(id){await updateDoc2('produtos',id,data);const idx=PRODUTOS.findIndex(x=>x.id===id);if(idx!==-1)Object.assign(PRODUTOS[idx],data);toast('Produto atualizado!','success')}
   else{const nid=await addDoc2('produtos',data);PRODUTOS.unshift({id:nid,...data});await db.collection('vendedores').doc(VENDEDOR_DOC.id).update({totalProdutos:firebase.firestore.FieldValue.increment(1)});toast('Produto cadastrado!','success')}
   document.getElementById('mprod-id').value='';
   document.getElementById('mprod-titulo').textContent='Novo Produto';
+  resetarUploadImagem();
   closeModal('modal-produto');renderProdutos();
 }
 async function excluirProduto(id){if(!confirm('Excluir produto?'))return;await deleteDoc2('produtos',id);PRODUTOS=PRODUTOS.filter(x=>x.id!==id);renderProdutos();toast('Excluído.','success')}
