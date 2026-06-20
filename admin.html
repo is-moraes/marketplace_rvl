@@ -1,133 +1,923 @@
 <!DOCTYPE html>
-<html lang="pt-br">
+<html lang="pt-BR">
 <head>
-    <meta charset="UTF-8">
-    <title>Admin - ClosetPro RvL</title>
-    <style>
-        *{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',sans-serif} body{background:#1a1a2e;color:#eee;min-height:100vh} header{background:linear-gradient(135deg,#6c3483,#a04000);color:#fff;padding:16px 24px;display:flex;justify-content:space-between;align-items:center} header h1{font-size:1.5rem} nav a{color:#fff;text-decoration:none;margin-left:12px;padding:6px 12px;border-radius:6px;transition:background 0.2s} nav a:hover{background:rgba(255,255,255,0.2)} .admin-container{max-width:1100px;margin:30px auto;padding:0 20px} .stats-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:16px;margin-bottom:30px} .stat-card{background:linear-gradient(135deg,#2d2d44,#3d2b4a);border-radius:12px;padding:20px;text-align:center;border:1px solid #6c348344} .stat-card .num{font-size:2.2rem;font-weight:700;color:#d7bde2} .stat-card .label{color:#aaa;font-size:0.85rem;margin-top:4px} .stat-card .icon{font-size:2rem;margin-bottom:8px} .panel{background:#16213e;border-radius:12px;padding:24px;margin-bottom:24px;border:1px solid #0f3460} .panel h3{color:#d7bde2;margin-bottom:20px;font-size:1.1rem;display:flex;align-items:center;gap:8px} .panel h3::before{content:'';display:inline-block;width:4px;height:18px;background:#6c3483;border-radius:2px} table{width:100%;border-collapse:collapse} table th{background:#0f3460;color:#d7bde2;padding:12px;text-align:left;font-size:0.85rem} table td{padding:12px;border-bottom:1px solid #2d2d44;font-size:0.9rem;color:#ccc} table tr:hover td{background:#1e2a4a} .badge{padding:3px 10px;border-radius:12px;font-size:0.75rem;font-weight:600;display:inline-block} .badge.ativo{background:#1a4731;color:#52be80} .badge.bloq{background:#4a1010;color:#e74c3c} .actions{display:flex;gap:6px} .btn-sm{padding:5px 12px;border:none;border-radius:6px;cursor:pointer;font-size:0.8rem;font-weight:600;transition:opacity 0.2s} .btn-sm:hover{opacity:0.8} .btn-green{background:#1e8449;color:#fff} .btn-red{background:#c0392b;color:#fff} .btn-blue{background:#1a5276;color:#fff} .btn-add{background:linear-gradient(135deg,#6c3483,#a04000);color:#fff;border:none;padding:10px 20px;border-radius:8px;cursor:pointer;font-weight:600;margin-bottom:16px} .form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px} .form-row input,.form-row select{background:#0f3460;border:1px solid #2d4a7a;color:#eee;padding:10px 14px;border-radius:8px;font-size:0.9rem;outline:none} .form-row input:focus,.form-row select:focus{border-color:#6c3483} footer{background:#0f1420;color:#888;text-align:center;padding:20px;margin-top:40px;font-size:0.85rem} #alerta{position:fixed;top:20px;right:20px;background:linear-gradient(135deg,#27ae60,#2ecc71);color:#fff;padding:16px 28px;border-radius:10px;display:none;box-shadow:0 4px 20px rgba(0,0,0,0.3);z-index:1000}
-    </style>
-</head>
-        <script src="https://www.gstatic.com/firebasejs/11.0.2/firebase-app-compat.js"></script>
-        <script src="https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore-compat.js"></script>
-        <script src="https://www.gstatic.com/firebasejs/11.0.2/firebase-auth-compat.js"></script>
-        <script>
-                  const firebaseConfig = {
-                              apiKey: "AIzaSyDe2v375f4qcWTYxj_P6s77SD3GsYYzuUM",
-                              authDomain: "rvl-marketplace.firebaseapp.com",
-                              projectId: "rvl-marketplace",
-                              storageBucket: "rvl-marketplace.firebasestorage.app",
-                              messagingSenderId: "325572658544",
-                              appId: "1:325572658544:web:ef6b3f13dfa0488fc97bb5",
-                              measurementId: "G-C2ZX5ZWL8Q"
-                                        };
-                  firebase.initializeApp(firebaseConfig);
-                </script>
-    
-<body>
-
-    
-    <header>
-        <h1>👗 ClosetPro Admin</h1>
-        <nav>
-            <a href="index.html">Início</a>
-            <a href="loja.html">Lojas</a>
-            <a href="admin.html">🔒 Admin</a>
-        </nav>
-    </header>
-
-    <div class="admin-container">
-        <div class="stats-grid">
-            <div class="stat-card"><div class="icon">🏪</div><div class="num">6</div><div class="label">Lojas Ativas</div></div>
-            <div class="stat-card"><div class="icon">🛍️</div><div class="num">308</div><div class="label">Produtos</div></div>
-            <div class="stat-card"><div class="icon">💰</div><div class="num">R$ 48.920</div><div class="label">Faturamento</div></div>
-            <div class="stat-card"><div class="icon">👥</div><div class="num">1,247</div><div class="label">Clientes</div></div>
-        </div>
-
-        <div class="panel">
-            <h3>Gerenciar Lojas</h3>
-            <button class="btn-add" onclick="abrirModal()">+ Nova Loja</button>
-            <table id="tabela-lojas">
-                <thead>
-                    <tr><th>Loja</th><th>Categoria</th><th>Produtos</th><th>Status</th><th>Ações</th></tr>
-                </thead>
-                <tbody>
-                    <tr><td>Boutique Elegance</td><td>Roupas</td><td>48</td><td><span class="badge ativo">Ativo</span></td><td class="actions"><button class="btn-sm btn-blue" onclick="editarLoja(this)">Editar</button><button class="btn-sm btn-red" onclick="bloquearLoja(this)">Bloquear</button></td></tr>
-                    <tr><td>Sapatos Style</td><td>Calçados</td><td>32</td><td><span class="badge ativo">Ativo</span></td><td class="actions"><button class="btn-sm btn-blue" onclick="editarLoja(this)">Editar</button><button class="btn-sm btn-red" onclick="bloquearLoja(this)">Bloquear</button></td></tr>
-                    <tr><td>Acessórios Chic</td><td>Acessórios</td><td>60</td><td><span class="badge ativo">Ativo</span></td><td class="actions"><button class="btn-sm btn-blue" onclick="editarLoja(this)">Editar</button><button class="btn-sm btn-red" onclick="bloquearLoja(this)">Bloquear</button></td></tr>
-                    <tr><td>ModaMasc</td><td>Roupas</td><td>25</td><td><span class="badge ativo">Ativo</span></td><td class="actions"><button class="btn-sm btn-blue" onclick="editarLoja(this)">Editar</button><button class="btn-sm btn-red" onclick="bloquearLoja(this)">Bloquear</button></td></tr>
-                    <tr><td>Sneaker House</td><td>Calçados</td><td>55</td><td><span class="badge ativo">Ativo</span></td><td class="actions"><button class="btn-sm btn-blue" onclick="editarLoja(this)">Editar</button><button class="btn-sm btn-red" onclick="bloquearLoja(this)">Bloquear</button></td></tr>
-                    <tr><td>Joias & Cia</td><td>Acessórios</td><td>88</td><td><span class="badge ativo">Ativo</span></td><td class="actions"><button class="btn-sm btn-blue" onclick="editarLoja(this)">Editar</button><button class="btn-sm btn-red" onclick="bloquearLoja(this)">Bloquear</button></td></tr>
-                </tbody>
-            </table>
-        </div>
-
-        <div class="panel">
-            <h3>🏪 Cadastrar Nova Loja</h3>
-            <div class="form-row">
-                <input type="text" id="nome-loja" placeholder="Nome da Loja">
-                <input type="text" id="cat-loja" placeholder="Categoria (Roupas, Calçados, Acessórios)">
-                <input type="email" id="email-loja" placeholder="E-mail do responsável">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Meu Closet - Super Admin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<!-- MODO DEMO: substitui o Firebase real por uma versão local (localStorage). Para publicar de verdade, troque este script pelos 3 scripts reais do Firebase (veja GUIA-PUBLICAR.html) -->
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+<!-- <script src="firebase-demo-shim.js"></script> -->
+<style>
+:root {
+--bg: #F3F0FA;
+--surface: #FFFFFF;
+--border: #E7E2F4;
+--purple: #7C3AED;
+--purple-dark: #5B21B6;
+--purple-light: #EDE7FB;
+--sidebar: #1A1830;
+--sidebar-hover: #252140;
+--sidebar-text: #A8A4C0;
+--text: #1F1B2E;
+--muted: #6B6B80;
+--success: #16A34A;
+--danger: #DC2626;
+--warning: #D97706;
+--info: #2563EB;
+--font-head: 'Poppins', sans-serif;
+--font-body: 'Inter', sans-serif;
+--r: 14px;
+--sb-w: 230px;
+}
+*, *::before, *::after {
+box-sizing: border-box;
+margin: 0;
+padding: 0;
+}
+body {
+font-family: var(--font-body);
+background: var(--bg);
+color: var(--text);
+min-height: 100vh;
+-webkit-font-smoothing: antialiased;
+}
+button {
+cursor: pointer;
+border: none;
+font-family: var(--font-body);
+}
+input, select, textarea {
+font-family: var(--font-body);
+}
+::-webkit-scrollbar {
+width: 6px;
+}
+::-webkit-scrollbar-thumb {
+background: var(--border);
+border-radius: 10px;
+}
+.loading {
+position: fixed;
+inset: 0;
+background: var(--bg);
+display: flex;
+flex-direction: column;
+align-items: center;
+justify-content: center;
+gap: 14px;
+z-index: 999;
+}
+.spin {
+width: 32px;
+height: 32px;
+border: 3px solid var(--border);
+border-top-color: var(--purple);
+border-radius: 50%;
+animation: spin 0.8s linear infinite;
+}
+@keyframes spin {
+to { transform: rotate(360deg); }
+}
+.auth-screen {
+display: none;
+min-height: 100vh;
+align-items: center;
+justify-content: center;
+background: linear-gradient(160deg, #F3F0FA 0%, #EDE4FB 100%);
+padding: 20px;
+}
+.auth-screen.active {
+display: flex;
+}
+.auth-box {
+background: #fff;
+border: 1px solid var(--border);
+border-radius: 22px;
+padding: 44px 38px;
+width: 100%;
+max-width: 410px;
+text-align: center;
+box-shadow: 0 14px 40px rgba(124, 58, 237, 0.10);
+}
+.auth-logo {
+font-family: var(--font-head);
+font-weight: 800;
+font-size: 1.7rem;
+color: var(--purple-dark);
+margin-bottom: 6px;
+}
+.auth-badge {
+display: inline-block;
+background: var(--purple-light);
+color: var(--purple-dark);
+border-radius: 20px;
+padding: 4px 13px;
+font-size: 0.74rem;
+font-weight: 700;
+margin-bottom: 18px;
+}
+.auth-sub {
+color: var(--muted);
+font-size: 0.88rem;
+margin-bottom: 28px;
+}
+.fg {
+margin-bottom: 15px;
+text-align: left;
+}
+.fg label {
+display: block;
+font-size: 0.74rem;
+color: var(--muted);
+margin-bottom: 6px;
+text-transform: uppercase;
+letter-spacing: 0.05em;
+font-weight: 600;
+}
+.fg input, .fg select, .fg textarea {
+width: 100%;
+background: var(--bg);
+border: 1px solid var(--border);
+border-radius: 9px;
+padding: 10px 14px;
+color: var(--text);
+font-size: 0.92rem;
+}
+.fg input:focus, .fg select:focus, .fg textarea:focus {
+outline: none;
+border-color: var(--purple);
+background: #fff;
+}
+.fg textarea {
+resize: vertical;
+min-height: 74px;
+}
+.form-row {
+display: grid;
+grid-template-columns: 1fr 1fr;
+gap: 12px;
+}
+.btn {
+display: inline-flex;
+align-items: center;
+justify-content: center;
+gap: 7px;
+padding: 10px 20px;
+border-radius: 10px;
+font-weight: 600;
+font-size: 0.86rem;
+transition: opacity 0.15s, transform 0.1s, background 0.15s;
+}
+.btn:active {
+transform: scale(0.97);
+}
+.btn-primary {
+background: var(--purple);
+color: #fff;
+}
+.btn-primary:hover {
+background: var(--purple-dark);
+}
+.btn-secondary {
+background: var(--bg);
+color: var(--text);
+border: 1px solid var(--border);
+}
+.btn-secondary:hover {
+border-color: var(--purple);
+}
+.btn-success {
+background: #DCFCE7;
+color: var(--success);
+}
+.btn-success:hover {
+background: #BBF7D0;
+}
+.btn-warning {
+background: #FEF3C7;
+color: var(--warning);
+}
+.btn-warning:hover {
+background: #FDE68A;
+}
+.btn-danger {
+background: #FEE2E2;
+color: var(--danger);
+}
+.btn-danger:hover {
+background: #FECACA;
+}
+.btn-full {
+width: 100%;
+}
+.btn-sm {
+padding: 7px 15px;
+font-size: 0.8rem;
+}
+.btn-xs {
+padding: 5px 11px;
+font-size: 0.74rem;
+}
+.app {
+display: none;
+}
+.app.active {
+display: flex;
+min-height: 100vh;
+}
+.sidebar {
+width: var(--sb-w);
+background: var(--sidebar);
+display: flex;
+flex-direction: column;
+position: sticky;
+top: 0;
+height: 100vh;
+overflow-y: auto;
+flex-shrink: 0;
+}
+.sb-logo {
+padding: 24px 20px 18px;
+}
+.sb-logo-text {
+font-family: var(--font-head);
+font-weight: 800;
+font-size: 1.2rem;
+color: #fff;
+display: flex;
+align-items: center;
+gap: 8px;
+}
+.sb-badge {
+display: inline-block;
+background: rgba(124, 58, 237, 0.25);
+color: #D8B4FE;
+border-radius: 20px;
+padding: 2px 10px;
+font-size: 0.65rem;
+margin-top: 6px;
+font-weight: 700;
+}
+.nav-section {
+padding: 16px 18px 6px;
+font-size: 0.65rem;
+color: #6E6A90;
+text-transform: uppercase;
+letter-spacing: 0.1em;
+font-weight: 700;
+}
+.nav-item {
+display: flex;
+align-items: center;
+gap: 10px;
+padding: 10px 16px;
+border-radius: 9px;
+margin: 2px 10px;
+font-size: 0.86rem;
+color: var(--sidebar-text);
+cursor: pointer;
+transition: all 0.15s;
+}
+.nav-item:hover {
+background: var(--sidebar-hover);
+color: #fff;
+}
+.nav-item.active {
+background: var(--purple);
+color: #fff;
+}
+.nav-item svg {
+flex-shrink: 0;
+width: 16px;
+height: 16px;
+}
+.sb-bottom {
+margin-top: auto;
+padding: 16px;
+border-top: 1px solid #2A2650;
+}
+.user-chip {
+display: flex;
+align-items: center;
+gap: 10px;
+font-size: 0.8rem;
+color: var(--sidebar-text);
+}
+.user-av {
+width: 32px;
+height: 32px;
+border-radius: 50%;
+background: linear-gradient(135deg, var(--purple), #EC4899);
+color: #fff;
+font-weight: 700;
+font-size: 0.8rem;
+display: flex;
+align-items: center;
+justify-content: center;
+flex-shrink: 0;
+}
+.main {
+flex: 1;
+overflow-y: auto;
+}
+.topbar {
+background: #fff;
+border-bottom: 1px solid var(--border);
+padding: 16px 28px;
+display: flex;
+align-items: center;
+justify-content: space-between;
+gap: 12px;
+position: sticky;
+top: 0;
+z-index: 10;
+}
+.topbar-title {
+font-family: var(--font-head);
+font-weight: 700;
+font-size: 1.2rem;
+}
+.page {
+padding: 26px 28px;
+display: none;
+}
+.page.active {
+display: block;
+}
+.stats-grid {
+display: grid;
+grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+gap: 16px;
+margin-bottom: 22px;
+}
+.stat-card {
+background: #fff;
+border: 1px solid var(--border);
+border-radius: var(--r);
+padding: 18px;
+}
+.stat-label {
+font-size: 0.74rem;
+color: var(--muted);
+text-transform: uppercase;
+letter-spacing: 0.05em;
+margin-bottom: 7px;
+font-weight: 600;
+}
+.stat-value {
+font-family: var(--font-head);
+font-weight: 800;
+font-size: 1.7rem;
+color: var(--text);
+}
+.stat-sub {
+font-size: 0.74rem;
+color: var(--muted);
+margin-top: 6px;
+}
+.table-wrap {
+background: #fff;
+border: 1px solid var(--border);
+border-radius: var(--r);
+overflow: hidden;
+overflow-x: auto;
+}
+table {
+width: 100%;
+border-collapse: collapse;
+font-size: 0.86rem;
+}
+th {
+background: var(--bg);
+padding: 11px 16px;
+text-align: left;
+font-size: 0.7rem;
+text-transform: uppercase;
+letter-spacing: 0.05em;
+color: var(--muted);
+font-weight: 700;
+white-space: nowrap;
+}
+td {
+padding: 11px 16px;
+border-top: 1px solid var(--border);
+vertical-align: middle;
+}
+tr:hover td {
+background: #FAF9FD;
+}
+.badge-status {
+display: inline-block;
+padding: 3px 10px;
+border-radius: 20px;
+font-size: 0.72rem;
+font-weight: 600;
+}
+.badge-ativo {
+background: #DCFCE7;
+color: var(--success);
+}
+.badge-trial {
+background: #FEF3C7;
+color: var(--warning);
+}
+.badge-expirado {
+background: #FEE2E2;
+color: var(--danger);
+}
+.badge-bloqueado {
+background: #F1F0F5;
+color: var(--muted);
+}
+.vend-grid {
+display: grid;
+grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+gap: 16px;
+}
+.vend-card {
+background: #fff;
+border: 1px solid var(--border);
+border-radius: var(--r);
+padding: 18px;
+}
+.vend-header {
+display: flex;
+align-items: center;
+gap: 12px;
+margin-bottom: 14px;
+}
+.vend-avatar {
+width: 40px;
+height: 40px;
+border-radius: 11px;
+background: linear-gradient(135deg, var(--purple), #EC4899);
+color: #fff;
+font-weight: 700;
+font-size: 0.95rem;
+display: flex;
+align-items: center;
+justify-content: center;
+flex-shrink: 0;
+}
+.vend-name {
+font-weight: 700;
+font-size: 0.92rem;
+}
+.vend-email {
+font-size: 0.76rem;
+color: var(--muted);
+}
+.vend-meta {
+display: flex;
+gap: 16px;
+margin-bottom: 14px;
+font-size: 0.8rem;
+color: var(--muted);
+}
+.vend-meta strong {
+color: var(--text);
+}
+.progress-bar {
+background: var(--bg);
+border-radius: 20px;
+height: 6px;
+overflow: hidden;
+margin-bottom: 14px;
+}
+.progress-fill {
+height: 100%;
+border-radius: 20px;
+}
+.vend-actions {
+display: flex;
+gap: 6px;
+flex-wrap: wrap;
+}
+.plan-grid {
+display: grid;
+grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+gap: 14px;
+margin-bottom: 20px;
+}
+.plan-card {
+background: #fff;
+border: 2px solid var(--border);
+border-radius: var(--r);
+padding: 18px;
+}
+.plan-name {
+font-weight: 700;
+font-size: 0.98rem;
+margin-bottom: 4px;
+}
+.plan-price {
+font-family: var(--font-head);
+font-size: 1.35rem;
+font-weight: 800;
+color: var(--purple-dark);
+}
+.plan-price span {
+font-size: 0.72rem;
+color: var(--muted);
+font-weight: 400;
+}
+.plan-features {
+font-size: 0.76rem;
+color: var(--muted);
+margin-top: 8px;
+line-height: 1.7;
+white-space: pre-line;
+}
+.tabs {
+display: flex;
+gap: 4px;
+background: var(--bg);
+border-radius: 11px;
+padding: 4px;
+margin-bottom: 20px;
+}
+.tab {
+flex: 1;
+text-align: center;
+padding: 7px 10px;
+border-radius: 8px;
+font-size: 0.82rem;
+font-weight: 600;
+color: var(--muted);
+cursor: pointer;
+transition: all 0.15s;
+}
+.tab.active {
+background: var(--purple);
+color: #fff;
+}
+.link-box {
+background: var(--bg);
+border: 1px solid var(--border);
+border-radius: 9px;
+padding: 10px 14px;
+font-size: 0.82rem;
+color: var(--muted);
+word-break: break-all;
+display: flex;
+align-items: center;
+justify-content: space-between;
+gap: 8px;
+margin-top: 8px;
+}
+.link-box code {
+color: var(--purple-dark);
+flex: 1;
+}
+.modal-bg {
+display: none;
+position: fixed;
+inset: 0;
+background: rgba(31, 27, 46, 0.55);
+z-index: 500;
+align-items: center;
+justify-content: center;
+padding: 16px;
+backdrop-filter: blur(2px);
+}
+.modal-bg.open {
+display: flex;
+}
+.modal {
+background: #fff;
+border-radius: 18px;
+padding: 28px;
+width: 100%;
+max-width: 500px;
+max-height: 90vh;
+overflow-y: auto;
+position: relative;
+box-shadow: 0 24px 60px rgba(31, 27, 46, 0.2);
+}
+.modal h2 {
+font-family: var(--font-head);
+font-weight: 700;
+font-size: 1.25rem;
+margin-bottom: 18px;
+color: var(--purple-dark);
+}
+.modal-close {
+position: absolute;
+top: 16px;
+right: 16px;
+background: var(--bg);
+width: 30px;
+height: 30px;
+border-radius: 50%;
+color: var(--muted);
+font-size: 1.05rem;
+display: flex;
+align-items: center;
+justify-content: center;
+}
+.modal-close:hover {
+background: var(--purple-light);
+color: var(--purple-dark);
+}
+.toast-area {
+position: fixed;
+bottom: 22px;
+right: 22px;
+z-index: 9999;
+display: flex;
+flex-direction: column;
+gap: 8px;
+}
+.toast {
+background: #fff;
+border: 1px solid var(--border);
+border-left: 4px solid var(--purple);
+border-radius: 10px;
+padding: 12px 18px;
+font-size: 0.85rem;
+min-width: 220px;
+box-shadow: 0 8px 24px rgba(31, 27, 46, 0.12);
+animation: tin 0.25s ease;
+}
+.toast.success {
+border-left-color: var(--success);
+}
+.toast.error {
+border-left-color: var(--danger);
+}
+@keyframes tin {
+from { opacity: 0; transform: translateY(8px); }
+to { opacity: 1; transform: translateY(0); }
+}
+.menu-toggle {
+display: none;
+background: none;
+color: var(--text);
+font-size: 1.4rem;
+}
+@media (max-width: 768px) {
+.sidebar {
+position: fixed;
+left: -250px;
+top: 0;
+z-index: 200;
+height: 100vh;
+transition: left 0.22s;
+}
+.sidebar.open {
+left: 0;
+}
+.menu-toggle {
+display: block;
+}
+.main {
+width: 100%;
+}
+.page {
+padding: 16px;
+}
+.stats-grid {
+grid-template-columns: 1fr 1fr;
+}
+.form-row {
+grid-template-columns: 1fr;
+}
+}
+</style>
+</head><body>
+        <div class="app">
+        <aside class="sidebar">
+            <div class="side-brand">
+                <span class="emoji">&#128095;</span>
+                <strong>ClosetPro</strong>
             </div>
-            <button class="btn-sm btn-green" onclick="salvarLoja()">Salvar Loja</button>
-            <button class="btn-sm btn-red" onclick="fecharModal()">Cancelar</button>
-        </div>
-
-        <div id="modal-loja" class="modal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);z-index:999">
-            <div style="background:#16213e;border-radius:12px;padding:30px;max-width:500px;margin:100px auto;border:1px solid #0f3460">
-                <h3 style="color:#d7bde2;margin-bottom:20px">Nova Loja</h3>
-                <div class="form-row"><input type="text" id="nome-loja" placeholder="Nome da Loja"></div>
-                <div class="form-row"><input type="text" id="cat-loja" placeholder="Categoria"></div>
-                <div class="form-row"><input type="email" id="email-loja" placeholder="E-mail"></div>
-                <button class="btn-sm btn-green" onclick="salvarLoja()">Salvar</button>
-                <button class="btn-sm btn-red" onclick="fecharModal()">Cancelar</button>
+            <nav class="side-nav">
+                <a href="/" class="nav-item"><span class="emoji">&#127968;</span> In&iacute;cio</a>
+                <a href="/loja" class="nav-item"><span class="emoji">&#128095;</span> Lojas</a>
+                <a href="/admin" class="nav-item active"><span class="emoji">&#128274;</span> Admin</a>
+            </nav>
+        </aside>
+        <main class="main">
+            <header class="top-bar">
+                <button class="menu-toggle" onclick="toggleSidebar()">&#9776;</button>
+                <h1 class="brand"><span class="emoji">&#128095;</span> ClosetPro Admin</h1>
+                <nav class="top-nav">
+                    <a href="/">In&iacute;cio</a>
+                    <a href="/loja">Lojas</a>
+                    <a href="/admin" class="active">&#128274; Admin</a>
+                </nav>
+            </header>
+            <div class="page">
+                <div class="stats-grid">
+                    <div class="stat-card stat-primary">
+                        <span class="stat-emoji">&#127978;</span>
+                        <div class="stat-label">Lojas Ativas</div>
+                        <div class="stat-value" id="total-lojas">6</div>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-emoji">&#128722;</span>
+                        <div class="stat-label">Produtos</div>
+                        <div class="stat-value">308</div>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-emoji">&#128176;</span>
+                        <div class="stat-label">Faturamento</div>
+                        <div class="stat-value">R$ 48.920</div>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-emoji">&#128101;</span>
+                        <div class="stat-label">Clientes</div>
+                        <div class="stat-value">1,247</div>
+                    </div>
+                </div>
+                <section class="panel vend-section">
+                    <div class="panel-head">
+                        <h3 class="panel-title">Gerenciar Lojas</h3>
+                        <button class="btn btn-sm btn-add" onclick="showForm('nova-loja')">+ Nova Loja</button>
+                    </div>
+                    <div class="panel-body">
+                        <div class="table-wrap">
+                            <table class="vend-list" id="tabela-lojas">
+                                <thead>
+                                    <tr>
+                                        <th>Loja</th>
+                                        <th>Categoria</th>
+                                        <th>Produtos</th>
+                                        <th>Status</th>
+                                        <th>A&ccedil;&otilde;es</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>Boutique Elegance</td>
+                                        <td>Roupas</td>
+                                        <td>48</td>
+                                        <td><span class="badge badge-active">Ativo</span></td>
+                                        <td class="vend-actions">
+                                            <button class="btn btn-sm btn-blue" onclick="editStore(this)">Editar</button>
+                                            <button class="btn btn-sm btn-red" onclick="toggleStatus(this)">Bloquear</button>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>Sapatos Style</td>
+                                        <td>Cal&ccedil;ados</td>
+                                        <td>32</td>
+                                        <td><span class="badge badge-active">Ativo</span></td>
+                                        <td class="vend-actions">
+                                            <button class="btn btn-sm btn-blue" onclick="editStore(this)">Editar</button>
+                                            <button class="btn btn-sm btn-red" onclick="toggleStatus(this)">Bloquear</button>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>Acess&oacute;rios Chic</td>
+                                        <td>Acess&oacute;rios</td>
+                                        <td>60</td>
+                                        <td><span class="badge badge-active">Ativo</span></td>
+                                        <td class="vend-actions">
+                                            <button class="btn btn-sm btn-blue" onclick="editStore(this)">Editar</button>
+                                            <button class="btn btn-sm btn-red" onclick="toggleStatus(this)">Bloquear</button>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>ModaMasc</td>
+                                        <td>Roupas</td>
+                                        <td>25</td>
+                                        <td><span class="badge badge-active">Ativo</span></td>
+                                        <td class="vend-actions">
+                                            <button class="btn btn-sm btn-blue" onclick="editStore(this)">Editar</button>
+                                            <button class="btn btn-sm btn-red" onclick="toggleStatus(this)">Bloquear</button>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>Sneaker House</td>
+                                        <td>Cal&ccedil;ados</td>
+                                        <td>55</td>
+                                        <td><span class="badge badge-active">Ativo</span></td>
+                                        <td class="vend-actions">
+                                            <button class="btn btn-sm btn-blue" onclick="editStore(this)">Editar</button>
+                                            <button class="btn btn-sm btn-red" onclick="toggleStatus(this)">Bloquear</button>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>Joias &amp; Cia</td>
+                                        <td>Acess&oacute;rios</td>
+                                        <td>88</td>
+                                        <td><span class="badge badge-active">Ativo</span></td>
+                                        <td class="vend-actions">
+                                            <button class="btn btn-sm btn-blue" onclick="editStore(this)">Editar</button>
+                                            <button class="btn btn-sm btn-red" onclick="toggleStatus(this)">Bloquear</button>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+                <section class="panel form-section" id="nova-loja" style="display:none;">
+                    <div class="panel-head">
+                        <h3 class="panel-title"><span class="emoji">&#127978;</span> Cadastrar Nova Loja</h3>
+                    </div>
+                    <div class="panel-body">
+                        <div class="form-row">
+                            <input type="text" id="nome-loja" placeholder="Nome da Loja">
+                            <input type="text" id="cat-loja" placeholder="Categoria (Roupas, Cal&ccedil;ados, Acess&oacute;rios)">
+                        </div>
+                        <div class="form-row">
+                            <input type="email" id="email-loja" placeholder="E-mail do respons&aacute;vel">
+                        </div>
+                        <div class="form-actions">
+                            <button class="btn btn-success" onclick="saveStore()">Salvar Loja</button>
+                            <button class="btn btn-gray" onclick="hideForm('nova-loja')">Cancelar</button>
+                        </div>
+                    </div>
+                </section>
+                <footer class="site-footer">
+                    <p>&copy; 2026 ClosetPro - Marketplace RvL | Admin</p>
+                </footer>
             </div>
-        </div>
+        </main>
     </div>
-
-    <div id="alerta"></div>
-    <footer>&copy; 2026 ClosetPro - Marketplace RvL | Admin</footer>
-
-    <script type="module">
-      import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js';
-      import { getAnalytics } from 'https://www.gstatic.com/firebasejs/12.15.0/firebase-analytics.js';
-      const firebaseConfig = {
-        apiKey: "AIzaSyDe2v375f4qcWTYxj_P6s77SD3GsYYzuUM",
-        authDomain: "rvl-marketplace.firebaseapp.com",
-        projectId: "rvl-marketplace",
-        storageBucket: "rvl-marketplace.firebasestorage.app",
-        messagingSenderId: "325572658544",
-        appId: "1:325572658544:web:ef6b3f13dfa0488fc97bb5",
-        measurementId: "G-C27X5ZWL8Q"
-      };
-      const app = initializeApp(firebaseConfig);
-      const analytics = getAnalytics(app);
-    </script>
-
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
     <script>
-        function abrirModal(){document.getElementById('modal-loja').classList.add('show');}
-        function fecharModal(){document.getElementById('modal-loja').classList.remove('show');}
-        function salvarLoja(){
-            const nome=document.getElementById('nome-loja').value;
-            const cat=document.getElementById('cat-loja').value;
-            if(!nome||!cat){alert('Preencha nome e categoria!');return;}
-            const tbody=document.getElementById('tabela-lojas');
-            const tr=document.createElement('tr');
-            tr.innerHTML='<td>'+nome+'</td><td>'+cat+'</td><td>0</td><td><span class="badge ativo">Ativo</span></td><td class="actions"><button class="btn-sm btn-blue" onclick="editarLoja(this)">Editar</button><button class="btn-sm btn-red" onclick="bloquearLoja(this)">Bloquear</button></td>';
-            tbody.appendChild(tr);
-            document.getElementById('total-lojas').textContent=tbody.rows.length;
-            fecharModal();
-            mostrarAlerta('Loja cadastrada com sucesso!');
-            document.getElementById('nome-loja').value='';
-            document.getElementById('cat-loja').value='';
-            document.getElementById('email-loja').value='';
+        const firebaseConfig = {
+            apiKey: "AIzaSyDe2v375f4qcWTYxj_P6s77SD3GsYYzuUM",
+            authDomain: "rvl-marketplace.firebaseapp.com",
+            projectId: "rvl-marketplace",
+            storageBucket: "rvl-marketplace.appspot.com",
+            messagingSenderId: "325572658544",
+            appId: "1:325572658544:web:ef6b3f13dfa0488fc97bbs"
+        };
+        firebase.initializeApp(firebaseConfig);
+
+        function toggleSidebar() {
+            document.querySelector('.sidebar').classList.toggle('open');
         }
-        function bloquearLoja(btn){
-            const td=btn.closest('tr').querySelector('.badge');
-            if(td.classList.contains('ativo')){td.classList.remove('ativo');td.classList.add('bloq');td.textContent='Bloqueado';btn.textContent='Ativar';}
-            else{td.classList.remove('bloq');td.classList.add('ativo');td.textContent='Ativo';btn.textContent='Bloquear';}
+
+        function showForm(id) {
+            document.getElementById(id).style.display = 'block';
         }
-        function editarLoja(btn){const nome=btn.closest('tr').querySelector('td').textContent;alert('Editar: '+nome+' (em breve)');}
-        function mostrarAlerta(msg){const a=document.getElementById('alerta');a.textContent=msg;a.style.display='block';setTimeout(()=>a.style.display='none',3000);}
+
+        function hideForm(id) {
+            document.getElementById(id).style.display = 'none';
+        }
+
+        function editStore(btn) {
+            const row = btn.closest('tr');
+            const nome = row.cells[0].textContent;
+            alert('Editar: ' + nome);
+        }
+
+        function toggleStatus(btn) {
+            const row = btn.closest('tr');
+            const badge = row.querySelector('.badge');
+            if (badge.classList.contains('badge-active')) {
+                badge.classList.remove('badge-active');
+                badge.classList.add('badge-blocked');
+                badge.textContent = 'Bloqueado';
+                btn.textContent = 'Ativar';
+            } else {
+                badge.classList.remove('badge-blocked');
+                badge.classList.add('badge-active');
+                badge.textContent = 'Ativo';
+                btn.textContent = 'Bloquear';
+            }
+        }
+
+        function saveStore() {
+            const nome = document.getElementById('nome-loja').value.trim();
+            const cat = document.getElementById('cat-loja').value.trim();
+            const email = document.getElementById('email-loja').value.trim();
+            if (!nome || !cat) {
+                alert('Preencha o nome e a categoria da loja.');
+                return;
+            }
+            const tbody = document.querySelector('#tabela-lojas tbody');
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${nome}</td>
+                <td>${cat}</td>
+                <td>0</td>
+                <td><span class="badge badge-active">Ativo</span></td>
+                <td class="vend-actions">
+                    <button class="btn btn-sm btn-blue" onclick="editStore(this)">Editar</button>
+                    <button class="btn btn-sm btn-red" onclick="toggleStatus(this)">Bloquear</button>
+                </td>
+            `;
+            tbody.appendChild(row);
+            document.getElementById('nome-loja').value = '';
+            document.getElementById('cat-loja').value = '';
+            document.getElementById('email-loja').value = '';
+            hideForm('nova-loja');
+            alert('Loja cadastrada com sucesso!');
+            const total = document.getElementById('total-lojas');
+            total.textContent = parseInt(total.textContent) + 1;
+        }
     </script>
 </body>
 </html>
