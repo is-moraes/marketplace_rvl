@@ -160,7 +160,7 @@
 <body>
 
 <div id="loading">
-  <div style="font-family:'Poppins',sans-serif;font-weight:800;font-size:1.6rem;color:#7C3AED">Painel Admin</div>
+  <div style="font-family:'Poppins',sans-serif;font-weight:800;font-size:1.6rem;color:#7C3AED">👗 Meu Closet</div>
   <div class="spin"></div>
   <p style="color:#6B6B80;font-size:.82rem">Carregando…</p>
 </div>
@@ -298,7 +298,7 @@
     <div class="fg"><label>Nome completo</label><input type="text" id="mv-nome" placeholder="Maria Silva"/></div>
     <div class="fg"><label>Nome da loja</label><input type="text" id="mv-loja" placeholder="Meu Closet"/></div>
     <div class="fg"><label>E-mail (login do vendedor)</label><input type="email" id="mv-email" placeholder="maria@email.com"/></div>
-    <p style="font-size:.78rem;color:var(--muted);margin:-8px 0 16px">📌 O vendedor cria sua própria senha ao se cadastrar em <strong style="color:var(--text)">vendedor.html</strong> usando este e-mail. Você só controla o acesso aqui.</p>
+    <p style="font-size:.78rem;color:var(--muted);margin:-8px 0 16px">📌 O vendedor cria sua própria senha ao se cadastrar usando este e-mail. Você só controla o acesso aqui.</p>
     <div class="fg"><label>WhatsApp</label><input type="text" id="mv-whats" placeholder="11999999999"/></div>
     <div class="fg"><label>Plano</label><select id="mv-plano"><option value="">Carregando planos…</option></select></div>
     <div class="fg"><label>Válido até</label><input type="date" id="mv-expira"/></div>
@@ -310,6 +310,27 @@
   </div>
 </div>
 
+<!-- Modal de confirmação pós-criação com os links -->
+<div class="modal-bg" id="modal-criado">
+  <div class="modal" style="max-width:460px">
+    <h2 style="color:var(--success)">✅ Vendedor criado!</h2>
+    <p style="font-size:.88rem;color:var(--muted);margin-bottom:18px">Envie os links abaixo para o vendedor. Cada um serve para uma finalidade diferente.</p>
+
+    <div style="margin-bottom:16px">
+      <div style="font-size:.74rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:6px">🔑 Painel do Vendedor (para o vendedor cadastrar produtos e gerenciar vendas)</div>
+      <div class="link-box"><code id="criado-link-painel" style="font-size:.78rem"></code><button class="btn btn-primary btn-xs" onclick="copiarCriado('criado-link-painel')">Copiar</button></div>
+      <p style="font-size:.72rem;color:var(--muted);margin-top:5px">O vendedor acessa este link, clica em <strong>"Criar conta"</strong> e usa o e-mail <strong id="criado-email"></strong> para se registrar.</p>
+    </div>
+
+    <div style="margin-bottom:20px">
+      <div style="font-size:.74rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:6px">🛍️ Loja Pública (para os clientes finais comprarem)</div>
+      <div class="link-box"><code id="criado-link-loja" style="font-size:.78rem"></code><button class="btn btn-primary btn-xs" onclick="copiarCriado('criado-link-loja')">Copiar</button></div>
+    </div>
+
+    <button class="btn btn-secondary btn-full" onclick="closeModal('modal-criado')">Fechar</button>
+  </div>
+</div>
+
 <div class="modal-bg" id="modal-gerenciar">
   <div class="modal">
     <button class="modal-close" onclick="closeModal('modal-gerenciar')">✕</button>
@@ -317,7 +338,8 @@
     <input type="hidden" id="mg-id"/>
     <div class="tabs">
       <div class="tab active" onclick="switchMgTab('plano', this)">Plano & Acesso</div>
-      <div class="tab" onclick="switchMgTab('link', this)">Link da Loja</div>
+      <div class="tab" onclick="switchMgTab('painel', this)">Painel do Vendedor</div>
+      <div class="tab" onclick="switchMgTab('link', this)">Loja Pública</div>
       <div class="tab" onclick="switchMgTab('info', this)">Informações</div>
     </div>
     <div id="mg-tab-plano">
@@ -330,8 +352,16 @@
         <button class="btn btn-danger btn-sm" onclick="bloquearVendedor()">🚫 Bloquear acesso</button>
       </div>
     </div>
+    <div id="mg-tab-painel" style="display:none">
+      <p style="color:var(--muted);font-size:.85rem;margin-bottom:10px">Link do painel onde o vendedor gerencia seus produtos, vendas e clientes.</p>
+      <div class="link-box"><code id="mg-link-painel"></code><button class="btn btn-primary btn-xs" onclick="copiarLinkPainel()">Copiar</button></div>
+      <p style="font-size:.72rem;color:var(--muted);margin-top:8px;line-height:1.5">O vendedor acessa este link e faz login com o e-mail cadastrado. Se ainda não criou conta, deve clicar em <strong>"Criar conta"</strong> e usar o e-mail <strong id="mg-email-display"></strong>.</p>
+      <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
+        <button class="btn btn-success btn-sm" onclick="enviarLinkPainelWhats()">💬 Enviar link pelo WhatsApp</button>
+      </div>
+    </div>
     <div id="mg-tab-link" style="display:none">
-      <p style="color:var(--muted);font-size:.85rem;margin-bottom:10px">Link público para os clientes deste vendedor comprarem — sem acesso ao painel.</p>
+      <p style="color:var(--muted);font-size:.85rem;margin-bottom:10px">Link público para os clientes finais comprarem — sem acesso ao painel.</p>
       <div class="link-box"><code id="mg-link-loja"></code><button class="btn btn-primary btn-xs" onclick="copiarLink()">Copiar</button></div>
       <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
         <button class="btn btn-success btn-sm" onclick="compartilharWhats()">💬 Enviar no WhatsApp</button>
@@ -649,13 +679,23 @@ async function salvarVendedor() {
   const id    = document.getElementById('mv-id').value;
   const nome  = document.getElementById('mv-nome').value.trim();
   const loja  = document.getElementById('mv-loja').value.trim();
-  const email = document.getElementById('mv-email').value.trim();
+  const email = document.getElementById('mv-email').value.trim().toLowerCase();
   const whats = document.getElementById('mv-whats').value.trim();
   const planoId = document.getElementById('mv-plano').value;
   const expiraManual = document.getElementById('mv-expira').value;
   const obs   = document.getElementById('mv-obs').value.trim();
   if (!nome || !loja || !email) { toast('Preencha nome, loja e e-mail.', 'error'); return; }
   if (!planoId) { toast('Selecione um plano. Se a lista estiver vazia, cadastre um plano em "Planos" primeiro.', 'error'); return; }
+
+  // Validar e-mail duplicado (só na criação, não na edição)
+  if (!id) {
+    const emailExiste = VENDEDORES.some(v => (v.email||'').toLowerCase() === email);
+    if (emailExiste) {
+      toast(`O e-mail "${email}" já está cadastrado em outro vendedor.`, 'error');
+      return;
+    }
+  }
+
   const plano  = PLANOS.find(p => p.id === planoId);
   const expira = expiraManual || calcExpira(plano?.duracao || 7);
   try {
@@ -663,19 +703,32 @@ async function salvarVendedor() {
       const docData = { nome, nomeLoja: loja, email, whatsapp: whats, planoId, planoNome: plano?.nome || 'Trial', expiraEm: expira, bloqueado: false, obs, criadoEm: new Date().toISOString(), totalProdutos: 0, totalVendas: 0 };
       const ref = await col('vendedores').add(docData);
       VENDEDORES.unshift({ id: ref.id, ...docData });
-      toast(`Vendedor "${loja}" criado! Envie o link de cadastro (vendedor.html) para ele usar o e-mail ${email} e criar a própria senha.`, 'success');
+
+      // Mostrar modal de confirmação com os dois links
+      const linkPainel = `${BASE_URL}/vendedor.html`;
+      const linkLoja   = `${BASE_URL}/loja.html?loja=${ref.id}`;
+      document.getElementById('criado-link-painel').textContent = linkPainel;
+      document.getElementById('criado-link-loja').textContent   = linkLoja;
+      document.getElementById('criado-email').textContent       = email;
+      closeModal('modal-novo-vendedor');
+      openModal('modal-criado');
     } else {
       const data = { nome, nomeLoja: loja, whatsapp: whats, planoId, planoNome: plano?.nome||'Trial', expiraEm: expira, obs };
       await col('vendedores').doc(id).update(data);
       const idx = VENDEDORES.findIndex(v => v.id === id);
       if (idx !== -1) Object.assign(VENDEDORES[idx], data);
       toast('Vendedor atualizado!', 'success');
+      closeModal('modal-novo-vendedor');
     }
-    closeModal('modal-novo-vendedor');
     document.getElementById('mv-id').value = '';
     document.getElementById('mv-titulo').textContent = 'Novo Vendedor';
     renderVendedores(); renderDashboard();
   } catch(e) { console.error(e); toast('Erro: ' + e.message, 'error'); }
+}
+
+function copiarCriado(elId) {
+  const txt = document.getElementById(elId).textContent;
+  navigator.clipboard.writeText(txt).then(() => toast('Link copiado!', 'success'));
 }
 async function excluirVendedor(id) {
   if (!confirm('Excluir este vendedor da lista de gerenciamento?')) return;
@@ -707,14 +760,17 @@ function abrirGerenciar(id) {
     <div class="progress-bar"><div class="progress-fill" style="width:${Math.min(100,Math.max(0,(dr/30)*100))}%;background:${cor}"></div></div>
   `;
   const link = `${BASE_URL}/loja.html?loja=${id}`;
-  document.getElementById('mg-link-loja').textContent = link;
+  const linkPainel = `${BASE_URL}/vendedor.html`;
+  document.getElementById('mg-link-loja').textContent   = link;
+  document.getElementById('mg-link-painel').textContent = linkPainel;
+  document.getElementById('mg-email-display').textContent = vendAtual.email || '';
   switchMgTab('plano', document.querySelector('#modal-gerenciar .tab'));
   openModal('modal-gerenciar');
 }
 function switchMgTab(tab, el) {
   document.querySelectorAll('#modal-gerenciar .tab').forEach(t => t.classList.remove('active'));
   if (el) el.classList.add('active');
-  ['plano','link','info'].forEach(t => { document.getElementById(`mg-tab-${t}`).style.display = t===tab ? '' : 'none'; });
+  ['plano','painel','link','info'].forEach(t => { document.getElementById(`mg-tab-${t}`).style.display = t===tab ? '' : 'none'; });
 }
 async function atualizarInfoVendedor() {
   const id = document.getElementById('mg-id').value;
@@ -765,6 +821,13 @@ async function bloquearVendedor() {
 
 function copiarLinkLoja(id) { const link = `${BASE_URL}/loja.html?loja=${id}`; navigator.clipboard.writeText(link).then(() => toast('Link copiado!', 'success')); }
 function copiarLink() { const txt = document.getElementById('mg-link-loja').textContent; navigator.clipboard.writeText(txt).then(() => toast('Link copiado!', 'success')); }
+function copiarLinkPainel() { const txt = document.getElementById('mg-link-painel').textContent; navigator.clipboard.writeText(txt).then(() => toast('Link do painel copiado!', 'success')); }
+function enviarLinkPainelWhats() {
+  const linkPainel = document.getElementById('mg-link-painel').textContent;
+  const num = vendAtual?.whatsapp || '';
+  const msg = encodeURIComponent(`Olá ${vendAtual?.nome||''}! Aqui está o link para acessar seu painel de vendedor:\n${linkPainel}\n\nAcesse, clique em "Criar conta" e use o e-mail ${vendAtual?.email||''} para se registrar.`);
+  window.open(num ? `https://wa.me/55${num}?text=${msg}` : `https://wa.me/?text=${msg}`, '_blank');
+}
 function compartilharWhats() {
   const txt = document.getElementById('mg-link-loja').textContent;
   const num = vendAtual?.whatsapp || '';
