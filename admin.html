@@ -705,7 +705,7 @@ async function salvarVendedor() {
       VENDEDORES.unshift({ id: ref.id, ...docData });
 
       // Mostrar modal de confirmação com os dois links
-      const linkPainel = `${BASE_URL}/vendedor.html`;
+      const linkPainel = `${BASE_URL}/index.html`;
       const linkLoja   = `${BASE_URL}/loja.html?loja=${ref.id}`;
       document.getElementById('criado-link-painel').textContent = linkPainel;
       document.getElementById('criado-link-loja').textContent   = linkLoja;
@@ -760,7 +760,7 @@ function abrirGerenciar(id) {
     <div class="progress-bar"><div class="progress-fill" style="width:${Math.min(100,Math.max(0,(dr/30)*100))}%;background:${cor}"></div></div>
   `;
   const link = `${BASE_URL}/loja.html?loja=${id}`;
-  const linkPainel = `${BASE_URL}/vendedor.html`;
+  const linkPainel = `${BASE_URL}/index.html`;
   document.getElementById('mg-link-loja').textContent   = link;
   document.getElementById('mg-link-painel').textContent = linkPainel;
   document.getElementById('mg-email-display').textContent = vendAtual.email || '';
