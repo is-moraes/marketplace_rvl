@@ -866,8 +866,12 @@ function coletarTaxasGrid(){
 }
 
 async function salvarConfig(){
-  CONFIG={nomeLoja:document.getElementById('cfg-loja').value,subtitulo:document.getElementById('cfg-slogan').value,whatsapp:document.getElementById('cfg-whats').value,pixChave:document.getElementById('cfg-pix').value,pixNome:document.getElementById('cfg-pix-nome').value,pixCidade:document.getElementById('cfg-pix-cidade').value,taxasJuros:coletarTaxasGrid()};
+  const taxasJuros = coletarTaxasGrid();
+  CONFIG={nomeLoja:document.getElementById('cfg-loja').value,subtitulo:document.getElementById('cfg-slogan').value,whatsapp:document.getElementById('cfg-whats').value,pixChave:document.getElementById('cfg-pix').value,pixNome:document.getElementById('cfg-pix-nome').value,pixCidade:document.getElementById('cfg-pix-cidade').value,taxasJuros};
+  // Salva tudo com merge, mas força sobrescrita do taxasJuros para limpar entradas antigas
   await db.collection('config').doc(uid).set(CONFIG,{merge:true});
+  await db.collection('config').doc(uid).update({taxasJuros: firebase.firestore.FieldValue.delete()});
+  await db.collection('config').doc(uid).update({taxasJuros});
   await db.collection('vendedores').doc(VENDEDOR_DOC.id).update({nomeLoja:CONFIG.nomeLoja,whatsapp:CONFIG.whatsapp});
   document.getElementById('sb-loja-nome').textContent=CONFIG.nomeLoja||'Minha Loja';
   toast('Configurações salvas!','success');
