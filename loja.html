@@ -92,6 +92,10 @@
   .det-img img{width:100%;height:100%;object-fit:cover}
   .det-name{font-family:var(--font-head);font-weight:700;font-size:1.3rem;margin-bottom:6px}
   .det-price{font-family:var(--font-head);font-size:1.9rem;font-weight:800;color:var(--purple-dark);margin-bottom:4px}
+  .det-estoque{display:inline-flex;align-items:center;gap:5px;font-size:.78rem;font-weight:600;border-radius:20px;padding:4px 11px;margin-bottom:10px}
+  .det-estoque.ok{background:#DCFCE7;color:var(--success)}
+  .det-estoque.baixo{background:#FEF3C7;color:var(--warning)}
+  .det-estoque.zero{background:#FEE2E2;color:var(--danger)}
   .det-parc{color:var(--muted);font-size:.8rem;margin-bottom:14px}
   .det-desc{color:#4B5563;font-size:.9rem;line-height:1.6;margin-bottom:22px}
 
@@ -214,6 +218,7 @@
     <div class="det-img" id="det-img">📷</div>
     <div class="det-name" id="det-nome"></div>
     <div class="det-price" id="det-preco"></div>
+    <div class="det-estoque" id="det-estoque"></div>
     <div class="det-parc" id="det-parc" onclick="abrirParcelas()" style="cursor:pointer;text-decoration:underline;text-underline-offset:2px"></div>
     <div class="det-desc" id="det-desc"></div>
     <button class="btn-action btn-pix" onclick="abrirPix()">💠 Pagar via PIX</button>
@@ -373,7 +378,9 @@ function calcularParcela(valorTotal, n, taxaPct) {
 }
 function obterTaxa(n) {
   const taxas = CONFIG_LOJA.taxasJuros || {};
-  return taxas[n] || taxas[String(n)] || 0;
+  // Firestore pode retornar chaves como string "2" ou número 2 — testa os dois
+  const v = taxas[n] ?? taxas[String(n)] ?? taxas[Number(n)];
+  return (v != null && !isNaN(v)) ? Number(v) : 0;
 }
 function melhorParcelamentoTexto(valorTotal, maxParcelas) {
   if (!maxParcelas || maxParcelas <= 1) return '';
@@ -439,6 +446,20 @@ function verDetalhe(id) {
   document.getElementById('det-img').innerHTML = produtoAtual.img?`<img src="${produtoAtual.img}" alt="${produtoAtual.nome}"/>`:'📷';
   document.getElementById('det-nome').textContent = produtoAtual.nome;
   document.getElementById('det-preco').textContent = 'R$ '+fmt(produtoAtual.preco);
+
+  // Indicador de estoque
+  const est = produtoAtual.estoque || 0;
+  const estEl = document.getElementById('det-estoque');
+  if (est === 0) {
+    estEl.className = 'det-estoque zero'; estEl.textContent = '⛔ Esgotado';
+  } else if (est <= 2) {
+    estEl.className = 'det-estoque baixo'; estEl.textContent = `⚠️ Últimas ${est} ${est===1?'peça':'peças'}`;
+  } else if (est <= 5) {
+    estEl.className = 'det-estoque baixo'; estEl.textContent = `⚠️ Restam apenas ${est} unidades`;
+  } else {
+    estEl.className = 'det-estoque ok'; estEl.textContent = '✅ Disponível em estoque';
+  }
+
   const maxP = parcelasNum(produtoAtual);
   const parcTxt = melhorParcelamentoTexto(produtoAtual.preco, maxP);
   document.getElementById('det-parc').textContent = parcTxt ? parcTxt+' · ver opções' : '';
@@ -502,8 +523,11 @@ function salvarCarrinhoStorage() {
 function adicionarAoCarrinho(produtoId) {
   const p = PRODUTOS.find(x=>x.id===produtoId);
   if (!p) return;
-  if ((p.estoque||0) === 0) { toast('Produto esgotado.','error'); return; }
+  const estoque = p.estoque || 0;
+  if (estoque === 0) { toast('Produto esgotado.','error'); return; }
   const item = CARRINHO.find(c=>c.produtoId===produtoId);
+  const qtdAtual = item ? item.qty : 0;
+  if (qtdAtual >= estoque) { toast(`Estoque máximo atingido (${estoque} unid.).`,'error'); return; }
   if (item) item.qty += 1;
   else CARRINHO.push({ produtoId, qty: 1 });
   salvarCarrinhoStorage();
@@ -513,6 +537,11 @@ function adicionarAoCarrinho(produtoId) {
 function alterarQtyCarrinho(produtoId, delta) {
   const item = CARRINHO.find(c=>c.produtoId===produtoId);
   if (!item) return;
+  if (delta > 0) {
+    const p = PRODUTOS.find(x=>x.id===produtoId);
+    const estoque = p?.estoque || 0;
+    if (item.qty >= estoque) { toast(`Estoque máximo atingido (${estoque} unid.).`,'error'); return; }
+  }
   item.qty += delta;
   if (item.qty <= 0) CARRINHO = CARRINHO.filter(c=>c.produtoId!==produtoId);
   salvarCarrinhoStorage();
