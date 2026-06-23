@@ -380,7 +380,8 @@
 <div class="modal-bg" id="modal-novo-plano">
   <div class="modal" style="max-width:440px">
     <button class="modal-close" onclick="closeModal('modal-novo-plano')">✕</button>
-    <h2>Criar Plano</h2>
+    <h2 id="np-titulo">Criar Plano</h2>
+    <input type="hidden" id="np-id"/>
     <div class="fg"><label>Nome do plano</label><input type="text" id="np-nome" placeholder="Plano Básico"/></div>
     <div class="form-row">
       <div class="fg"><label>Preço mensal (R$)</label><input type="number" id="np-preco" step="0.01" placeholder="29.90"/></div>
@@ -389,7 +390,7 @@
     <div class="fg"><label>Máx. produtos ativos</label><input type="number" id="np-produtos" placeholder="20"/></div>
     <div class="fg"><label>Benefícios (1 por linha)</label><textarea id="np-desc" placeholder="20 produtos&#10;Suporte via WhatsApp"></textarea></div>
     <div style="display:flex;gap:10px;margin-top:8px">
-      <button class="btn btn-primary" onclick="salvarPlano()">Criar plano</button>
+      <button class="btn btn-primary" onclick="salvarPlano()">Salvar</button>
       <button class="btn btn-secondary" onclick="closeModal('modal-novo-plano')">Cancelar</button>
     </div>
   </div>
@@ -480,7 +481,16 @@ function goPage(p) {
   document.getElementById('page-title').textContent = titles[p] || p;
   document.getElementById('sidebar').classList.remove('open');
   const btn = document.getElementById('topbar-action-btn');
-  if (p === 'planos') { btn.textContent = '+ Novo Plano'; btn.style.display=''; btn.onclick = () => openModal('modal-novo-plano'); }
+  if (p === 'planos') { btn.textContent = '+ Novo Plano'; btn.style.display=''; btn.onclick = () => {
+    document.getElementById('np-id').value = '';
+    document.getElementById('np-titulo').textContent = 'Criar Plano';
+    document.getElementById('np-nome').value = '';
+    document.getElementById('np-preco').value = '';
+    document.getElementById('np-duracao').value = '30';
+    document.getElementById('np-produtos').value = '';
+    document.getElementById('np-desc').value = '';
+    openModal('modal-novo-plano');
+  }; }
   else if (p === 'vendedores' || p === 'dashboard') { btn.textContent = '+ Novo Vendedor'; btn.style.display=''; btn.onclick = () => openModal('modal-novo-vendedor'); }
   else { btn.style.display = 'none'; }
   if (p === 'dashboard')      renderDashboard();
@@ -851,18 +861,48 @@ function renderPlanos() {
       <td>${p.preco>0 ? 'R$ '+Number(p.preco).toFixed(2) : 'Grátis'}</td>
       <td>${p.duracao}d</td>
       <td>${usandoMap[p.id]||0} vendedores</td>
-      <td><button class="btn btn-danger btn-xs" onclick="excluirPlano('${p.id}')">🗑️</button></td>
+      <td style="display:flex;gap:6px">
+        <button class="btn btn-secondary btn-xs" onclick="editarPlano('${p.id}')">✏️</button>
+        <button class="btn btn-danger btn-xs" onclick="excluirPlano('${p.id}')">🗑️</button>
+      </td>
     </tr>`).join('');
 }
+
+function editarPlano(id) {
+  const p = PLANOS.find(x => x.id === id);
+  if (!p) return;
+  document.getElementById('np-id').value    = p.id;
+  document.getElementById('np-titulo').textContent = 'Editar Plano';
+  document.getElementById('np-nome').value  = p.nome || '';
+  document.getElementById('np-preco').value = p.preco ?? '';
+  document.getElementById('np-duracao').value = p.duracao || 30;
+  document.getElementById('np-produtos').value = p.maxProdutos || '';
+  document.getElementById('np-desc').value  = p.desc || '';
+  openModal('modal-novo-plano');
+}
+
 async function salvarPlano() {
-  const data = { nome: document.getElementById('np-nome').value, preco: parseFloat(document.getElementById('np-preco').value)||0, duracao: parseInt(document.getElementById('np-duracao').value)||30, maxProdutos: parseInt(document.getElementById('np-produtos').value)||20, desc: document.getElementById('np-desc').value, criadoEm: new Date().toISOString() };
+  const id = document.getElementById('np-id').value;
+  const data = { nome: document.getElementById('np-nome').value, preco: parseFloat(document.getElementById('np-preco').value)||0, duracao: parseInt(document.getElementById('np-duracao').value)||30, maxProdutos: parseInt(document.getElementById('np-produtos').value)||20, desc: document.getElementById('np-desc').value };
   if (!data.nome) { toast('Nome obrigatório.', 'error'); return; }
-  const ref = await col('planos').add(data);
-  PLANOS.push({ id: ref.id, ...data });
+  if (id) {
+    // Edição
+    await col('planos').doc(id).update(data);
+    const idx = PLANOS.findIndex(p => p.id === id);
+    if (idx !== -1) Object.assign(PLANOS[idx], data);
+    toast('Plano atualizado!', 'success');
+  } else {
+    // Criação
+    const ref = await col('planos').add({ ...data, criadoEm: new Date().toISOString() });
+    PLANOS.push({ id: ref.id, ...data });
+    toast('Plano criado!', 'success');
+  }
+  // Limpar e fechar
+  document.getElementById('np-id').value = '';
+  document.getElementById('np-titulo').textContent = 'Criar Plano';
   preencherSelectPlanos();
   closeModal('modal-novo-plano');
   renderPlanos();
-  toast('Plano criado!', 'success');
 }
 async function excluirPlano(id) {
   if (!confirm('Excluir este plano?')) return;
