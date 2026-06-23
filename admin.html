@@ -861,10 +861,7 @@ function renderPlanos() {
       <td>${p.preco>0 ? 'R$ '+Number(p.preco).toFixed(2) : 'Grátis'}</td>
       <td>${p.duracao}d</td>
       <td>${usandoMap[p.id]||0} vendedores</td>
-      <td style="display:flex;gap:6px">
-        <button class="btn btn-secondary btn-xs" onclick="editarPlano('${p.id}')">✏️</button>
-        <button class="btn btn-danger btn-xs" onclick="excluirPlano('${p.id}')">🗑️</button>
-      </td>
+      <td><button class="btn btn-secondary btn-xs" onclick="editarPlano('${p.id}')" style="margin-right:6px">Editar</button><button class="btn btn-danger btn-xs" onclick="excluirPlano('${p.id}')">Excluir</button></td>
     </tr>`).join('');
 }
 
@@ -927,4 +924,3 @@ async function salvarConfigPlataforma() {
 </script>
 </body>
 </html>
-
