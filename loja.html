@@ -47,7 +47,8 @@
     flex-wrap:wrap; gap:16px; color:#fff;
   }
   .brand{display:flex;align-items:center;gap:14px}
-  .brand-icon{width:46px;height:46px;border-radius:12px;background:rgba(255,255,255,.18);display:flex;align-items:center;justify-content:center;font-size:1.5rem;flex-shrink:0}
+  .brand-icon{width:46px;height:46px;border-radius:12px;background:rgba(255,255,255,.18);display:flex;align-items:center;justify-content:center;font-size:1.5rem;flex-shrink:0;overflow:hidden}
+  .brand-icon img{width:100%;height:100%;object-fit:cover;border-radius:12px}
   .brand-name{font-family:var(--font-head);font-weight:800;font-size:1.5rem;line-height:1.1}
   .brand-sub{font-size:.85rem;color:rgba(255,255,255,.78);margin-top:2px}
   .pay-row{display:flex;flex-direction:column;align-items:flex-end;gap:8px}
@@ -174,7 +175,7 @@
 <div id="loja-app" style="display:none">
   <div class="loja-header">
     <div class="brand">
-      <div class="brand-icon">👗</div>
+      <div class="brand-icon" id="brand-icon">👗</div>
       <div>
         <div class="brand-name" id="brand-nome">Loja</div>
         <div class="brand-sub" id="brand-slogan">Estilo que combina com você!</div>
@@ -304,6 +305,8 @@ let CONFIG_LOJA = {};
 let VENDEDOR_DOC = {};
 let PRODUTOS = [];
 let produtoAtual = null;
+let parcelaProdutoAtual = null;  // { n, valParc, total, taxa } escolhida pelo cliente no produto
+let parcelaCarrinhoAtual = null; // { n, valParc, total, taxa } escolhida pelo cliente no carrinho
 let ordemAtual = '';
 
 window.addEventListener('DOMContentLoaded', async () => {
@@ -354,6 +357,13 @@ async function carregarLoja() {
     document.title = nome;
     document.getElementById('brand-nome').textContent = nome;
     document.getElementById('brand-slogan').textContent = CONFIG_LOJA.subtitulo || 'Estilo que combina com você!';
+    // Logo da loja
+    const brandIcon = document.getElementById('brand-icon');
+    if (CONFIG_LOJA.logoUrl) {
+      brandIcon.innerHTML = `<img src="${CONFIG_LOJA.logoUrl}" alt="${nome}" onerror="this.parentElement.innerHTML='👗'"/>`;
+    } else {
+      brandIcon.innerHTML = '👗';
+    }
 
     document.getElementById('loading-screen').style.display = 'none';
     document.getElementById('loja-app').style.display = '';
@@ -468,14 +478,25 @@ function verDetalhe(id) {
   openModal('modal-detalhe');
 }
 
+function selecionarParcelaItem(listId, idx, opcoes, isProduto) {
+  document.querySelectorAll(`#${listId} .parc-item`).forEach((el,i) => {
+    el.classList.toggle('selected', i===idx);
+    el.querySelector('.parc-radio').classList.toggle('checked', i===idx);
+  });
+  if (isProduto) parcelaProdutoAtual = opcoes[idx];
+  else parcelaCarrinhoAtual = opcoes[idx];
+}
+
 function abrirParcelas() {
   if (!produtoAtual) return;
   const maxP = parcelasNum(produtoAtual);
   if (!maxP) return;
   const opcoes = gerarOpcoesParcelamento(produtoAtual.preco, maxP);
+  parcelaProdutoAtual = opcoes[0];
+  window.opcoesParcelaProduto = opcoes;
   document.getElementById('parcelas-subtitulo').textContent = produtoAtual.nome;
   document.getElementById('parcelas-lista').innerHTML = opcoes.map((o,idx) => `
-    <div class="parc-item ${idx===0?'selected':''}">
+    <div class="parc-item ${idx===0?'selected':''}" onclick="selecionarParcelaItem('parcelas-lista',${idx},opcoesParcelaProduto,true)">
       <div class="parc-item-text">
         <strong>${o.n}x</strong> de R$ ${fmt(o.valParc)}
         <div class="parc-item-sub">${o.taxa>0?`Total R$ ${fmt(o.total)} · juros de ${o.taxa.toFixed(2).replace('.',',')}% a.m.`:'sem juros'}</div>
@@ -488,8 +509,12 @@ function abrirParcelas() {
 function abrirPix() {
   if(!produtoAtual) return;
   closeModal('modal-detalhe');
+  closeModal('modal-parcelas');
   const chave = CONFIG_LOJA.pixChave||'';
-  document.getElementById('pix-info').textContent = `${produtoAtual.nome} – R$ ${fmt(produtoAtual.preco)}`;
+  const parc = parcelaProdutoAtual;
+  const valorExibir = parc && parc.n > 1 ? parc.total : produtoAtual.preco;
+  const descParc = parc && parc.n > 1 ? ` (${parc.n}x de R$ ${fmt(parc.valParc)})` : '';
+  document.getElementById('pix-info').textContent = `${produtoAtual.nome}${descParc} – R$ ${fmt(valorExibir)}`;
   document.getElementById('pix-chave').textContent = chave||'Chave PIX não configurada';
   const qrDiv=document.getElementById('pix-qr'); qrDiv.innerHTML='';
   if(chave){try{new QRCode(qrDiv,{text:chave,width:160,height:160})}catch(e){qrDiv.textContent=chave}}
@@ -500,10 +525,17 @@ function copiarPix(){const t=document.getElementById('pix-chave').textContent;na
 function pedirWhats() {
   if(!produtoAtual) return;
   const num = CONFIG_LOJA.whatsapp||VENDEDOR_DOC.whatsapp||'';
-  const msg = encodeURIComponent(`Olá! Tenho interesse no produto: ${produtoAtual.nome} (R$ ${fmt(produtoAtual.preco)})`);
+  const parc = parcelaProdutoAtual;
+  const descParc = parc && parc.n > 1
+    ? ` — ${parc.n}x de R$ ${fmt(parc.valParc)} (total R$ ${fmt(parc.total)})`
+    : ` — R$ ${fmt(produtoAtual.preco)} à vista`;
+  const msg = encodeURIComponent(`Olá! Tenho interesse no produto:\n\n*${produtoAtual.nome}*${descParc}`);
   window.open(num?`https://wa.me/55${num}?text=${msg}`:`https://wa.me/?text=${msg}`,'_blank');
 }
 
+/* ══════════════════════════════════════════════════════════
+   CARRINHO DE COMPRAS
+   ══════════════════════════════════════════════════════════ */
 /* ══════════════════════════════════════════════════════════
    CARRINHO DE COMPRAS
    ══════════════════════════════════════════════════════════ */
@@ -620,8 +652,10 @@ function abrirParcelasCarrinho() {
   const maxP = maxParcelasCarrinho();
   if (!maxP) return;
   const opcoes = gerarOpcoesParcelamento(total, maxP);
+  parcelaCarrinhoAtual = opcoes[0];
+  window.opcoesParcelaCarrinho = opcoes;
   document.getElementById('parcelas-carrinho-lista').innerHTML = opcoes.map((o,idx) => `
-    <div class="parc-item ${idx===0?'selected':''}">
+    <div class="parc-item ${idx===0?'selected':''}" onclick="selecionarParcelaItem('parcelas-carrinho-lista',${idx},opcoesParcelaCarrinho,false)">
       <div class="parc-item-text">
         <strong>${o.n}x</strong> de R$ ${fmt(o.valParc)}
         <div class="parc-item-sub">${o.taxa>0?`Total R$ ${fmt(o.total)} · juros de ${o.taxa.toFixed(2).replace('.',',')}% a.m.`:'sem juros'}</div>
@@ -634,13 +668,17 @@ function abrirParcelasCarrinho() {
 function finalizarCarrinhoPix() {
   const itens = itensCarrinhoDetalhados();
   if (!itens.length) return;
+  const parc = parcelaCarrinhoAtual;
   const total = totalCarrinho();
+  const valorExibir = parc && parc.n > 1 ? parc.total : total;
+  const descParc = parc && parc.n > 1 ? ` · ${parc.n}x de R$ ${fmt(parc.valParc)}` : '';
   const chave = CONFIG_LOJA.pixChave||'';
-  document.getElementById('pix-info').textContent = `Carrinho (${itens.length} ${itens.length>1?'itens':'item'}) – R$ ${fmt(total)}`;
+  document.getElementById('pix-info').textContent = `Carrinho (${itens.length} ${itens.length>1?'itens':'item'})${descParc} – R$ ${fmt(valorExibir)}`;
   document.getElementById('pix-chave').textContent = chave||'Chave PIX não configurada';
   const qrDiv=document.getElementById('pix-qr'); qrDiv.innerHTML='';
   if(chave){try{new QRCode(qrDiv,{text:chave,width:160,height:160})}catch(e){qrDiv.textContent=chave}}
   closeModal('modal-carrinho');
+  closeModal('modal-parcelas-carrinho');
   openModal('modal-pix');
 }
 
@@ -650,7 +688,11 @@ function finalizarCarrinhoWhats() {
   const num = CONFIG_LOJA.whatsapp||VENDEDOR_DOC.whatsapp||'';
   const linhas = itens.map(i => `• ${i.nome} × ${i.qty} — R$ ${fmt(i.preco*i.qty)}`).join('\n');
   const total = totalCarrinho();
-  const msg = encodeURIComponent(`Olá! Gostaria de fazer um pedido:\n\n${linhas}\n\n*Total: R$ ${fmt(total)}*`);
+  const parc = parcelaCarrinhoAtual;
+  const descParc = parc && parc.n > 1
+    ? `\n\n*Forma de pagamento: ${parc.n}x de R$ ${fmt(parc.valParc)} = R$ ${fmt(parc.total)}*`
+    : `\n\n*Total à vista: R$ ${fmt(total)}*`;
+  const msg = encodeURIComponent(`Olá! Gostaria de fazer um pedido:\n\n${linhas}${descParc}`);
   window.open(num?`https://wa.me/55${num}?text=${msg}`:`https://wa.me/?text=${msg}`,'_blank');
 }
 </script>
