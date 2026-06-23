@@ -384,7 +384,7 @@
     <input type="hidden" id="mprod-id"/>
     <div class="fg"><label>Nome</label><input type="text" id="mprod-nome" placeholder="Ex: Vestido Midi Rosa"/></div>
     <div class="form-row">
-      <div class="fg"><label>Preço (R$)</label><input type="number" id="mprod-preco" step="0.01" placeholder="89.90"/></div>
+      <div class="fg"><label>Preço (R$)</label><input type="number" id="mprod-preco" step="0.01" placeholder="89.90" oninput="popularSelectParcelamento(document.getElementById('mprod-parc').value)"/></div>
       <div class="fg"><label>Estoque</label><input type="number" id="mprod-estoque" placeholder="10"/></div>
     </div>
     <div class="fg"><label>Descrição</label><textarea id="mprod-desc" placeholder="Descreva o produto…"></textarea></div>
@@ -405,19 +405,14 @@
       </div>
       <input type="hidden" id="mprod-img"/>
     </div>
-    <div class="form-row">
-      <div class="fg"><label>Parcelamento</label>
-        <select id="mprod-parc">
-          <option value="">Sem parcelamento</option>
-          <option value="2x">até 2x sem juros</option>
-          <option value="3x">até 3x sem juros</option>
-          <option value="4x">até 4x sem juros</option>
-          <option value="6x">até 6x sem juros</option>
-        </select>
-      </div>
-      <div class="fg"><label>Status</label>
-        <select id="mprod-status"><option value="ativo">Ativo</option><option value="inativo">Inativo</option></select>
-      </div>
+    <div class="fg"><label>Parcelamento (máx. de parcelas)</label>
+      <select id="mprod-parc">
+        <option value="">Sem parcelamento</option>
+      </select>
+      <div style="font-size:.72rem;color:var(--muted);margin-top:5px" id="mprod-parc-hint"></div>
+    </div>
+    <div class="fg"><label>Status</label>
+      <select id="mprod-status"><option value="ativo">Ativo</option><option value="inativo">Inativo</option></select>
     </div>
     <div style="display:flex;gap:9px;margin-top:6px">
       <button class="btn btn-primary" onclick="salvarProduto()">Salvar</button>
@@ -679,6 +674,52 @@ function renderProdutos(){
       <td class="td-actions"><button class="btn btn-secondary btn-xs" onclick="editarProduto('${p.id}')">✏️</button><button class="btn btn-danger btn-xs" onclick="excluirProduto('${p.id}')">🗑️</button></td>
     </tr>`).join(''):'<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:28px">Nenhum produto cadastrado.</td></tr>';
 }
+/* ─── Select de parcelamento dinâmico ──────────────────── */
+function popularSelectParcelamento(valorAtual) {
+  const sel = document.getElementById('mprod-parc');
+  const hint = document.getElementById('mprod-parc-hint');
+  const taxas = CONFIG.taxasJuros || {};
+  const temTaxas = Object.keys(taxas).length > 0;
+
+  // Função Price local (igual à loja.html)
+  function calcParc(pv, n, taxaPct) {
+    const i = (taxaPct || 0) / 100;
+    if (i <= 0) return pv / n;
+    return pv * i / (1 - Math.pow(1 + i, -n));
+  }
+  function getTaxa(n) {
+    const v = taxas[n] ?? taxas[String(n)] ?? taxas[Number(n)];
+    return (v != null && !isNaN(v)) ? Number(v) : 0;
+  }
+
+  // Valor de referência para preview (usa R$100 se não tiver preço ainda)
+  const precoRef = parseFloat(document.getElementById('mprod-preco').value) || 100;
+
+  let opts = '<option value="">Sem parcelamento</option>';
+  for (let n = 2; n <= 12; n++) {
+    const taxa = getTaxa(n);
+    const valParc = calcParc(precoRef, n, taxa);
+    const fmt = v => v.toLocaleString('pt-BR', {minimumFractionDigits:2, maximumFractionDigits:2});
+    const descJuros = taxa > 0
+      ? `(${taxa.toFixed(2).replace('.',',')}% a.m. → R$ ${fmt(valParc)}/parc.)`
+      : '(sem juros)';
+    opts += `<option value="${n}x">até ${n}x ${descJuros}</option>`;
+  }
+  sel.innerHTML = opts;
+
+  // Restaurar valor selecionado se estiver editando
+  if (valorAtual) sel.value = valorAtual;
+
+  // Hint informativo
+  if (!temTaxas) {
+    hint.textContent = '⚠️ Nenhuma taxa configurada — vá em Configurações para definir os juros por parcela.';
+    hint.style.color = 'var(--warning)';
+  } else {
+    hint.textContent = `💡 Valores calculados com as taxas que você configurou (preço de R$ ${precoRef.toFixed(2).replace('.',',')} como referência).`;
+    hint.style.color = 'var(--muted)';
+  }
+}
+
 function abrirModalNovoProduto(){
   resetarUploadImagem();
   document.getElementById('mprod-id').value='';
@@ -686,9 +727,9 @@ function abrirModalNovoProduto(){
   document.getElementById('mprod-preco').value='';
   document.getElementById('mprod-estoque').value='';
   document.getElementById('mprod-desc').value='';
-  document.getElementById('mprod-parc').value='';
   document.getElementById('mprod-status').value='ativo';
   document.getElementById('mprod-titulo').textContent='Novo Produto';
+  popularSelectParcelamento('');
   openModal('modal-produto');
 }
 function editarProduto(id){
@@ -701,9 +742,9 @@ function editarProduto(id){
   document.getElementById('mprod-desc').value=p.desc||'';
   document.getElementById('mprod-img').value=p.img||'';
   if(p.img){ mostrarPreviewImagem(p.img); }
-  document.getElementById('mprod-parc').value=p.parcelamento||'';
   document.getElementById('mprod-status').value=p.status||'ativo';
   document.getElementById('mprod-titulo').textContent='Editar Produto';
+  popularSelectParcelamento(p.parcelamento||'');
   openModal('modal-produto');
 }
 
