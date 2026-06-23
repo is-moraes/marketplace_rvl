@@ -342,6 +342,7 @@
           <h3>Dados da loja</h3>
           <div class="fg"><label>Nome da loja</label><input type="text" id="cfg-loja" placeholder="Meu Closet"/></div>
           <div class="fg"><label>Slogan</label><input type="text" id="cfg-slogan" placeholder="Estilo que combina com você!"/></div>
+          <div class="fg"><label>Logo da loja (URL da imagem)</label><input type="text" id="cfg-logo" placeholder="https://..."/><div style="font-size:.72rem;color:var(--muted);margin-top:4px">Cole o link de uma imagem quadrada (ex: do Firebase Storage, Google Drive compartilhado, etc.). Aparece no cabeçalho da loja pública.</div></div>
           <div class="fg"><label>WhatsApp (com DDD)</label><input type="text" id="cfg-whats" placeholder="11999999999"/></div>
         </div>
         <div class="chart-card" style="margin-bottom:16px">
@@ -877,6 +878,7 @@ async function excluirCliente(id){if(!confirm('Excluir?'))return;await deleteDoc
 function carregarFormCfg(){
   document.getElementById('cfg-loja').value=CONFIG.nomeLoja||'';
   document.getElementById('cfg-slogan').value=CONFIG.subtitulo||'';
+  document.getElementById('cfg-logo').value=CONFIG.logoUrl||'';
   document.getElementById('cfg-whats').value=CONFIG.whatsapp||'';
   document.getElementById('cfg-pix').value=CONFIG.pixChave||'';
   document.getElementById('cfg-pix-nome').value=CONFIG.pixNome||'';
@@ -908,7 +910,7 @@ function coletarTaxasGrid(){
 
 async function salvarConfig(){
   const taxasJuros = coletarTaxasGrid();
-  CONFIG={nomeLoja:document.getElementById('cfg-loja').value,subtitulo:document.getElementById('cfg-slogan').value,whatsapp:document.getElementById('cfg-whats').value,pixChave:document.getElementById('cfg-pix').value,pixNome:document.getElementById('cfg-pix-nome').value,pixCidade:document.getElementById('cfg-pix-cidade').value,taxasJuros};
+  CONFIG={nomeLoja:document.getElementById('cfg-loja').value,subtitulo:document.getElementById('cfg-slogan').value,logoUrl:document.getElementById('cfg-logo').value,whatsapp:document.getElementById('cfg-whats').value,pixChave:document.getElementById('cfg-pix').value,pixNome:document.getElementById('cfg-pix-nome').value,pixCidade:document.getElementById('cfg-pix-cidade').value,taxasJuros};
   // Salva tudo com merge, mas força sobrescrita do taxasJuros para limpar entradas antigas
   await db.collection('config').doc(uid).set(CONFIG,{merge:true});
   await db.collection('config').doc(uid).update({taxasJuros: firebase.firestore.FieldValue.delete()});
