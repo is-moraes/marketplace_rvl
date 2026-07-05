@@ -222,7 +222,8 @@
     <div class="det-estoque" id="det-estoque"></div>
     <div class="det-parc" id="det-parc" onclick="abrirParcelas()" style="cursor:pointer;text-decoration:underline;text-underline-offset:2px"></div>
     <div class="det-desc" id="det-desc"></div>
-    <button class="btn-action btn-pix" onclick="abrirPix()">💠 Pagar via PIX</button>
+    <div id="det-aviso-parc" style="display:none;background:#FEF3C7;border:1px solid #FDE68A;border-radius:10px;padding:10px 14px;font-size:.82rem;color:#92400E;margin-bottom:10px">💳 Pagamento parcelado é feito na maquininha. Informe o vendedor pelo WhatsApp para combinar o pagamento.</div>
+    <button class="btn-action btn-pix" id="det-btn-pix" onclick="abrirPix()">💠 Pagar via PIX</button>
     <button class="btn-action btn-whats" onclick="pedirWhats()">💬 Pedir pelo WhatsApp</button>
     <button class="btn-action" style="background:var(--bg);color:var(--purple-dark);border:1px solid var(--border)" onclick="adicionarAoCarrinho(produtoAtual.id);closeModal('modal-detalhe')">🛒 Adicionar ao carrinho</button>
   </div>
@@ -266,7 +267,8 @@
         <span class="cart-total-value" id="cart-total-value">R$ 0,00</span>
       </div>
       <div id="cart-parc-info" style="font-size:.78rem;color:var(--muted);margin-top:4px;cursor:pointer;text-decoration:underline;text-underline-offset:2px" onclick="abrirParcelasCarrinho()"></div>
-      <button class="btn-action btn-pix" style="margin-top:16px" onclick="finalizarCarrinhoPix()">💠 Pagar via PIX</button>
+      <div id="cart-aviso-parc" style="display:none;background:#FEF3C7;border:1px solid #FDE68A;border-radius:10px;padding:10px 14px;font-size:.82rem;color:#92400E;margin-top:10px">💳 Pagamento parcelado é feito na maquininha. Use o WhatsApp para combinar com o vendedor.</div>
+      <button class="btn-action btn-pix" id="cart-btn-pix" style="margin-top:16px" onclick="finalizarCarrinhoPix()">💠 Pagar via PIX</button>
       <button class="btn-action btn-whats" onclick="finalizarCarrinhoWhats()">💬 Finalizar pelo WhatsApp</button>
     </div>
   </div>
@@ -486,8 +488,18 @@ function selecionarParcelaItem(listId, idx, opcoes, isProduto) {
     el.classList.toggle('selected', i===idx);
     el.querySelector('.parc-radio').classList.toggle('checked', i===idx);
   });
-  if (isProduto) parcelaProdutoAtual = opcoes[idx];
-  else parcelaCarrinhoAtual = opcoes[idx];
+  const escolha = opcoes[idx];
+  if (isProduto) {
+    parcelaProdutoAtual = escolha;
+    const parcelado = escolha && escolha.n > 1;
+    document.getElementById('det-btn-pix').style.display = parcelado ? 'none' : '';
+    document.getElementById('det-aviso-parc').style.display = parcelado ? '' : 'none';
+  } else {
+    parcelaCarrinhoAtual = escolha;
+    const parcelado = escolha && escolha.n > 1;
+    document.getElementById('cart-btn-pix').style.display = parcelado ? 'none' : '';
+    document.getElementById('cart-aviso-parc').style.display = parcelado ? '' : 'none';
+  }
 }
 
 function abrirParcelas() {
