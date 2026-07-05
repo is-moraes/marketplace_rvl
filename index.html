@@ -286,6 +286,7 @@
       <div class="charts-row">
         <div class="chart-card"><h3>Vendas — últimos 7 dias</h3><canvas id="chart-v" height="160"></canvas></div>
         <div class="chart-card"><h3>Formas de pagamento</h3><canvas id="chart-p" height="160"></canvas></div>
+        <div class="chart-card" style="grid-column:1/-1"><h3>Vendas por cliente (top 10)</h3><canvas id="chart-cli" height="100"></canvas></div>
       </div>
     </div>
 
@@ -343,6 +344,13 @@
           <div class="fg"><label>Nome da loja</label><input type="text" id="cfg-loja" placeholder="Meu Closet"/></div>
           <div class="fg"><label>Slogan</label><input type="text" id="cfg-slogan" placeholder="Estilo que combina com você!"/></div>
           <div class="fg"><label>Logo da loja (URL da imagem)</label><input type="text" id="cfg-logo" placeholder="https://..."/><div style="font-size:.72rem;color:var(--muted);margin-top:4px">Cole o link de uma imagem quadrada (ex: do Firebase Storage, Google Drive compartilhado, etc.). Aparece no cabeçalho da loja pública.</div></div>
+          <div class="fg"><label>Cor principal da loja</label>
+            <div style="display:flex;align-items:center;gap:10px">
+              <input type="color" id="cfg-cor" value="#7C3AED" style="width:48px;height:38px;border:1px solid var(--border);border-radius:8px;cursor:pointer;padding:2px"/>
+              <input type="text" id="cfg-cor-hex" placeholder="#7C3AED" style="flex:1" oninput="syncCorHex(this.value)"/>
+            </div>
+            <div style="font-size:.72rem;color:var(--muted);margin-top:4px">Essa cor será usada em botões, cabeçalho e destaques da loja pública dos seus clientes.</div>
+          </div>
           <div class="fg"><label>WhatsApp (com DDD)</label><input type="text" id="cfg-whats" placeholder="11999999999"/></div>
         </div>
         <div class="chart-card" style="margin-bottom:16px">
@@ -445,7 +453,8 @@
 <div class="modal-bg" id="modal-cliente">
   <div class="modal">
     <button class="modal-close" onclick="closeModal('modal-cliente')">✕</button>
-    <h2>Novo Cliente</h2>
+    <h2 id="mc-titulo">Novo Cliente</h2>
+    <input type="hidden" id="mc-id"/>
     <div class="fg"><label>Nome</label><input type="text" id="mc-nome" placeholder="Maria Silva"/></div>
     <div class="fg"><label>Telefone / WhatsApp</label><input type="text" id="mc-tel" placeholder="11999999999"/></div>
     <div class="fg"><label>E-mail</label><input type="email" id="mc-email" placeholder="maria@email.com"/></div>
@@ -474,7 +483,7 @@ let VENDEDOR_DOC = null;
 let PLANOS = [], PLATFORM_CONFIG = {};
 let PRODUTOS = [], CLIENTES = [], VENDAS = [], CONFIG = {};
 let BASE_URL = window.location.origin;
-let chartV, chartP;
+let chartV, chartP, chartCli;
 let imagemSelecionadaFile = null; // arquivo de imagem escolhido, aguardando upload no salvar
 
 window.addEventListener('DOMContentLoaded', () => {
@@ -612,6 +621,7 @@ async function carregarDados(){
   [PRODUTOS,CLIENTES,VENDAS] = await Promise.all([getAll('produtos'),getAll('clientes'),getAll('vendas')]);
   const cfgDoc = await db.collection('config').doc(uid).get();
   CONFIG = cfgDoc.exists ? cfgDoc.data() : {};
+  if(CONFIG.corPrimaria) aplicarCorTema(CONFIG.corPrimaria);
   renderDashboard();
 }
 
@@ -627,7 +637,7 @@ function goPage(p){
   const btn=document.getElementById('topbar-btn');
   btn.textContent=btnMap[p]||'';
   btn.style.display=btnMap[p]?'':'none';
-  btn.onclick=()=>{ if(p==='produtos')abrirModalNovoProduto(); else if(p==='vendas')openModal('modal-venda'); else if(p==='clientes')openModal('modal-cliente'); };
+  btn.onclick=()=>{ if(p==='produtos')abrirModalNovoProduto(); else if(p==='vendas')openModal('modal-venda'); else if(p==='clientes'){ document.getElementById('mc-id').value=''; document.getElementById('mc-titulo').textContent='Novo Cliente'; document.getElementById('mc-nome').value=''; document.getElementById('mc-tel').value=''; document.getElementById('mc-email').value=''; document.getElementById('mc-obs').value=''; openModal('modal-cliente'); } };
   if(p==='dashboard')renderDashboard();
   if(p==='produtos')renderProdutos();
   if(p==='vendas')renderVendas();
@@ -656,6 +666,20 @@ function renderDashboard(){
     const pv=Object.values(pagMap).length?Object.values(pagMap):[60,30,10];
     if(chartP)chartP.destroy();
     chartP=new Chart(document.getElementById('chart-p'),{type:'doughnut',data:{labels:pl,datasets:[{data:pv,backgroundColor:['#7C3AED','#2563EB','#D97706','#16A34A','#DC2626']}]},options:{plugins:{legend:{position:'right',labels:{color:'#1F1B2E',boxWidth:10,padding:8,font:{size:11}}}}}});
+
+    // Gráfico de barras: vendas por cliente (top 10)
+    const totaisPorCliente={};
+    VENDAS.filter(v=>v.status==='pago').forEach(v=>{
+      const nome=v.cliente||'Sem cliente';
+      totaisPorCliente[nome]=(totaisPorCliente[nome]||0)+Number(v.valor||0);
+    });
+    const top10=Object.entries(totaisPorCliente).sort((a,b)=>b[1]-a[1]).slice(0,10);
+    if(chartCli)chartCli.destroy();
+    if(top10.length){
+      chartCli=new Chart(document.getElementById('chart-cli'),{type:'bar',data:{labels:top10.map(x=>x[0]),datasets:[{label:'Total pago (R$)',data:top10.map(x=>x[1]),backgroundColor:'rgba(124,58,237,.75)',borderRadius:6}]},options:{plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#6B6B80'},grid:{display:false}},y:{ticks:{color:'#6B6B80',callback:v=>'R$'+Number(v).toFixed(0)},grid:{color:'#F0EDF7'}}}}});
+    } else {
+      const ctx=document.getElementById('chart-cli'); if(ctx){ctx.style.display='none'; ctx.parentElement.insertAdjacentHTML('beforeend','<p style="color:var(--muted);font-size:.82rem;padding-top:8px">Nenhuma venda paga registrada ainda.</p>');}
+    };
   } catch(e) {
     console.warn('Não foi possível carregar os gráficos (Chart.js indisponível):', e);
   }
@@ -841,8 +865,11 @@ function renderVendas(){
     </tr>`).join(''):'<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:28px">Nenhuma venda registrada.</td></tr>';
 }
 async function salvarVenda(){
-  const data={cliente:document.getElementById('mv-cliente').value,produto:document.getElementById('mv-produto').selectedOptions[0]?.text||'',valor:parseFloat(document.getElementById('mv-valor').value)||0,pagamento:document.getElementById('mv-pag').value,status:document.getElementById('mv-status').value,obs:document.getElementById('mv-obs').value,data:new Date().toLocaleDateString('pt-BR')};
-  if(!data.cliente){toast('Selecione um cliente.','error');return}
+  const sel=document.getElementById('mv-cliente');
+  const clienteId=sel.value;
+  const clienteNome=sel.selectedOptions[0]?.text||'';
+  const data={clienteId,cliente:clienteNome,produto:document.getElementById('mv-produto').selectedOptions[0]?.text||'',valor:parseFloat(document.getElementById('mv-valor').value)||0,pagamento:document.getElementById('mv-pag').value,status:document.getElementById('mv-status').value,obs:document.getElementById('mv-obs').value,data:new Date().toLocaleDateString('pt-BR')};
+  if(!data.clienteId){toast('Selecione um cliente.','error');return}
   const id=await addDoc2('vendas',data);VENDAS.unshift({id,...data});
   await db.collection('vendedores').doc(VENDEDOR_DOC.id).update({totalVendas:firebase.firestore.FieldValue.increment(1)});
   closeModal('modal-venda');renderVendas();toast('Venda registrada!','success');
@@ -852,26 +879,49 @@ async function excluirVenda(id){if(!confirm('Excluir?'))return;await deleteDoc2(
 function renderClientes(){
   const grid=document.getElementById('clientes-grid');
   grid.innerHTML=CLIENTES.length?CLIENTES.map(c=>{
-    const compras=VENDAS.filter(v=>v.cliente===c.nome);
+    const compras=VENDAS.filter(v=>v.clienteId===c.id||v.cliente===c.nome);
     const total=compras.filter(v=>v.status==='pago').reduce((s,v)=>s+Number(v.valor||0),0);
     return `<div class="client-card">
       <div style="font-weight:600;margin-bottom:3px">${c.nome}</div>
       <div style="font-size:.76rem;color:var(--muted);margin-bottom:10px">${c.tel?'📱 '+c.tel:''} ${c.email?'· '+c.email:''}</div>
+      ${c.obs?`<div style="font-size:.76rem;color:var(--muted);margin-bottom:8px;font-style:italic">${c.obs}</div>`:''}
       <div style="display:flex;gap:10px;margin-bottom:10px">
         <div style="text-align:center;flex:1;background:var(--bg);border-radius:8px;padding:8px"><div style="font-weight:700;color:var(--purple-dark);font-size:.95rem">${compras.length}</div><div style="font-size:.65rem;color:var(--muted)">Pedidos</div></div>
         <div style="text-align:center;flex:1;background:var(--bg);border-radius:8px;padding:8px"><div style="font-weight:700;color:var(--purple-dark);font-size:.95rem">R$ ${fmt(total)}</div><div style="font-size:.65rem;color:var(--muted)">Total</div></div>
       </div>
       <div style="display:flex;gap:6px">
         ${c.tel?`<button class="btn btn-secondary btn-xs" onclick="window.open('https://wa.me/55${c.tel}','_blank')">💬</button>`:''}
+        <button class="btn btn-secondary btn-xs" onclick="editarCliente('${c.id}')">✏️ Editar</button>
         <button class="btn btn-danger btn-xs" onclick="excluirCliente('${c.id}')">🗑️</button>
       </div>
     </div>`;
   }).join(''):'<p style="color:var(--muted);padding:28px">Nenhum cliente cadastrado.</p>';
 }
+function editarCliente(id){
+  const c=CLIENTES.find(x=>x.id===id); if(!c) return;
+  document.getElementById('mc-id').value=c.id;
+  document.getElementById('mc-titulo').textContent='Editar Cliente';
+  document.getElementById('mc-nome').value=c.nome||'';
+  document.getElementById('mc-tel').value=c.tel||'';
+  document.getElementById('mc-email').value=c.email||'';
+  document.getElementById('mc-obs').value=c.obs||'';
+  openModal('modal-cliente');
+}
 async function salvarCliente(){
+  const id=document.getElementById('mc-id').value;
   const data={nome:document.getElementById('mc-nome').value,tel:document.getElementById('mc-tel').value,email:document.getElementById('mc-email').value,obs:document.getElementById('mc-obs').value};
   if(!data.nome){toast('Nome obrigatório.','error');return}
-  const id=await addDoc2('clientes',data);CLIENTES.unshift({id,...data});closeModal('modal-cliente');renderClientes();toast('Cliente cadastrado!','success');
+  if(id){
+    await updateDoc2('clientes',id,data);
+    const idx=CLIENTES.findIndex(x=>x.id===id); if(idx!==-1) Object.assign(CLIENTES[idx],data);
+    toast('Cliente atualizado!','success');
+  } else {
+    const nid=await addDoc2('clientes',data); CLIENTES.unshift({id:nid,...data});
+    toast('Cliente cadastrado!','success');
+  }
+  document.getElementById('mc-id').value='';
+  document.getElementById('mc-titulo').textContent='Novo Cliente';
+  closeModal('modal-cliente'); renderClientes();
 }
 async function excluirCliente(id){if(!confirm('Excluir?'))return;await deleteDoc2('clientes',id);CLIENTES=CLIENTES.filter(x=>x.id!==id);renderClientes()}
 
@@ -883,7 +933,26 @@ function carregarFormCfg(){
   document.getElementById('cfg-pix').value=CONFIG.pixChave||'';
   document.getElementById('cfg-pix-nome').value=CONFIG.pixNome||'';
   document.getElementById('cfg-pix-cidade').value=CONFIG.pixCidade||'';
+  const cor=CONFIG.corPrimaria||'#7C3AED';
+  document.getElementById('cfg-cor').value=cor;
+  document.getElementById('cfg-cor-hex').value=cor;
+  document.getElementById('cfg-cor').oninput=function(){ document.getElementById('cfg-cor-hex').value=this.value; };
   renderTaxasGrid();
+}
+
+function syncCorHex(val){
+  if(/^#[0-9A-Fa-f]{6}$/.test(val)) document.getElementById('cfg-cor').value=val;
+}
+
+function aplicarCorTema(hex){
+  if(!hex||!/^#[0-9A-Fa-f]{6}$/.test(hex)) hex='#7C3AED';
+  const r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16);
+  const dark='#'+[Math.max(0,r-40),Math.max(0,g-40),Math.max(0,b-40)].map(x=>x.toString(16).padStart(2,'0')).join('');
+  const light='#'+[Math.min(255,r+130),Math.min(255,g+130),Math.min(255,b+130)].map(x=>x.toString(16).padStart(2,'0')).join('');
+  const root=document.documentElement;
+  root.style.setProperty('--purple',hex);
+  root.style.setProperty('--purple-dark',dark);
+  root.style.setProperty('--purple-light',light+'33');
 }
 
 function renderTaxasGrid(){
@@ -910,13 +979,14 @@ function coletarTaxasGrid(){
 
 async function salvarConfig(){
   const taxasJuros = coletarTaxasGrid();
-  CONFIG={nomeLoja:document.getElementById('cfg-loja').value,subtitulo:document.getElementById('cfg-slogan').value,logoUrl:document.getElementById('cfg-logo').value,whatsapp:document.getElementById('cfg-whats').value,pixChave:document.getElementById('cfg-pix').value,pixNome:document.getElementById('cfg-pix-nome').value,pixCidade:document.getElementById('cfg-pix-cidade').value,taxasJuros};
-  // Salva tudo com merge, mas força sobrescrita do taxasJuros para limpar entradas antigas
+  const corPrimaria = document.getElementById('cfg-cor').value||'#7C3AED';
+  CONFIG={nomeLoja:document.getElementById('cfg-loja').value,subtitulo:document.getElementById('cfg-slogan').value,logoUrl:document.getElementById('cfg-logo').value,whatsapp:document.getElementById('cfg-whats').value,pixChave:document.getElementById('cfg-pix').value,pixNome:document.getElementById('cfg-pix-nome').value,pixCidade:document.getElementById('cfg-pix-cidade').value,taxasJuros,corPrimaria};
   await db.collection('config').doc(uid).set(CONFIG,{merge:true});
   await db.collection('config').doc(uid).update({taxasJuros: firebase.firestore.FieldValue.delete()});
   await db.collection('config').doc(uid).update({taxasJuros});
   await db.collection('vendedores').doc(VENDEDOR_DOC.id).update({nomeLoja:CONFIG.nomeLoja,whatsapp:CONFIG.whatsapp});
   document.getElementById('sb-loja-nome').textContent=CONFIG.nomeLoja||'Minha Loja';
+  aplicarCorTema(corPrimaria);
   toast('Configurações salvas!','success');
   definirLinkLoja();
 }
