@@ -108,17 +108,23 @@
   .trial-text{font-size:.83rem;color:#92400E;font-weight:500}
 
   /* Stats */
-  .stats-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:16px;margin-bottom:22px}
-  .stat-card{background:#fff;border:1px solid var(--border);border-radius:var(--r);padding:18px}
-  .stat-label{font-size:.74rem;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:7px;font-weight:600}
-  .stat-value{font-family:var(--font-head);font-weight:800;font-size:1.7rem;color:var(--text)}
-  .stat-badge{display:inline-flex;align-items:center;gap:4px;margin-top:6px;font-size:.74rem;border-radius:20px;padding:2px 9px;font-weight:600}
-  .badge-up{background:#DCFCE7;color:var(--success)}
-
-  .charts-row{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:22px}
-  @media(max-width:768px){.charts-row{grid-template-columns:1fr}}
-  .chart-card{background:#fff;border:1px solid var(--border);border-radius:var(--r);padding:20px}
-  .chart-card h3{font-size:.78rem;color:var(--muted);margin-bottom:16px;text-transform:uppercase;letter-spacing:.05em;font-weight:700}
+  /* ── Dashboard redesenhado ── */
+  .dash-kpis{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px;margin-bottom:24px}
+  .kpi-card{background:#fff;border:1px solid var(--border);border-radius:14px;padding:18px 20px;display:flex;align-items:center;gap:14px;box-shadow:0 1px 3px rgba(31,27,46,.04)}
+  .kpi-icon{width:46px;height:46px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:1.3rem;flex-shrink:0}
+  .kpi-icon.green{background:#DCFCE7}.kpi-icon.purple{background:var(--purple-light)}.kpi-icon.blue{background:#DBEAFE}.kpi-icon.orange{background:#FEF3C7}
+  .kpi-val{font-family:var(--font-head);font-weight:800;font-size:1.5rem;color:var(--text);line-height:1.1}
+  .kpi-lbl{font-size:.72rem;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.05em;margin-top:2px}
+  .dash-row{display:grid;gap:16px;margin-bottom:16px}
+  .dash-row.cols-2{grid-template-columns:3fr 2fr}
+  .dash-row.cols-1{grid-template-columns:1fr}
+  @media(max-width:900px){.dash-row.cols-2{grid-template-columns:1fr}}
+  .chart-card{background:#fff;border:1px solid var(--border);border-radius:14px;padding:20px;box-shadow:0 1px 3px rgba(31,27,46,.04)}
+  .chart-card h3{font-size:.74rem;color:var(--muted);margin-bottom:16px;text-transform:uppercase;letter-spacing:.06em;font-weight:700}
+  /* legado */
+  .stats-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px;margin-bottom:24px}
+  .stat-card{display:none}
+  .stat-badge{display:none}.badge-up{display:none}
   .taxa-item{text-align:center}
   .taxa-item label{display:block;font-size:.74rem;color:var(--muted);font-weight:600;margin-bottom:5px}
   .taxa-item .taxa-input-wrap{position:relative}
@@ -169,7 +175,8 @@
     .menu-toggle{display:block}
     .main{width:100%}
     .page{padding:16px}
-    .stats-grid{grid-template-columns:1fr 1fr}
+    .dash-kpis{grid-template-columns:1fr 1fr}
+    .dash-row.cols-2{grid-template-columns:1fr}
     .form-row{grid-template-columns:1fr}
   }
 </style>
@@ -282,11 +289,13 @@
 
     <!-- DASHBOARD -->
     <div class="page active" id="page-dashboard">
-      <div class="stats-grid" id="stats-dash"></div>
-      <div class="charts-row">
+      <div class="dash-kpis" id="dash-kpis"></div>
+      <div class="dash-row cols-2">
         <div class="chart-card"><h3>Vendas — últimos 7 dias</h3><canvas id="chart-v" height="160"></canvas></div>
         <div class="chart-card"><h3>Formas de pagamento</h3><canvas id="chart-p" height="160"></canvas></div>
-        <div class="chart-card" style="grid-column:1/-1"><h3>Vendas por cliente (top 10)</h3><canvas id="chart-cli" height="100"></canvas></div>
+      </div>
+      <div class="dash-row cols-1">
+        <div class="chart-card"><h3>Vendas por cliente — top 10</h3><canvas id="chart-cli" height="90"></canvas></div>
       </div>
     </div>
 
@@ -647,44 +656,72 @@ function goPage(p){
 }
 
 function renderDashboard(){
-  const totalVend=VENDAS.filter(v=>v.status==='pago').reduce((s,v)=>s+Number(v.valor||0),0);
-  const ticket=VENDAS.filter(v=>v.status==='pago').length?totalVend/VENDAS.filter(v=>v.status==='pago').length:0;
-  document.getElementById('stats-dash').innerHTML=`
-    ${sc('Vendas totais','R$ '+fmt(totalVend))}
-    ${sc('Pedidos',VENDAS.length)}
-    ${sc('Ticket médio','R$ '+fmt(ticket))}
-    ${sc('Clientes',CLIENTES.length)}
-  `;
-  try {
-    const dias=['Seg','Ter','Qua','Qui','Sex','Sáb','Dom'];
-    const vals=[820,1100,650,1350,900,1180,Number(totalVend.toFixed(0))];
-    if(chartV)chartV.destroy();
-    chartV=new Chart(document.getElementById('chart-v'),{type:'line',data:{labels:dias,datasets:[{data:vals,borderColor:'#7C3AED',backgroundColor:'rgba(124,58,237,.08)',fill:true,tension:.4,pointRadius:3,pointBackgroundColor:'#7C3AED'}]},options:{plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#6B6B80'},grid:{display:false}},y:{ticks:{color:'#6B6B80'},grid:{color:'#F0EDF7'}}}}});
-    const pagMap={};
-    VENDAS.filter(v=>v.status==='pago').forEach(v=>{pagMap[v.pagamento||'Outros']=(pagMap[v.pagamento||'Outros']||0)+Number(v.valor||0)});
-    const pl=Object.keys(pagMap).length?Object.keys(pagMap):['PIX','Cartão','Dinheiro'];
-    const pv=Object.values(pagMap).length?Object.values(pagMap):[60,30,10];
-    if(chartP)chartP.destroy();
-    chartP=new Chart(document.getElementById('chart-p'),{type:'doughnut',data:{labels:pl,datasets:[{data:pv,backgroundColor:['#7C3AED','#2563EB','#D97706','#16A34A','#DC2626']}]},options:{plugins:{legend:{position:'right',labels:{color:'#1F1B2E',boxWidth:10,padding:8,font:{size:11}}}}}});
+  const pagas=VENDAS.filter(v=>v.status==='pago');
+  const totalVend=pagas.reduce((s,v)=>s+Number(v.valor||0),0);
+  const ticket=pagas.length?totalVend/pagas.length:0;
+  const cor=getComputedStyle(document.documentElement).getPropertyValue('--purple').trim()||'#7C3AED';
+  const corLight=cor+'18';
 
-    // Gráfico de barras: vendas por cliente (top 10)
-    const totaisPorCliente={};
-    VENDAS.filter(v=>v.status==='pago').forEach(v=>{
-      const nome=v.cliente||'Sem cliente';
-      totaisPorCliente[nome]=(totaisPorCliente[nome]||0)+Number(v.valor||0);
-    });
-    const top10=Object.entries(totaisPorCliente).sort((a,b)=>b[1]-a[1]).slice(0,10);
+  document.getElementById('dash-kpis').innerHTML=`
+    <div class="kpi-card">
+      <div class="kpi-icon green">💰</div>
+      <div><div class="kpi-val">R$ ${fmt(totalVend)}</div><div class="kpi-lbl">Faturamento</div></div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-icon purple">🛍️</div>
+      <div><div class="kpi-val">${VENDAS.length}</div><div class="kpi-lbl">Pedidos</div></div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-icon blue">📊</div>
+      <div><div class="kpi-val">R$ ${fmt(ticket)}</div><div class="kpi-lbl">Ticket médio</div></div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-icon orange">👥</div>
+      <div><div class="kpi-val">${CLIENTES.length}</div><div class="kpi-lbl">Clientes</div></div>
+    </div>
+  `;
+
+  try {
+    // Gráfico de linha: vendas dos últimos 7 dias reais
+    const hoje=new Date();
+    const diasLabels=[],diasVals=[];
+    for(let i=6;i>=0;i--){
+      const d=new Date(hoje); d.setDate(d.getDate()-i);
+      const str=d.toLocaleDateString('pt-BR');
+      diasLabels.push(['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'][d.getDay()]);
+      diasVals.push(VENDAS.filter(v=>v.data===str&&v.status==='pago').reduce((s,v)=>s+Number(v.valor||0),0));
+    }
+    if(chartV)chartV.destroy();
+    chartV=new Chart(document.getElementById('chart-v'),{type:'line',data:{labels:diasLabels,datasets:[{data:diasVals,borderColor:cor,backgroundColor:corLight,fill:true,tension:.4,pointRadius:4,pointBackgroundColor:cor}]},options:{plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#6B6B80'},grid:{display:false}},y:{ticks:{color:'#6B6B80',callback:v=>'R$'+v},grid:{color:'#F0EDF7'},beginAtZero:true}}}});
+
+    // Gráfico de rosca: formas de pagamento
+    const pagMap={};
+    pagas.forEach(v=>{const k=v.pagamento||'Outros';pagMap[k]=(pagMap[k]||0)+Number(v.valor||0)});
+    const pl=Object.keys(pagMap).length?Object.keys(pagMap):['Sem dados'];
+    const pv=Object.values(pagMap).length?Object.values(pagMap):[1];
+    if(chartP)chartP.destroy();
+    chartP=new Chart(document.getElementById('chart-p'),{type:'doughnut',data:{labels:pl,datasets:[{data:pv,backgroundColor:[cor,'#2563EB','#D97706','#16A34A','#DC2626'],borderWidth:0}]},options:{plugins:{legend:{position:'right',labels:{color:'#1F1B2E',boxWidth:10,padding:10,font:{size:11}}}},cutout:'68%'}});
+
+    // Gráfico de barras: top 10 clientes
+    const totaisCli={};
+    pagas.forEach(v=>{const n=v.cliente||'Sem cliente';totaisCli[n]=(totaisCli[n]||0)+Number(v.valor||0)});
+    const top10=Object.entries(totaisCli).sort((a,b)=>b[1]-a[1]).slice(0,10);
+    const cliCanvas=document.getElementById('chart-cli');
     if(chartCli)chartCli.destroy();
     if(top10.length){
-      chartCli=new Chart(document.getElementById('chart-cli'),{type:'bar',data:{labels:top10.map(x=>x[0]),datasets:[{label:'Total pago (R$)',data:top10.map(x=>x[1]),backgroundColor:'rgba(124,58,237,.75)',borderRadius:6}]},options:{plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#6B6B80'},grid:{display:false}},y:{ticks:{color:'#6B6B80',callback:v=>'R$'+Number(v).toFixed(0)},grid:{color:'#F0EDF7'}}}}});
+      cliCanvas.style.display='';
+      const next=cliCanvas.nextElementSibling; if(next&&next.tagName==='P')next.remove();
+      chartCli=new Chart(cliCanvas,{type:'bar',data:{labels:top10.map(x=>x[0]),datasets:[{data:top10.map(x=>x[1]),backgroundColor:cor+'CC',borderRadius:7,borderSkipped:false}]},options:{plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>'R$ '+fmt(ctx.parsed.y)}}},scales:{x:{ticks:{color:'#6B6B80',maxRotation:30},grid:{display:false}},y:{ticks:{color:'#6B6B80',callback:v=>'R$'+Number(v).toFixed(0)},grid:{color:'#F0EDF7'},beginAtZero:true}}}});
     } else {
-      const ctx=document.getElementById('chart-cli'); if(ctx){ctx.style.display='none'; ctx.parentElement.insertAdjacentHTML('beforeend','<p style="color:var(--muted);font-size:.82rem;padding-top:8px">Nenhuma venda paga registrada ainda.</p>');}
-    };
-  } catch(e) {
-    console.warn('Não foi possível carregar os gráficos (Chart.js indisponível):', e);
+      cliCanvas.style.display='none';
+      const p=cliCanvas.parentElement;
+      if(!p.querySelector('p.chart-empty')) p.insertAdjacentHTML('beforeend','<p class="chart-empty">Nenhuma venda paga registrada ainda.</p>');
+    }
+  } catch(e){
+    console.warn('Chart.js indisponível:', e);
   }
 }
-function sc(l,v){return `<div class="stat-card"><div class="stat-label">${l}</div><div class="stat-value">${v}</div></div>`}
+function sc(l,v){return ''} // legado, não usado
 
 function renderProdutos(){
   const plano=PLANOS.find(p=>p.id===VENDEDOR_DOC?.planoId);
