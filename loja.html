@@ -537,6 +537,28 @@ function pixSanitize(str, max) {
   return (str||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'')
     .replace(/[^A-Za-z0-9 .,\-]/g,'').trim().toUpperCase().slice(0,max).trim();
 }
+/* Normaliza a chave para o formato exigido pelo BR Code.
+   CPF/CNPJ: só dígitos.  Celular: +55DDNNNNNNNNN.  E-mail: minúsculo.  EVP: uuid minúsculo. */
+function normalizarChavePix(raw, tipo) {
+  const v = String(raw||'').trim();
+  if (!v) return '';
+  const d = v.replace(/\D/g,'');
+  switch (tipo) {
+    case 'cpf':       return d.slice(0,11);
+    case 'cnpj':      return d.slice(0,14);
+    case 'celular':   return '+' + (d.startsWith('55') ? d : '55'+d);
+    case 'email':     return v.toLowerCase().slice(0,77);
+    case 'aleatoria': return v.toLowerCase();
+  }
+  // Sem tipo definido: inferência conservadora
+  if (v.includes('@')) return v.toLowerCase().slice(0,77);
+  if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v)) return v.toLowerCase();
+  if (v.startsWith('+')) return '+' + d;
+  if (d.length === 14) return d;                  // CNPJ
+  if (d.length === 12 || d.length === 13) return '+' + d;  // já veio com 55
+  if (d.length === 10) return '+55' + d;          // fixo
+  return d;   // 11 dígitos: ambíguo (CPF x celular) — depende de pixTipo
+}
 function tlv(id, val) { const v=String(val); return id + String(v.length).padStart(2,'0') + v; }
 function crc16(payload) {
   let crc = 0xFFFF;
@@ -546,13 +568,14 @@ function crc16(payload) {
   }
   return crc.toString(16).toUpperCase().padStart(4,'0');
 }
-function gerarPixPayload({ chave, nome, cidade, valor, txid }) {
-  if (!chave) return '';
-  const mai = tlv('00','br.gov.bcb.pix') + tlv('01', String(chave).trim());
+function gerarPixPayload({ chave, tipo, nome, cidade, valor, txid }) {
+  const key = normalizarChavePix(chave, tipo);
+  if (!key) return '';
+  const mai = tlv('00','br.gov.bcb.pix') + tlv('01', key);
   const temValor = Number(valor) > 0;
   let p = '';
   p += tlv('00','01');                       // payload format indicator
-  p += tlv('01', temValor ? '12' : '11');    // 12 = uso único, 11 = reutilizável
+  p += tlv('01','11');                       // estático reutilizável (aceito por todos os PSPs)
   p += tlv('26', mai);                       // merchant account info (pix)
   p += tlv('52','0000');                     // MCC
   p += tlv('53','986');                      // moeda: BRL
@@ -606,6 +629,7 @@ function renderPixModal() {
 
   const payload = gerarPixPayload({
     chave,
+    tipo:   CONFIG_LOJA.pixTipo,
     nome:   CONFIG_LOJA.pixNome || CONFIG_LOJA.nomeLoja || VENDEDOR_DOC.nomeLoja,
     cidade: CONFIG_LOJA.pixCidade,
     valor:  atual.valor,
