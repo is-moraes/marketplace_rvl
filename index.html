@@ -364,7 +364,18 @@
         </div>
         <div class="chart-card" style="margin-bottom:16px">
           <h3>Dados PIX</h3>
-          <div class="fg"><label>Chave PIX</label><input type="text" id="cfg-pix" placeholder="email@email.com, CPF ou telefone"/></div>
+          <div class="form-row">
+            <div class="fg"><label>Tipo da chave</label>
+              <select id="cfg-pix-tipo">
+                <option value="email">E-mail</option>
+                <option value="cpf">CPF</option>
+                <option value="cnpj">CNPJ</option>
+                <option value="celular">Celular</option>
+                <option value="aleatoria">Aleatória (EVP)</option>
+              </select>
+            </div>
+            <div class="fg"><label>Chave PIX</label><input type="text" id="cfg-pix" placeholder="email@email.com, CPF ou telefone"/></div>
+          </div>
           <div class="form-row">
             <div class="fg"><label>Nome (QR Code)</label><input type="text" id="cfg-pix-nome" placeholder="Seu Nome"/></div>
             <div class="fg"><label>Cidade</label><input type="text" id="cfg-pix-cidade" placeholder="São Paulo"/></div>
@@ -1067,6 +1078,7 @@ function carregarFormCfg(){
   document.getElementById('cfg-pix').value=CONFIG.pixChave||'';
   document.getElementById('cfg-pix-nome').value=CONFIG.pixNome||'';
   document.getElementById('cfg-pix-cidade').value=CONFIG.pixCidade||'';
+  document.getElementById('cfg-pix-tipo').value=CONFIG.pixTipo||'email';
   const cor=CONFIG.corPrimaria||'#7C3AED';
   document.getElementById('cfg-cor').value=cor;
   document.getElementById('cfg-cor-hex').value=cor;
@@ -1114,7 +1126,7 @@ function coletarTaxasGrid(){
 async function salvarConfig(){
   const taxasJuros = coletarTaxasGrid();
   const corPrimaria = document.getElementById('cfg-cor').value||'#7C3AED';
-  CONFIG={nomeLoja:document.getElementById('cfg-loja').value,subtitulo:document.getElementById('cfg-slogan').value,logoUrl:document.getElementById('cfg-logo').value,whatsapp:document.getElementById('cfg-whats').value,pixChave:document.getElementById('cfg-pix').value,pixNome:document.getElementById('cfg-pix-nome').value,pixCidade:document.getElementById('cfg-pix-cidade').value,taxasJuros,corPrimaria};
+  CONFIG={nomeLoja:document.getElementById('cfg-loja').value,subtitulo:document.getElementById('cfg-slogan').value,logoUrl:document.getElementById('cfg-logo').value,whatsapp:document.getElementById('cfg-whats').value,pixChave:document.getElementById('cfg-pix').value,pixNome:document.getElementById('cfg-pix-nome').value,pixCidade:document.getElementById('cfg-pix-cidade').value,pixTipo:document.getElementById('cfg-pix-tipo').value,taxasJuros,corPrimaria};
   await db.collection('config').doc(uid).set(CONFIG,{merge:true});
   await db.collection('config').doc(uid).update({taxasJuros: firebase.firestore.FieldValue.delete()});
   await db.collection('config').doc(uid).update({taxasJuros});
