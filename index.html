@@ -893,13 +893,24 @@ function renderVendas(){
   selCli.innerHTML='<option value="">— Selecionar —</option>'+CLIENTES.map(c=>`<option>${c.nome}</option>`).join('');
   selProd.innerHTML='<option value="">— Selecionar —</option>'+PRODUTOS.map(p=>`<option value="${p.id}" data-preco="${p.preco}">${p.nome}</option>`).join('');
   selProd.onchange=()=>{const o=selProd.selectedOptions[0];document.getElementById('mv-valor').value=o?.dataset.preco||''};
-  document.getElementById('tbody-vend').innerHTML=VENDAS.length?VENDAS.map(v=>`
+  document.getElementById('tbody-vend').innerHTML=VENDAS.length?VENDAS.map(v=>{
+    const pend = v.status==='pendente';
+    const daLoja = v.origem==='loja';
+    const itensTxt = (v.itens||[]).map(i=>`${i.nome} x${i.qty}`).join(' | ');
+    return `
     <tr>
       <td style="color:var(--muted);font-size:.78rem">${v.data||'-'}</td>
-      <td>${v.cliente||'-'}</td><td>${v.produto||'-'}</td><td>R$ ${fmt(v.valor)}</td><td>${v.pagamento||'-'}</td>
-      <td><span class="badge badge-${v.status==='pago'?'ativo':v.status==='pendente'?'pendente':'cancelado'}">${v.status}</span></td>
-      <td><button class="btn btn-danger btn-xs" onclick="excluirVenda('${v.id}')">🗑️</button></td>
-    </tr>`).join(''):'<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:28px">Nenhuma venda registrada.</td></tr>';
+      <td>${v.cliente||'-'}${daLoja?' <span style="font-size:.68rem;background:#EDE9FE;color:#5B21B6;border-radius:20px;padding:2px 7px;font-weight:700">LOJA</span>':''}${v.clienteTel?`<div style="font-size:.72rem;color:var(--muted)">${v.clienteTel}</div>`:''}</td>
+      <td title="${itensTxt}">${v.produto||'-'}${itensTxt?`<div style="font-size:.72rem;color:var(--muted);max-width:230px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${itensTxt}</div>`:''}</td>
+      <td>R$ ${fmt(v.valor)}</td><td>${v.pagamento||'-'}</td>
+      <td><span class="badge badge-${v.status==='pago'?'ativo':v.status==='pendente'?'pendente':'cancelado'}">${v.status==='pago'?'aprovada':v.status==='cancelado'?'negada':'pendente'}</span></td>
+      <td style="white-space:nowrap">
+        ${pend?`<button class="btn btn-primary btn-xs" onclick="aprovarVenda('${v.id}')">✅ Aprovar</button>
+                <button class="btn btn-danger btn-xs" onclick="negarVenda('${v.id}')">✖ Negar</button>`
+              :`<button class="btn btn-xs" style="background:var(--bg);border:1px solid var(--border)" onclick="reabrirVenda('${v.id}')">↩ Pendente</button>`}
+        <button class="btn btn-danger btn-xs" onclick="excluirVenda('${v.id}')">🗑️</button>
+      </td>
+    </tr>`;}).join(''):'<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:28px">Nenhuma venda registrada.</td></tr>';
 }
 async function salvarVenda(){
   const sel=document.getElementById('mv-cliente');
@@ -911,7 +922,93 @@ async function salvarVenda(){
   await db.collection('vendedores').doc(VENDEDOR_DOC.id).update({totalVendas:firebase.firestore.FieldValue.increment(1)});
   closeModal('modal-venda');renderVendas();toast('Venda registrada!','success');
 }
-async function excluirVenda(id){if(!confirm('Excluir?'))return;await deleteDoc2('vendas',id);VENDAS=VENDAS.filter(x=>x.id!==id);renderVendas();toast('Excluído.','success')}
+/* ══════════════════════════════════════════════════════════
+   APROVAÇÃO DE PEDIDOS — baixa/estorno de estoque
+   ══════════════════════════════════════════════════════════ */
+async function ajustarEstoque(itens, sinal) {
+  // sinal = -1 (baixa) ou +1 (estorno). Transação: ou tudo, ou nada.
+  const refs = itens.map(i => ({ ref: col('produtos').doc(i.id), qty: i.qty, nome: i.nome }));
+  await db.runTransaction(async tx => {
+    const snaps = [];
+    for (const r of refs) snaps.push(await tx.get(r.ref));
+    snaps.forEach((snap, idx) => {
+      const r = refs[idx];
+      if (!snap.exists) throw new Error(`Produto "${r.nome}" não existe mais.`);
+      const atual = snap.data().estoque || 0;
+      if (sinal < 0 && atual < r.qty) throw new Error(`Estoque insuficiente de "${r.nome}" (restam ${atual}).`);
+    });
+    snaps.forEach((snap, idx) => {
+      const r = refs[idx];
+      tx.update(r.ref, { estoque: Math.max(0, (snap.data().estoque || 0) + sinal * r.qty) });
+    });
+  });
+  itens.forEach(i => {
+    const p = PRODUTOS.find(x => x.id === i.id);
+    if (p) p.estoque = Math.max(0, (p.estoque || 0) + sinal * i.qty);
+  });
+}
+
+async function aprovarVenda(id) {
+  const v = VENDAS.find(x => x.id === id);
+  if (!v || v.status === 'pago') return;
+  const itens = v.itens || [];
+  if (itens.length && !confirm(`Aprovar o pedido de ${v.cliente}? O estoque será debitado.`)) return;
+  try {
+    if (itens.length && !v.estoqueBaixado) await ajustarEstoque(itens, -1);
+  } catch (e) {
+    toast(e.message || 'Falha ao baixar estoque.', 'error');
+    return;
+  }
+  const upd = { status: 'pago', estoqueBaixado: itens.length ? true : false };
+  await updateDoc2('vendas', id, upd);
+  Object.assign(v, upd);
+  renderVendas(); renderProdutos(); renderDashboard();
+  toast('Pedido aprovado! Estoque atualizado.', 'success');
+}
+
+async function negarVenda(id) {
+  const v = VENDAS.find(x => x.id === id);
+  if (!v || v.status === 'cancelado') return;
+  if (!confirm(`Negar o pedido de ${v.cliente}?`)) return;
+  try {
+    // se por algum motivo o estoque já foi baixado, devolve
+    if (v.estoqueBaixado && (v.itens||[]).length) await ajustarEstoque(v.itens, +1);
+  } catch (e) {
+    toast(e.message || 'Falha ao estornar estoque.', 'error');
+    return;
+  }
+  const upd = { status: 'cancelado', estoqueBaixado: false };
+  await updateDoc2('vendas', id, upd);
+  Object.assign(v, upd);
+  renderVendas(); renderProdutos(); renderDashboard();
+  toast('Pedido negado.', 'info');
+}
+
+async function reabrirVenda(id) {
+  const v = VENDAS.find(x => x.id === id);
+  if (!v || v.status === 'pendente') return;
+  try {
+    if (v.estoqueBaixado && (v.itens||[]).length) await ajustarEstoque(v.itens, +1);
+  } catch (e) {
+    toast(e.message || 'Falha ao estornar estoque.', 'error');
+    return;
+  }
+  const upd = { status: 'pendente', estoqueBaixado: false };
+  await updateDoc2('vendas', id, upd);
+  Object.assign(v, upd);
+  renderVendas(); renderProdutos(); renderDashboard();
+  toast('Pedido voltou para pendente.', 'info');
+}
+
+async function excluirVenda(id){
+  if(!confirm('Excluir?'))return;
+  const v=VENDAS.find(x=>x.id===id);
+  if(v && v.estoqueBaixado && (v.itens||[]).length){
+    try{ await ajustarEstoque(v.itens,+1); }catch(e){ toast(e.message||'Falha ao estornar estoque.','error'); return; }
+  }
+  await deleteDoc2('vendas',id);VENDAS=VENDAS.filter(x=>x.id!==id);
+  renderVendas();renderProdutos();renderDashboard();toast('Excluído.','success')
+}
 
 function renderClientes(){
   const grid=document.getElementById('clientes-grid');
