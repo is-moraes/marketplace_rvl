@@ -608,6 +608,41 @@ function abrirPixContexto({ titulo, parcelas, txid }) {
   openModal('modal-pix');
 }
 
+/* Valida a chave PIX e devolve diagnóstico legível */
+function diagnosticarChavePix(raw, tipo) {
+  const v = String(raw||'').trim();
+  if (!v) return { ok:false, motivo:'O vendedor não cadastrou a chave PIX.' };
+  const d = v.replace(/\D/g,'');
+  const t = tipo || '';
+
+  if (t==='email' || (!t && v.includes('@'))) {
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v)) return { ok:false, motivo:'E-mail da chave PIX parece inválido.' };
+    return { ok:true, tipoDetectado:'email' };
+  }
+  if (t==='aleatoria' || (!t && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v))) {
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v)) return { ok:false, motivo:'Chave aleatória deve ter o formato UUID (36 caracteres).' };
+    return { ok:true, tipoDetectado:'aleatoria' };
+  }
+  if (t==='cnpj' || (!t && d.length===14)) {
+    if (d.length!==14) return { ok:false, motivo:'CNPJ deve ter 14 dígitos.' };
+    return { ok:true, tipoDetectado:'cnpj' };
+  }
+  if (t==='celular') {
+    if (d.replace(/^55/,'').length!==11) return { ok:false, motivo:'Celular deve ter DDD + 9 dígitos.' };
+    return { ok:true, tipoDetectado:'celular' };
+  }
+  if (t==='cpf') {
+    if (d.length!==11) return { ok:false, motivo:'CPF deve ter 11 dígitos.' };
+    return { ok:true, tipoDetectado:'cpf' };
+  }
+  // Sem tipo e 11 dígitos: AMBÍGUO — este é o caso que mais falha
+  if (!t && d.length===11) {
+    return { ok:false, motivo:'Chave de 11 dígitos: o vendedor precisa definir em Configurações se é CPF ou Celular. Sem isso, o banco recusa.' };
+  }
+  if (!t && (d.length===10)) return { ok:false, motivo:'Número de telefone parece incompleto (falta o 9?).' };
+  return { ok:true, tipoDetectado:t||'desconhecido' };
+}
+
 function renderPixModal() {
   if (!PIX_CTX) return;
   const { titulo, parcelas, idx, txid } = PIX_CTX;
@@ -621,6 +656,15 @@ function renderPixModal() {
       `<button class="pix-tab ${i===idx?'active':''}" onclick="selecionarParcelaPix(${i})">${i+1}ª</button>`).join('');
   } else {
     tabs.style.display = 'none';
+  }
+
+  const diag = diagnosticarChavePix(chave, CONFIG_LOJA.pixTipo);
+  if (!diag.ok) {
+    document.getElementById('pix-info').innerHTML = `<strong style="color:var(--purple-dark)">${titulo}</strong>`;
+    document.getElementById('pix-qr').innerHTML = `<div style="padding:24px;text-align:center;color:#B91C1C;font-size:.82rem;line-height:1.5">⚠️ Não foi possível gerar o PIX.<br><br>${diag.motivo}<br><br><span style="color:var(--muted)">Use o botão <strong>Finalizar pelo WhatsApp</strong> para combinar o pagamento.</span></div>`;
+    document.getElementById('pix-chave').textContent = '—';
+    document.getElementById('pix-aviso-parc').style.display = 'none';
+    return;
   }
 
   const atual = parcelas[idx];
@@ -660,11 +704,11 @@ function abrirPix() {
   if(!produtoAtual) return;
   closeModal('modal-detalhe');
   closeModal('modal-parcelas');
-  const parc = parcelaProdutoAtual;
-  const parcelas = (parc && parc.n > 1)
-    ? fatiarParcelas(parc.total, parc.n)
-    : [{ label: 'À vista', valor: produtoAtual.preco }];
-  abrirPixContexto({ titulo: produtoAtual.nome, parcelas });
+  // PIX sempre à vista, valor cheio (parcelamento é combinado pelo WhatsApp)
+  abrirPixContexto({
+    titulo: produtoAtual.nome,
+    parcelas: [{ label: 'Total à vista', valor: produtoAtual.preco }]
+  });
 }
 
 /* ══════════════════════════════════════════════════════════
@@ -843,16 +887,12 @@ function abrirParcelasCarrinho() {
 function finalizarCarrinhoPix() {
   const itens = itensCarrinhoDetalhados();
   if (!itens.length) return;
-  const parc = parcelaCarrinhoAtual;
-  const total = totalCarrinho();
-  const parcelas = (parc && parc.n > 1)
-    ? fatiarParcelas(parc.total, parc.n)
-    : [{ label: 'À vista', valor: total }];
   closeModal('modal-carrinho');
   closeModal('modal-parcelas-carrinho');
+  // PIX sempre pelo total à vista (parcelamento combinado pelo WhatsApp)
   abrirPixContexto({
     titulo: `Carrinho · ${itens.length} ${itens.length>1?'itens':'item'}`,
-    parcelas
+    parcelas: [{ label: 'Total à vista', valor: totalCarrinho() }]
   });
 }
 
