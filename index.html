@@ -1021,11 +1021,38 @@ async function excluirVenda(id){
   renderVendas();renderProdutos();renderDashboard();toast('Excluído.','success')
 }
 
+const _norm=s=>String(s||'').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+
+/* Conserta vendas antigas cujo clienteId ficou vazio/órfão, casando pelo nome.
+   Roda uma vez, grava no Firestore e atualiza a memória. */
+let _reparoFeito=false;
+async function repararVinculosVendas(){
+  if(_reparoFeito||!CLIENTES.length||!VENDAS.length)return;
+  _reparoFeito=true;
+  const idsValidos=new Set(CLIENTES.map(c=>c.id));
+  const porNome={};CLIENTES.forEach(c=>{porNome[_norm(c.nome)]=c.id});
+  const pendentes=[];
+  VENDAS.forEach(v=>{
+    const idOk=v.clienteId&&idsValidos.has(v.clienteId);
+    if(idOk)return;
+    const alvo=porNome[_norm(v.cliente)];
+    if(alvo&&alvo!==v.clienteId){ v.clienteId=alvo; pendentes.push(v); }
+  });
+  if(!pendentes.length)return;
+  try{
+    await Promise.all(pendentes.map(v=>updateDoc2('vendas',v.id,{clienteId:v.clienteId})));
+    console.log(`Vínculos corrigidos: ${pendentes.length} venda(s).`);
+  }catch(e){console.warn('Falha ao reparar vínculos:',e)}
+}
+
 function renderClientes(){
+  repararVinculosVendas();
   const grid=document.getElementById('clientes-grid');
   grid.innerHTML=CLIENTES.length?CLIENTES.map(c=>{
-    const compras=VENDAS.filter(v=>v.clienteId===c.id||v.cliente===c.nome);
-    const total=compras.filter(v=>v.status==='pago').reduce((s,v)=>s+Number(v.valor||0),0);
+    const norm=_norm;
+    const compras=VENDAS.filter(v=>(v.clienteId&&v.clienteId===c.id)||(!!c.nome&&norm(v.cliente)===norm(c.nome)));
+    const pagas=compras.filter(v=>v.status==='pago');
+    const total=pagas.reduce((s,v)=>s+Number(v.valor||0),0);
     return `<div class="client-card">
       <div style="font-weight:600;margin-bottom:3px">${c.nome}</div>
       <div style="font-size:.76rem;color:var(--muted);margin-bottom:10px">${c.tel?'📱 '+c.tel:''} ${c.email?'· '+c.email:''}</div>
