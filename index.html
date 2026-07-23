@@ -154,6 +154,20 @@
   .modal-close:hover{background:var(--purple-light);color:var(--purple-dark)}
 
   /* Client card */
+  .combo{position:relative}
+  .combo-input{width:100%;padding:11px 13px;border:1px solid var(--border);border-radius:10px;font-size:.9rem;font-family:inherit;background:#fff}
+  .combo-input:focus{outline:none;border-color:var(--purple)}
+  .combo-list{position:absolute;top:calc(100% + 4px);left:0;right:0;background:#fff;border:1px solid var(--border);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.12);max-height:210px;overflow-y:auto;z-index:60;display:none}
+  .combo-list.open{display:block}
+  .combo-item{padding:10px 13px;font-size:.88rem;cursor:pointer;border-bottom:1px solid var(--bg)}
+  .combo-item:last-child{border-bottom:none}
+  .combo-item:hover,.combo-item.active{background:var(--bg);color:var(--purple-dark)}
+  .combo-item small{display:block;color:var(--muted);font-size:.72rem;margin-top:1px}
+  .combo-empty{padding:12px 13px;font-size:.82rem;color:var(--muted);text-align:center}
+  .search-box{position:relative;flex:1;max-width:340px}
+  .search-box input{width:100%;padding:10px 13px 10px 36px;border:1px solid var(--border);border-radius:10px;font-size:.88rem;font-family:inherit;background:#fff}
+  .search-box input:focus{outline:none;border-color:var(--purple)}
+  .search-box .ico{position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:.9rem;opacity:.5;pointer-events:none}
   .client-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:15px}
   .client-card{background:#fff;border:1px solid var(--border);border-radius:var(--r);padding:17px}
 
@@ -324,7 +338,11 @@
 
     <!-- CLIENTES -->
     <div class="page" id="page-clientes">
-      <div style="display:flex;justify-content:flex-end;margin-bottom:16px">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap">
+        <div class="search-box">
+          <span class="ico">🔍</span>
+          <input type="text" id="busca-cliente" placeholder="Buscar cliente por nome, telefone ou e-mail..." oninput="renderClientes()"/>
+        </div>
         <button class="btn btn-primary btn-sm" onclick="openModal('modal-cliente')">+ Novo cliente</button>
       </div>
       <div class="client-grid" id="clientes-grid"></div>
@@ -454,7 +472,14 @@
   <div class="modal">
     <button class="modal-close" onclick="closeModal('modal-venda')">✕</button>
     <h2>Registrar Venda</h2>
-    <div class="fg"><label>Cliente</label><select id="mv-cliente"><option value="">— Selecionar —</option></select></div>
+    <div class="fg"><label>Cliente</label>
+      <div class="combo">
+        <input type="text" class="combo-input" id="mv-cliente-busca" placeholder="🔍 Digite o nome do cliente..." autocomplete="off"
+               oninput="comboFiltrar(this.value)" onfocus="comboAbrir()" onkeydown="comboTeclado(event)"/>
+        <input type="hidden" id="mv-cliente"/>
+        <div class="combo-list" id="mv-cliente-list"></div>
+      </div>
+    </div>
     <div class="fg"><label>Produto</label><select id="mv-produto"><option value="">— Selecionar —</option></select></div>
     <div class="form-row">
       <div class="fg"><label>Valor (R$)</label><input type="number" id="mv-valor" step="0.01"/></div>
@@ -900,8 +925,8 @@ async function salvarProduto(){
 async function excluirProduto(id){if(!confirm('Excluir produto?'))return;await deleteDoc2('produtos',id);PRODUTOS=PRODUTOS.filter(x=>x.id!==id);renderProdutos();toast('Excluído.','success')}
 
 function renderVendas(){
-  const selCli=document.getElementById('mv-cliente'),selProd=document.getElementById('mv-produto');
-  selCli.innerHTML='<option value="">— Selecionar —</option>'+CLIENTES.map(c=>`<option>${c.nome}</option>`).join('');
+  const selProd=document.getElementById('mv-produto');
+  comboReset();
   selProd.innerHTML='<option value="">— Selecionar —</option>'+PRODUTOS.map(p=>`<option value="${p.id}" data-preco="${p.preco}">${p.nome}</option>`).join('');
   selProd.onchange=()=>{const o=selProd.selectedOptions[0];document.getElementById('mv-valor').value=o?.dataset.preco||''};
   document.getElementById('tbody-vend').innerHTML=VENDAS.length?VENDAS.map(v=>{
@@ -923,15 +948,88 @@ function renderVendas(){
       </td>
     </tr>`;}).join(''):'<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:28px">Nenhuma venda registrada.</td></tr>';
 }
+/* ══════════════════════════════════════════════════════════
+   COMBOBOX DE CLIENTES — busca por nome, telefone ou e-mail
+   ══════════════════════════════════════════════════════════ */
+let _comboIdx = -1, _comboRes = [];
+
+function clientesOrdenados(){
+  return [...CLIENTES].sort((a,b)=>String(a.nome||'').localeCompare(String(b.nome||''),'pt-BR',{sensitivity:'base'}));
+}
+
+function comboReset(){
+  const inp=document.getElementById('mv-cliente-busca');
+  if(!inp)return;
+  inp.value=''; document.getElementById('mv-cliente').value='';
+  _comboIdx=-1; comboFechar();
+}
+
+function comboFiltrar(termo){
+  const t=_norm(termo);
+  document.getElementById('mv-cliente').value='';   // digitou = desfaz seleção
+  _comboRes = clientesOrdenados().filter(c=>
+    !t || _norm(c.nome).includes(t) || _norm(c.tel).includes(t) || _norm(c.email).includes(t)
+  );
+  _comboIdx=-1;
+  comboRender();
+  comboAbrir();
+}
+
+function comboRender(){
+  const list=document.getElementById('mv-cliente-list');
+  if(!_comboRes.length){
+    list.innerHTML='<div class="combo-empty">Nenhum cliente encontrado.</div>';
+    return;
+  }
+  list.innerHTML=_comboRes.map((c,i)=>{
+    const sub=[c.tel?'📱 '+c.tel:'',c.email||''].filter(Boolean).join(' · ');
+    return `<div class="combo-item ${i===_comboIdx?'active':''}" data-i="${i}" onmousedown="comboEscolher(${i})">
+      ${c.nome}${sub?`<small>${sub}</small>`:''}
+    </div>`;
+  }).join('');
+}
+
+function comboAbrir(){
+  if(!_comboRes.length && !document.getElementById('mv-cliente-busca').value){
+    _comboRes=clientesOrdenados(); comboRender();
+  }
+  document.getElementById('mv-cliente-list').classList.add('open');
+}
+function comboFechar(){
+  const l=document.getElementById('mv-cliente-list');
+  if(l)l.classList.remove('open');
+}
+
+function comboEscolher(i){
+  const c=_comboRes[i]; if(!c)return;
+  document.getElementById('mv-cliente').value=c.id;      // ← grava o ID, não o nome
+  document.getElementById('mv-cliente-busca').value=c.nome;
+  comboFechar();
+}
+
+function comboTeclado(e){
+  const list=document.getElementById('mv-cliente-list');
+  if(!list.classList.contains('open')&&['ArrowDown','Enter'].includes(e.key)){comboAbrir();return}
+  if(e.key==='ArrowDown'){e.preventDefault();_comboIdx=Math.min(_comboIdx+1,_comboRes.length-1);comboRender();}
+  else if(e.key==='ArrowUp'){e.preventDefault();_comboIdx=Math.max(_comboIdx-1,0);comboRender();}
+  else if(e.key==='Enter'){e.preventDefault();if(_comboIdx>=0)comboEscolher(_comboIdx);}
+  else if(e.key==='Escape'){comboFechar();}
+}
+
+document.addEventListener('click',e=>{
+  if(!e.target.closest('.combo'))comboFechar();
+});
+
 async function salvarVenda(){
-  const sel=document.getElementById('mv-cliente');
-  const clienteId=sel.value;
-  const clienteNome=sel.selectedOptions[0]?.text||'';
+  const clienteId=document.getElementById('mv-cliente').value;
+  const cliObj=CLIENTES.find(c=>c.id===clienteId);
+  const clienteNome=cliObj?cliObj.nome:'';
   const data={clienteId,cliente:clienteNome,produto:document.getElementById('mv-produto').selectedOptions[0]?.text||'',valor:parseFloat(document.getElementById('mv-valor').value)||0,pagamento:document.getElementById('mv-pag').value,status:document.getElementById('mv-status').value,obs:document.getElementById('mv-obs').value,data:new Date().toLocaleDateString('pt-BR')};
-  if(!data.clienteId){toast('Selecione um cliente.','error');return}
+  if(!data.clienteId){toast('Selecione um cliente da lista.','error');return}
   const id=await addDoc2('vendas',data);VENDAS.unshift({id,...data});
   await db.collection('vendedores').doc(VENDEDOR_DOC.id).update({totalVendas:firebase.firestore.FieldValue.increment(1)});
-  closeModal('modal-venda');renderVendas();toast('Venda registrada!','success');
+  comboReset();
+  closeModal('modal-venda');renderVendas();renderClientes();toast('Venda registrada!','success');
 }
 /* ══════════════════════════════════════════════════════════
    APROVAÇÃO DE PEDIDOS — baixa/estorno de estoque
@@ -1048,7 +1146,15 @@ async function repararVinculosVendas(){
 function renderClientes(){
   repararVinculosVendas();
   const grid=document.getElementById('clientes-grid');
-  grid.innerHTML=CLIENTES.length?CLIENTES.map(c=>{
+  const termo=_norm((document.getElementById('busca-cliente')||{}).value||'');
+  const lista=clientesOrdenados().filter(c=>
+    !termo || _norm(c.nome).includes(termo) || _norm(c.tel).includes(termo) || _norm(c.email).includes(termo)
+  );
+  if(CLIENTES.length && !lista.length){
+    grid.innerHTML=`<p style="color:var(--muted);padding:28px;text-align:center">Nenhum cliente encontrado para "<strong>${(document.getElementById('busca-cliente')||{}).value||''}</strong>".</p>`;
+    return;
+  }
+  grid.innerHTML=lista.length?lista.map(c=>{
     const norm=_norm;
     const compras=VENDAS.filter(v=>(v.clienteId&&v.clienteId===c.id)||(!!c.nome&&norm(v.cliente)===norm(c.nome)));
     const pagas=compras.filter(v=>v.status==='pago');
