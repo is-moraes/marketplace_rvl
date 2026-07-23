@@ -259,6 +259,10 @@
       <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
       Vendas
     </div>
+    <div class="nav-item" onclick="goPage('gastos')">
+      <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20 12V8H6a2 2 0 010-4h12v4"/><path d="M4 6v12a2 2 0 002 2h14v-4"/><path d="M18 12a2 2 0 000 4h4v-4z"/></svg>
+      Gastos
+    </div>
     <div class="nav-item" onclick="goPage('clientes')">
       <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
       Clientes
@@ -310,6 +314,7 @@
       </div>
       <div class="dash-row cols-1">
         <div class="chart-card"><h3>Vendas por cliente — top 10</h3><canvas id="chart-cli" height="90"></canvas></div>
+        <div class="chart-card"><h3>Receita × Gastos × Lucro — por mês</h3><canvas id="chart-lucro" height="90"></canvas></div>
       </div>
     </div>
 
@@ -333,6 +338,26 @@
       <div class="table-wrap">
         <table><thead><tr><th>Data</th><th>Cliente</th><th>Produto</th><th>Valor</th><th>Pagamento</th><th>Status</th><th>Ações</th></tr></thead>
         <tbody id="tbody-vend"></tbody></table>
+      </div>
+    </div>
+
+    <!-- GASTOS -->
+    <div class="page" id="page-gastos">
+      <div class="kpi-grid" id="gastos-kpis" style="margin-bottom:18px"></div>
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap">
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <select id="filtro-gasto-mes" onchange="renderGastos()" style="padding:9px 12px;border:1px solid var(--border);border-radius:10px;font-size:.85rem;font-family:inherit;background:#fff"></select>
+          <select id="filtro-gasto-cat" onchange="renderGastos()" style="padding:9px 12px;border:1px solid var(--border);border-radius:10px;font-size:.85rem;font-family:inherit;background:#fff">
+            <option value="">Todas as categorias</option>
+          </select>
+        </div>
+        <button class="btn btn-primary btn-sm" onclick="abrirModalGasto()">+ Novo gasto</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Data</th><th>Descrição</th><th>Categoria</th><th>Valor</th><th>Ações</th></tr></thead>
+          <tbody id="tbody-gastos"></tbody>
+        </table>
       </div>
     </div>
 
@@ -495,6 +520,33 @@
   </div>
 </div>
 
+<div class="modal-bg" id="modal-gasto">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('modal-gasto')">✕</button>
+    <h2 id="mg-titulo">Novo Gasto</h2>
+    <input type="hidden" id="mg-id"/>
+    <div class="fg"><label>Descrição</label><input type="text" id="mg-desc" placeholder="Ex: Compra de tecido, frete, embalagens"/></div>
+    <div class="form-row">
+      <div class="fg"><label>Valor (R$)</label><input type="number" id="mg-valor" step="0.01" placeholder="0,00"/></div>
+      <div class="fg"><label>Data</label><input type="date" id="mg-data"/></div>
+    </div>
+    <div class="form-row">
+      <div class="fg"><label>Categoria</label>
+        <select id="mg-cat">
+          <option>Mercadoria</option><option>Frete / Envio</option><option>Embalagem</option>
+          <option>Marketing</option><option>Taxas / Maquininha</option><option>Ferramentas / Software</option>
+          <option>Impostos</option><option>Outros</option>
+        </select>
+      </div>
+      <div class="fg"><label>Tipo</label>
+        <select id="mg-tipo"><option value="variavel">Variável (por venda)</option><option value="fixo">Fixo (mensal)</option></select>
+      </div>
+    </div>
+    <div class="fg"><label>Observação</label><textarea id="mg-obs" rows="2" placeholder="Opcional..."></textarea></div>
+    <button class="btn btn-primary btn-full" onclick="salvarGasto()">Salvar gasto</button>
+  </div>
+</div>
+
 <div class="modal-bg" id="modal-cliente">
   <div class="modal">
     <button class="modal-close" onclick="closeModal('modal-cliente')">✕</button>
@@ -528,7 +580,7 @@ let VENDEDOR_DOC = null;
 let PLANOS = [], PLATFORM_CONFIG = {};
 let PRODUTOS = [], CLIENTES = [], VENDAS = [], CONFIG = {};
 let BASE_URL = window.location.origin;
-let chartV, chartP, chartCli;
+let chartL,chartV, chartP, chartCli;
 let imagemSelecionadaFile = null; // arquivo de imagem escolhido, aguardando upload no salvar
 
 window.addEventListener('DOMContentLoaded', () => {
@@ -542,7 +594,8 @@ window.addEventListener('DOMContentLoaded', () => {
       if (user) { uid = user.uid; await iniciarApp(user); }
       else { showScreen('auth-screen'); await carregarDadosPlatform(); }
     });
-  } catch(e) {
+  
+} catch(e) {
     console.error(e);
     document.getElementById('loading').style.display = 'none';
     showScreen('auth-screen');
@@ -662,8 +715,9 @@ async function addDoc2(name,data){const r=await col(name).add({criadoEm:new Date
 async function updateDoc2(name,id,data){await col(name).doc(id).update(data)}
 async function deleteDoc2(name,id){await col(name).doc(id).delete()}
 
+let GASTOS=[];
 async function carregarDados(){
-  [PRODUTOS,CLIENTES,VENDAS] = await Promise.all([getAll('produtos'),getAll('clientes'),getAll('vendas')]);
+  [PRODUTOS,CLIENTES,VENDAS,GASTOS] = await Promise.all([getAll('produtos'),getAll('clientes'),getAll('vendas'),getAll('gastos')]);
   const cfgDoc = await db.collection('config').doc(uid).get();
   CONFIG = cfgDoc.exists ? cfgDoc.data() : {};
   if(CONFIG.corPrimaria) aplicarCorTema(CONFIG.corPrimaria);
@@ -682,10 +736,11 @@ function goPage(p){
   const btn=document.getElementById('topbar-btn');
   btn.textContent=btnMap[p]||'';
   btn.style.display=btnMap[p]?'':'none';
-  btn.onclick=()=>{ if(p==='produtos')abrirModalNovoProduto(); else if(p==='vendas')openModal('modal-venda'); else if(p==='clientes'){ document.getElementById('mc-id').value=''; document.getElementById('mc-titulo').textContent='Novo Cliente'; document.getElementById('mc-nome').value=''; document.getElementById('mc-tel').value=''; document.getElementById('mc-email').value=''; document.getElementById('mc-obs').value=''; openModal('modal-cliente'); } };
+  btn.onclick=()=>{ if(p==='produtos')abrirModalNovoProduto(); else if(p==='vendas')openModal('modal-venda'); else if(p==='gastos')abrirModalGasto(); else if(p==='clientes'){ document.getElementById('mc-id').value=''; document.getElementById('mc-titulo').textContent='Novo Cliente'; document.getElementById('mc-nome').value=''; document.getElementById('mc-tel').value=''; document.getElementById('mc-email').value=''; document.getElementById('mc-obs').value=''; openModal('modal-cliente'); } };
   if(p==='dashboard')renderDashboard();
   if(p==='produtos')renderProdutos();
   if(p==='vendas')renderVendas();
+  if(p==='gastos')renderGastos();
   if(p==='clientes')renderClientes();
   if(p==='configuracoes')carregarFormCfg();
   if(p==='plano')renderPlano();
@@ -695,6 +750,9 @@ function renderDashboard(){
   const pagas=VENDAS.filter(v=>v.status==='pago');
   const totalVend=pagas.reduce((s,v)=>s+Number(v.valor||0),0);
   const ticket=pagas.length?totalVend/pagas.length:0;
+  const totalGastos=GASTOS.reduce((s,g)=>s+Number(g.valor||0),0);
+  const lucro=totalVend-totalGastos;
+  const margem=totalVend>0?(lucro/totalVend*100):0;
   const cor=getComputedStyle(document.documentElement).getPropertyValue('--purple').trim()||'#7C3AED';
   const corLight=cor+'18';
 
@@ -706,6 +764,15 @@ function renderDashboard(){
     <div class="kpi-card">
       <div class="kpi-icon purple">🛍️</div>
       <div><div class="kpi-val">${VENDAS.length}</div><div class="kpi-lbl">Pedidos</div></div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-icon orange">📉</div>
+      <div><div class="kpi-val" style="color:#DC2626">R$ ${fmt(totalGastos)}</div><div class="kpi-lbl">Gastos</div></div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-icon ${lucro>=0?'green':'orange'}">${lucro>=0?'📈':'⚠️'}</div>
+      <div><div class="kpi-val" style="color:${lucro>=0?'#16A34A':'#DC2626'}">R$ ${fmt(lucro)}</div>
+      <div class="kpi-lbl">Lucro ${totalVend>0?`· ${margem.toFixed(0)}% margem`:''}</div></div>
     </div>
     <div class="kpi-card">
       <div class="kpi-icon blue">📊</div>
@@ -748,6 +815,19 @@ function renderDashboard(){
       cliCanvas.style.display='';
       const next=cliCanvas.nextElementSibling; if(next&&next.tagName==='P')next.remove();
       chartCli=new Chart(cliCanvas,{type:'bar',data:{labels:top10.map(x=>x[0]),datasets:[{data:top10.map(x=>x[1]),backgroundColor:cor+'CC',borderRadius:7,borderSkipped:false}]},options:{plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>'R$ '+fmt(ctx.parsed.y)}}},scales:{x:{ticks:{color:'#6B6B80',maxRotation:30},grid:{display:false}},y:{ticks:{color:'#6B6B80',callback:v=>'R$'+Number(v).toFixed(0)},grid:{color:'#F0EDF7'},beginAtZero:true}}}});
+
+    // Receita x Gastos x Lucro por mês (últimos 6 meses)
+    const mesesL=[];
+    for(let i=5;i>=0;i--){const d=new Date();d.setDate(1);d.setMonth(d.getMonth()-i);mesesL.push(d.toISOString().slice(0,7))}
+    const recM=mesesL.map(m=>pagas.filter(v=>mesDaVenda(v)===m).reduce((s,v)=>s+Number(v.valor||0),0));
+    const gasM=mesesL.map(m=>GASTOS.filter(g=>mesDe(g.data)===m).reduce((s,g)=>s+Number(g.valor||0),0));
+    const lucM=mesesL.map((m,i)=>recM[i]-gasM[i]);
+    if(chartL)chartL.destroy();
+    chartL=new Chart(document.getElementById('chart-lucro'),{type:'bar',data:{labels:mesesL.map(rotuloMes),datasets:[
+      {label:'Receita',data:recM,backgroundColor:'#16A34A'},
+      {label:'Gastos',data:gasM,backgroundColor:'#DC2626'},
+      {label:'Lucro',data:lucM,type:'line',borderColor:cor,backgroundColor:cor,tension:.3,pointRadius:4,fill:false}
+    ]},options:{plugins:{legend:{position:'bottom',labels:{color:'#1F1B2E',boxWidth:10,padding:10,font:{size:11}}}},scales:{x:{ticks:{color:'#6B6B80'},grid:{display:false}},y:{ticks:{color:'#6B6B80',callback:v=>'R$'+v},grid:{color:'#F0EDF7'},beginAtZero:true}}}});
     } else {
       cliCanvas.style.display='none';
       const p=cliCanvas.parentElement;
@@ -1141,6 +1221,118 @@ async function repararVinculosVendas(){
     await Promise.all(pendentes.map(v=>updateDoc2('vendas',v.id,{clienteId:v.clienteId})));
     console.log(`Vínculos corrigidos: ${pendentes.length} venda(s).`);
   }catch(e){console.warn('Falha ao reparar vínculos:',e)}
+}
+
+/* ══════════════════════════════════════════════════════════
+   GASTOS — CRUD, filtros e apuração de lucro
+   ══════════════════════════════════════════════════════════ */
+function mesDe(iso){ return String(iso||'').slice(0,7); }        // "2026-07"
+function mesAtual(){ return new Date().toISOString().slice(0,7); }
+function rotuloMes(ym){
+  if(!ym) return 'Todos os meses';
+  const [a,m]=ym.split('-');
+  const nomes=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+  return `${nomes[+m-1]}/${a}`;
+}
+/* Converte "21/07/2026" (formato das vendas) em "2026-07" */
+function mesDaVenda(v){
+  const d=String(v.data||'');
+  const p=d.split('/');
+  return p.length===3 ? `${p[2]}-${p[1].padStart(2,'0')}` : mesDe(v.criadoEm);
+}
+
+function abrirModalGasto(g){
+  document.getElementById('mg-id').value    = g?g.id:'';
+  document.getElementById('mg-titulo').textContent = g?'Editar Gasto':'Novo Gasto';
+  document.getElementById('mg-desc').value  = g?g.descricao||'':'';
+  document.getElementById('mg-valor').value = g?g.valor||'':'';
+  document.getElementById('mg-data').value  = g?g.data||'':new Date().toISOString().slice(0,10);
+  document.getElementById('mg-cat').value   = g?g.categoria||'Outros':'Mercadoria';
+  document.getElementById('mg-tipo').value  = g?g.tipo||'variavel':'variavel';
+  document.getElementById('mg-obs').value   = g?g.obs||'':'';
+  openModal('modal-gasto');
+}
+
+async function salvarGasto(){
+  const id=document.getElementById('mg-id').value;
+  const valor=parseFloat(document.getElementById('mg-valor').value)||0;
+  const descricao=document.getElementById('mg-desc').value.trim();
+  if(!descricao){toast('Informe a descrição do gasto.','error');return}
+  if(valor<=0){toast('Informe um valor maior que zero.','error');return}
+  const data={
+    descricao, valor,
+    data: document.getElementById('mg-data').value || new Date().toISOString().slice(0,10),
+    categoria: document.getElementById('mg-cat').value,
+    tipo: document.getElementById('mg-tipo').value,
+    obs: document.getElementById('mg-obs').value.trim()
+  };
+  if(id){
+    await updateDoc2('gastos',id,data);
+    const i=GASTOS.findIndex(x=>x.id===id); if(i!==-1)Object.assign(GASTOS[i],data);
+    toast('Gasto atualizado!','success');
+  }else{
+    const nid=await addDoc2('gastos',data); GASTOS.unshift({id:nid,...data});
+    toast('Gasto registrado!','success');
+  }
+  closeModal('modal-gasto'); renderGastos(); renderDashboard();
+}
+
+function editarGasto(id){ const g=GASTOS.find(x=>x.id===id); if(g)abrirModalGasto(g); }
+
+async function excluirGasto(id){
+  if(!confirm('Excluir este gasto?'))return;
+  await deleteDoc2('gastos',id);
+  GASTOS=GASTOS.filter(x=>x.id!==id);
+  renderGastos(); renderDashboard(); toast('Excluído.','success');
+}
+
+function renderGastos(){
+  // popular filtro de meses (uma vez por render, preservando escolha)
+  const selMes=document.getElementById('filtro-gasto-mes');
+  const selCat=document.getElementById('filtro-gasto-cat');
+  const mesSel=selMes.value||mesAtual();
+  const catSel=selCat.value||'';
+  const meses=[...new Set(GASTOS.map(g=>mesDe(g.data)).filter(Boolean))].sort().reverse();
+  if(!meses.includes(mesAtual()))meses.unshift(mesAtual());
+  selMes.innerHTML=`<option value="">Todos os meses</option>`+meses.map(m=>`<option value="${m}">${rotuloMes(m)}</option>`).join('');
+  selMes.value = meses.includes(mesSel)||mesSel===''?mesSel:'';
+  const cats=[...new Set(GASTOS.map(g=>g.categoria).filter(Boolean))].sort();
+  selCat.innerHTML=`<option value="">Todas as categorias</option>`+cats.map(c=>`<option value="${c}">${c}</option>`).join('');
+  selCat.value=catSel;
+
+  const lista=GASTOS
+    .filter(g=>(!selMes.value||mesDe(g.data)===selMes.value)&&(!catSel||g.categoria===catSel))
+    .sort((a,b)=>String(b.data||'').localeCompare(String(a.data||'')));
+
+  const totalMes=lista.reduce((s,g)=>s+Number(g.valor||0),0);
+  const fixos=lista.filter(g=>g.tipo==='fixo').reduce((s,g)=>s+Number(g.valor||0),0);
+  const varia=totalMes-fixos;
+  const receitaMes=VENDAS.filter(v=>v.status==='pago'&&(!selMes.value||mesDaVenda(v)===selMes.value))
+                         .reduce((s,v)=>s+Number(v.valor||0),0);
+  const lucro=receitaMes-totalMes;
+
+  document.getElementById('gastos-kpis').innerHTML=`
+    <div class="kpi-card"><div class="kpi-icon orange">📉</div>
+      <div><div class="kpi-val">R$ ${fmt(totalMes)}</div><div class="kpi-lbl">Gastos${selMes.value?' · '+rotuloMes(selMes.value):''}</div></div></div>
+    <div class="kpi-card"><div class="kpi-icon blue">🔁</div>
+      <div><div class="kpi-val">R$ ${fmt(fixos)}</div><div class="kpi-lbl">Fixos</div></div></div>
+    <div class="kpi-card"><div class="kpi-icon purple">📦</div>
+      <div><div class="kpi-val">R$ ${fmt(varia)}</div><div class="kpi-lbl">Variáveis</div></div></div>
+    <div class="kpi-card"><div class="kpi-icon ${lucro>=0?'green':'orange'}">${lucro>=0?'✅':'⚠️'}</div>
+      <div><div class="kpi-val" style="color:${lucro>=0?'#16A34A':'#DC2626'}">R$ ${fmt(lucro)}</div><div class="kpi-lbl">Lucro do período</div></div></div>`;
+
+  document.getElementById('tbody-gastos').innerHTML=lista.length?lista.map(g=>`
+    <tr>
+      <td style="color:var(--muted);font-size:.78rem">${g.data?g.data.split('-').reverse().join('/'):'-'}</td>
+      <td>${g.descricao||'-'}${g.obs?`<div style="font-size:.72rem;color:var(--muted)">${g.obs}</div>`:''}</td>
+      <td><span class="badge" style="background:var(--bg);color:var(--purple-dark)">${g.categoria||'-'}</span>
+          ${g.tipo==='fixo'?'<span style="font-size:.66rem;background:#DBEAFE;color:#1E40AF;border-radius:20px;padding:2px 7px;font-weight:700;margin-left:4px">FIXO</span>':''}</td>
+      <td style="color:#DC2626;font-weight:600">− R$ ${fmt(g.valor)}</td>
+      <td style="white-space:nowrap">
+        <button class="btn btn-secondary btn-xs" onclick="editarGasto('${g.id}')">✏️</button>
+        <button class="btn btn-danger btn-xs" onclick="excluirGasto('${g.id}')">🗑️</button>
+      </td>
+    </tr>`).join(''):'<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:28px">Nenhum gasto neste período.</td></tr>';
 }
 
 function renderClientes(){
