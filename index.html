@@ -457,7 +457,19 @@
     <div class="fg"><label>Nome</label><input type="text" id="mprod-nome" placeholder="Ex: Vestido Midi Rosa"/></div>
     <div class="form-row">
       <div class="fg"><label>Preço (R$)</label><input type="number" id="mprod-preco" step="0.01" placeholder="89.90" oninput="popularSelectParcelamento(document.getElementById('mprod-parc').value)"/></div>
-      <div class="fg"><label>Estoque</label><input type="number" id="mprod-estoque" placeholder="10"/></div>
+      <div class="fg" id="mprod-estoque-wrap"><label>Estoque</label><input type="number" id="mprod-estoque" placeholder="10"/></div>
+    </div>
+    <div class="fg">
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
+        <input type="checkbox" id="mprod-tem-var" onchange="toggleVariacoes(this.checked)" style="width:auto"/>
+        Este produto tem variações (cor, sabor, tamanho…)
+      </label>
+    </div>
+    <div class="fg" id="mprod-var-box" style="display:none">
+      <label>Variações — cada uma tem seu próprio estoque</label>
+      <div id="mprod-var-list"></div>
+      <button type="button" class="btn btn-secondary btn-xs" onclick="addLinhaVariacao()" style="margin-top:6px">+ Adicionar variação</button>
+      <div style="font-size:.72rem;color:var(--muted);margin-top:6px">O preço é o mesmo para todas as variações. Conta como 1 produto no seu plano.</div>
     </div>
     <div class="fg"><label>Descrição</label><textarea id="mprod-desc" placeholder="Descreva o produto…"></textarea></div>
     <div class="fg">
@@ -506,6 +518,7 @@
       </div>
     </div>
     <div class="fg"><label>Produto</label><select id="mv-produto"><option value="">— Selecionar —</option></select></div>
+    <div class="fg" id="mv-var-wrap" style="display:none"><label>Variação</label><select id="mv-variacao"></select></div>
     <div class="form-row">
       <div class="fg"><label>Valor (R$)</label><input type="number" id="mv-valor" step="0.01"/></div>
       <div class="fg"><label>Pagamento</label>
@@ -736,7 +749,7 @@ function goPage(p){
   const btn=document.getElementById('topbar-btn');
   btn.textContent=btnMap[p]||'';
   btn.style.display=btnMap[p]?'':'none';
-  btn.onclick=()=>{ if(p==='produtos')abrirModalNovoProduto(); else if(p==='vendas')openModal('modal-venda'); else if(p==='gastos')abrirModalGasto(); else if(p==='clientes'){ document.getElementById('mc-id').value=''; document.getElementById('mc-titulo').textContent='Novo Cliente'; document.getElementById('mc-nome').value=''; document.getElementById('mc-tel').value=''; document.getElementById('mc-email').value=''; document.getElementById('mc-obs').value=''; openModal('modal-cliente'); } };
+  btn.onclick=()=>{ if(p==='produtos')abrirModalNovoProduto(); else if(p==='vendas'){document.getElementById('mv-var-wrap').style.display='none';openModal('modal-venda');} else if(p==='gastos')abrirModalGasto(); else if(p==='clientes'){ document.getElementById('mc-id').value=''; document.getElementById('mc-titulo').textContent='Novo Cliente'; document.getElementById('mc-nome').value=''; document.getElementById('mc-tel').value=''; document.getElementById('mc-email').value=''; document.getElementById('mc-obs').value=''; openModal('modal-cliente'); } };
   if(p==='dashboard')renderDashboard();
   if(p==='produtos')renderProdutos();
   if(p==='vendas')renderVendas();
@@ -847,7 +860,7 @@ function renderProdutos(){
   document.getElementById('tbody-prod').innerHTML=PRODUTOS.length?PRODUTOS.map(p=>`
     <tr>
       <td>${p.img?`<img src="${p.img}" style="width:36px;height:36px;border-radius:7px;object-fit:cover;margin-right:8px;vertical-align:middle;"/>`:''}${p.nome}</td>
-      <td>R$ ${fmt(p.preco)}</td><td>${p.estoque||0}</td>
+      <td>R$ ${fmt(p.preco)}</td><td>${estoqueTotal(p)}${temVariacoes(p)?` <span style="font-size:.68rem;color:var(--muted)">(${p.variacoes.length} var.)</span>`:''}</td>
       <td><span class="badge ${p.status==='ativo'?'badge-ativo':'badge-inativo'}">${p.status||'ativo'}</span></td>
       <td class="td-actions"><button class="btn btn-secondary btn-xs" onclick="editarProduto('${p.id}')">✏️</button><button class="btn btn-danger btn-xs" onclick="excluirProduto('${p.id}')">🗑️</button></td>
     </tr>`).join(''):'<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:28px">Nenhum produto cadastrado.</td></tr>';
@@ -898,6 +911,43 @@ function popularSelectParcelamento(valorAtual) {
   }
 }
 
+/* ══════════════════════════════════════════════════════════
+   VARIAÇÕES DE PRODUTO (eixo único, preço uniforme)
+   Modelo: p.variacoes = [{nome:"Morango", estoque:5}, ...]
+   Produto sem variação mantém p.estoque no topo (compatível).
+   ══════════════════════════════════════════════════════════ */
+function temVariacoes(p){ return Array.isArray(p?.variacoes) && p.variacoes.length>0; }
+function estoqueTotal(p){
+  if(temVariacoes(p)) return p.variacoes.reduce((s,v)=>s+(Number(v.estoque)||0),0);
+  return Number(p?.estoque)||0;
+}
+
+function toggleVariacoes(on){
+  document.getElementById('mprod-var-box').style.display = on?'':'none';
+  document.getElementById('mprod-estoque-wrap').style.display = on?'none':'';
+  if(on && !document.querySelector('#mprod-var-list .var-row')){ addLinhaVariacao(); addLinhaVariacao(); }
+}
+function addLinhaVariacao(nome='', estoque=''){
+  const div=document.createElement('div');
+  div.className='var-row';
+  div.style.cssText='display:flex;gap:8px;margin-bottom:6px;align-items:center';
+  div.innerHTML=`
+    <input type="text" class="var-nome" placeholder="Ex: Morango, Azul, 110V" value="${String(nome).replace(/"/g,'&quot;')}" style="flex:1;padding:9px 11px;border:1px solid var(--border);border-radius:9px;font-size:.85rem;font-family:inherit"/>
+    <input type="number" class="var-estoque" placeholder="Qtd" value="${estoque}" style="width:90px;padding:9px 11px;border:1px solid var(--border);border-radius:9px;font-size:.85rem;font-family:inherit"/>
+    <button type="button" onclick="this.parentElement.remove()" style="background:none;color:var(--danger);font-size:1.1rem;padding:4px 8px">✕</button>`;
+  document.getElementById('mprod-var-list').appendChild(div);
+}
+function lerVariacoesDoForm(){
+  const rows=[...document.querySelectorAll('#mprod-var-list .var-row')];
+  const vars=[];
+  for(const r of rows){
+    const nome=r.querySelector('.var-nome').value.trim();
+    const est=parseInt(r.querySelector('.var-estoque').value)||0;
+    if(nome) vars.push({nome, estoque:est});
+  }
+  return vars;
+}
+
 function abrirModalNovoProduto(){
   resetarUploadImagem();
   document.getElementById('mprod-id').value='';
@@ -906,6 +956,9 @@ function abrirModalNovoProduto(){
   document.getElementById('mprod-estoque').value='';
   document.getElementById('mprod-desc').value='';
   document.getElementById('mprod-status').value='ativo';
+  document.getElementById('mprod-tem-var').checked=false;
+  document.getElementById('mprod-var-list').innerHTML='';
+  toggleVariacoes(false);
   document.getElementById('mprod-titulo').textContent='Novo Produto';
   popularSelectParcelamento('');
   openModal('modal-produto');
@@ -921,6 +974,11 @@ function editarProduto(id){
   document.getElementById('mprod-img').value=p.img||'';
   if(p.img){ mostrarPreviewImagem(p.img); }
   document.getElementById('mprod-status').value=p.status||'ativo';
+  document.getElementById('mprod-var-list').innerHTML='';
+  const temVar=temVariacoes(p);
+  document.getElementById('mprod-tem-var').checked=temVar;
+  toggleVariacoes(temVar);
+  if(temVar) p.variacoes.forEach(v=>addLinhaVariacao(v.nome,v.estoque));
   document.getElementById('mprod-titulo').textContent='Editar Produto';
   popularSelectParcelamento(p.parcelamento||'');
   openModal('modal-produto');
@@ -994,7 +1052,19 @@ async function salvarProduto(){
   } catch(e) {
     return; // erro já mostrado em uploadImagemSeNecessario
   }
-  const data={nome,preco:parseFloat(document.getElementById('mprod-preco').value)||0,estoque:parseInt(document.getElementById('mprod-estoque').value)||0,desc:document.getElementById('mprod-desc').value,img:imgUrl,parcelamento:document.getElementById('mprod-parc').value,status:document.getElementById('mprod-status').value};
+  const temVar=document.getElementById('mprod-tem-var').checked;
+  const variacoes=temVar?lerVariacoesDoForm():[];
+  if(temVar && !variacoes.length){toast('Adicione ao menos uma variação com nome.','error');return}
+  const data={
+    nome,
+    preco:parseFloat(document.getElementById('mprod-preco').value)||0,
+    estoque:temVar?variacoes.reduce((s,v)=>s+v.estoque,0):(parseInt(document.getElementById('mprod-estoque').value)||0),
+    variacoes,
+    desc:document.getElementById('mprod-desc').value,
+    img:imgUrl,
+    parcelamento:document.getElementById('mprod-parc').value,
+    status:document.getElementById('mprod-status').value
+  };
   if(id){await updateDoc2('produtos',id,data);const idx=PRODUTOS.findIndex(x=>x.id===id);if(idx!==-1)Object.assign(PRODUTOS[idx],data);toast('Produto atualizado!','success')}
   else{const nid=await addDoc2('produtos',data);PRODUTOS.unshift({id:nid,...data});await db.collection('vendedores').doc(VENDEDOR_DOC.id).update({totalProdutos:firebase.firestore.FieldValue.increment(1)});toast('Produto cadastrado!','success')}
   document.getElementById('mprod-id').value='';
@@ -1008,7 +1078,16 @@ function renderVendas(){
   const selProd=document.getElementById('mv-produto');
   comboReset();
   selProd.innerHTML='<option value="">— Selecionar —</option>'+PRODUTOS.map(p=>`<option value="${p.id}" data-preco="${p.preco}">${p.nome}</option>`).join('');
-  selProd.onchange=()=>{const o=selProd.selectedOptions[0];document.getElementById('mv-valor').value=o?.dataset.preco||''};
+  selProd.onchange=()=>{
+    const o=selProd.selectedOptions[0];
+    document.getElementById('mv-valor').value=o?.dataset.preco||'';
+    const p=PRODUTOS.find(x=>x.id===selProd.value);
+    const wrap=document.getElementById('mv-var-wrap'), sv=document.getElementById('mv-variacao');
+    if(p&&temVariacoes(p)){
+      sv.innerHTML=p.variacoes.map(v=>`<option value="${String(v.nome).replace(/"/g,'&quot;')}">${v.nome} (${v.estoque||0} un.)</option>`).join('');
+      wrap.style.display='';
+    }else{ sv.innerHTML=''; wrap.style.display='none'; }
+  };
   document.getElementById('tbody-vend').innerHTML=VENDAS.length?VENDAS.map(v=>{
     const pend = v.status==='pendente';
     const daLoja = v.origem==='loja';
@@ -1104,7 +1183,10 @@ async function salvarVenda(){
   const clienteId=document.getElementById('mv-cliente').value;
   const cliObj=CLIENTES.find(c=>c.id===clienteId);
   const clienteNome=cliObj?cliObj.nome:'';
-  const data={clienteId,cliente:clienteNome,produto:document.getElementById('mv-produto').selectedOptions[0]?.text||'',valor:parseFloat(document.getElementById('mv-valor').value)||0,pagamento:document.getElementById('mv-pag').value,status:document.getElementById('mv-status').value,obs:document.getElementById('mv-obs').value,data:new Date().toLocaleDateString('pt-BR')};
+  const prodBase=document.getElementById('mv-produto').selectedOptions[0]?.text||'';
+  const varWrap=document.getElementById('mv-var-wrap');
+  const varNome=(varWrap.style.display!=='none')?document.getElementById('mv-variacao').value:'';
+  const data={clienteId,cliente:clienteNome,produto:prodBase+(varNome?` · ${varNome}`:''),valor:parseFloat(document.getElementById('mv-valor').value)||0,pagamento:document.getElementById('mv-pag').value,status:document.getElementById('mv-status').value,obs:document.getElementById('mv-obs').value,data:new Date().toLocaleDateString('pt-BR')};
   if(!data.clienteId){toast('Selecione um cliente da lista.','error');return}
   const id=await addDoc2('vendas',data);VENDAS.unshift({id,...data});
   await db.collection('vendedores').doc(VENDEDOR_DOC.id).update({totalVendas:firebase.firestore.FieldValue.increment(1)});
@@ -1116,24 +1198,47 @@ async function salvarVenda(){
    ══════════════════════════════════════════════════════════ */
 async function ajustarEstoque(itens, sinal) {
   // sinal = -1 (baixa) ou +1 (estorno). Transação: ou tudo, ou nada.
-  const refs = itens.map(i => ({ ref: col('produtos').doc(i.id), qty: i.qty, nome: i.nome }));
+  const refs = itens.map(i => ({ ref: col('produtos').doc(i.id), qty: i.qty, nome: i.nome, variacao: i.variacao||'' }));
   await db.runTransaction(async tx => {
     const snaps = [];
     for (const r of refs) snaps.push(await tx.get(r.ref));
     snaps.forEach((snap, idx) => {
       const r = refs[idx];
       if (!snap.exists) throw new Error(`Produto "${r.nome}" não existe mais.`);
-      const atual = snap.data().estoque || 0;
-      if (sinal < 0 && atual < r.qty) throw new Error(`Estoque insuficiente de "${r.nome}" (restam ${atual}).`);
+      const d = snap.data();
+      const vars = Array.isArray(d.variacoes)?d.variacoes:[];
+      if (r.variacao && vars.length) {
+        const v = vars.find(x=>x.nome===r.variacao);
+        if (!v) throw new Error(`Variação "${r.variacao}" de "${r.nome}" não existe mais.`);
+        if (sinal<0 && (v.estoque||0) < r.qty) throw new Error(`Estoque insuficiente de "${r.nome} · ${r.variacao}" (restam ${v.estoque||0}).`);
+      } else {
+        const atual = d.estoque || 0;
+        if (sinal < 0 && atual < r.qty) throw new Error(`Estoque insuficiente de "${r.nome}" (restam ${atual}).`);
+      }
     });
     snaps.forEach((snap, idx) => {
       const r = refs[idx];
-      tx.update(r.ref, { estoque: Math.max(0, (snap.data().estoque || 0) + sinal * r.qty) });
+      const d = snap.data();
+      const vars = Array.isArray(d.variacoes)?d.variacoes:[];
+      if (r.variacao && vars.length) {
+        const nv = vars.map(x=> x.nome===r.variacao ? {...x, estoque:Math.max(0,(x.estoque||0)+sinal*r.qty)} : x);
+        tx.update(r.ref, { variacoes: nv, estoque: nv.reduce((s,x)=>s+(x.estoque||0),0) });
+      } else {
+        tx.update(r.ref, { estoque: Math.max(0, (d.estoque || 0) + sinal * r.qty) });
+      }
     });
   });
+  // sincroniza cache local
   itens.forEach(i => {
     const p = PRODUTOS.find(x => x.id === i.id);
-    if (p) p.estoque = Math.max(0, (p.estoque || 0) + sinal * i.qty);
+    if (!p) return;
+    if (i.variacao && temVariacoes(p)) {
+      const v = p.variacoes.find(x=>x.nome===i.variacao);
+      if (v) v.estoque = Math.max(0,(v.estoque||0)+sinal*i.qty);
+      p.estoque = p.variacoes.reduce((s,x)=>s+(x.estoque||0),0);
+    } else {
+      p.estoque = Math.max(0, (p.estoque || 0) + sinal * i.qty);
+    }
   });
 }
 
