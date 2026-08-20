@@ -1007,9 +1007,11 @@ async function finalizarCarrinhoWhats() {
     ? `\n\n*Forma de pagamento: ${parc.n}x de R$ ${fmt(parc.valParc)} = R$ ${fmt(parc.total)}*`
     : `\n\n*Total à vista: R$ ${fmt(total)}*`;
 
-  // Grava o PEDIDO PENDENTE — o estoque só é debitado quando o vendedor aprovar
+  // Grava o PEDIDO PENDENTE — o estoque só é debitado quando o vendedor aprovar.
+  // Se a gravação falhar (ex.: regra do Firestore), NÃO bloqueia o envio pelo WhatsApp.
   let pedidoId = null;
   try {
+    if (!db) throw new Error('Conexão indisponível');
     const doc = {
       criadoEm: new Date().toISOString(),
       data: new Date().toLocaleDateString('pt-BR'),
@@ -1030,25 +1032,23 @@ async function finalizarCarrinhoWhats() {
     const ref = await db.collection('usuarios').doc(VENDEDOR_ID).collection('vendas').add(doc);
     pedidoId = ref.id;
   } catch (e) {
-    console.error(e);
-    btn.textContent = btnTxt; btn.disabled = false;
-    __finalizandoPedido = false;
-    toast('Não foi possível registrar o pedido. Tente novamente.', 'error');
-    return;
+    // Loga o código real do Firebase para diagnóstico, mas segue com o WhatsApp
+    console.error('Falha ao registrar pedido:', e && (e.code || e.message), e);
+    toast('Enviando pelo WhatsApp… (registro no painel indisponível)', 'info');
   }
 
-  const ref = pedidoId ? `\n\n_Pedido #${pedidoId.slice(-6).toUpperCase()}_` : '';
-  const msg = encodeURIComponent(`Olá! Gostaria de fazer um pedido:\n\n${linhas}${descParc}${ref}`);
+  const refTxt = pedidoId ? `\n\n_Pedido #${pedidoId.slice(-6).toUpperCase()}_` : '';
+  const msg = encodeURIComponent(`Olá! Gostaria de fazer um pedido:\n\n${linhas}${descParc}${refTxt}`);
 
   // Limpa ANTES de navegar — no mobile a página pode ser descarregada
   limparCarrinho();
   parcelaCarrinhoAtual = null;
-  document.getElementById('cart-cliente-nome').value = '';
-  document.getElementById('cart-cliente-tel').value = '';
+  const inNome=document.getElementById('cart-cliente-nome'); if(inNome) inNome.value='';
+  const inTel=document.getElementById('cart-cliente-tel'); if(inTel) inTel.value='';
   btn.textContent = btnTxt; btn.disabled = false;
   closeModal('modal-carrinho');
   closeModal('modal-parcelas-carrinho');
-  toast('Pedido enviado! Aguarde a confirmação do vendedor.', 'success');
+  if (pedidoId) toast('Pedido enviado! Aguarde a confirmação do vendedor.', 'success');
   __finalizandoPedido = false;
 
   abrirWhatsApp(num, msg);
