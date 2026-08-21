@@ -1033,8 +1033,10 @@ async function finalizarCarrinhoWhats() {
     pedidoId = ref.id;
   } catch (e) {
     // Loga o código real do Firebase para diagnóstico, mas segue com o WhatsApp
-    console.error('Falha ao registrar pedido:', e && (e.code || e.message), e);
-    toast('Enviando pelo WhatsApp… (registro no painel indisponível)', 'info');
+    const codigo = (e && (e.code || e.message)) || 'desconhecido';
+    console.error('Falha ao registrar pedido:', codigo, e);
+    // Diagnóstico visível: mostra o motivo real na tela (remover depois de resolver)
+    toast('Pedido não registrado no painel — motivo: ' + codigo, 'error');
   }
 
   const refTxt = pedidoId ? `\n\n_Pedido #${pedidoId.slice(-6).toUpperCase()}_` : '';
