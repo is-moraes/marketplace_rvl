@@ -778,6 +778,10 @@ function renderDashboard(){
   const totalVend=recebidas.reduce((s,v)=>s+valorPago(v),0);
   const ticket=pagas.length?pagas.reduce((s,v)=>s+Number(v.valor||0),0)/pagas.length:0;
   const totalGastos=GASTOS.reduce((s,g)=>s+Number(g.valor||0),0);
+  // Estoque disponível: peças em estoque (produtos ativos) e valor potencial de venda
+  const ativos=PRODUTOS.filter(p=>(p.status||'ativo')==='ativo');
+  const pecasEstoque=ativos.reduce((s,p)=>s+estoqueTotal(p),0);
+  const valorEstoque=ativos.reduce((s,p)=>s+estoqueTotal(p)*Number(p.preco||0),0);
   // Total a receber (fiado em aberto) — dívida ainda pendente
   const aReceber=VENDAS.filter(v=>ehFiado(v)&&v.status==='aberto').reduce((s,v)=>s+valorEmAberto(v),0);
   const lucro=totalVend-totalGastos;
@@ -808,8 +812,8 @@ function renderDashboard(){
       <div class="kpi-lbl">Lucro ${totalVend>0?`· ${margem.toFixed(0)}% margem`:''}</div></div>
     </div>
     <div class="kpi-card">
-      <div class="kpi-icon blue">📊</div>
-      <div><div class="kpi-val">R$ ${fmt(ticket)}</div><div class="kpi-lbl">Ticket médio</div></div>
+      <div class="kpi-icon blue">📦</div>
+      <div><div class="kpi-val">${pecasEstoque} ${pecasEstoque===1?'peça':'peças'}</div><div class="kpi-lbl">Estoque disponível${valorEstoque>0?` · vale R$ ${fmt(valorEstoque)}`:''}</div></div>
     </div>
     <div class="kpi-card">
       <div class="kpi-icon orange">👥</div>
