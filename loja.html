@@ -875,9 +875,14 @@ function maxParcelasCarrinho() {
   return Math.min(...itens.map(i=>parcelasNum(i)||1));
 }
 
-function abrirCarrinho() {
+async function abrirCarrinho() {
   renderCarrinho();
   openModal('modal-carrinho');
+  // Revalida o estoque em tempo real (sem refresh da página)
+  if (CARRINHO.length) {
+    const { mudou, avisos } = await revalidarEstoqueCarrinho();
+    if (mudou) { renderCarrinho(); avisarEsgotados(avisos); }
+  }
 }
 function renderCarrinho() {
   const itens = itensCarrinhoDetalhados();
@@ -934,9 +939,17 @@ function abrirParcelasCarrinho() {
   openModal('modal-parcelas-carrinho');
 }
 
-function finalizarCarrinhoPix() {
+async function finalizarCarrinhoPix() {
   const itens = itensCarrinhoDetalhados();
   if (!itens.length) return;
+  // Revalida estoque em tempo real antes de gerar o PIX
+  const { mudou, avisos } = await revalidarEstoqueCarrinho();
+  if (mudou) {
+    renderCarrinho();
+    avisarEsgotados(avisos);
+    if (!CARRINHO.length) closeModal('modal-carrinho');
+    return;
+  }
   closeModal('modal-carrinho');
   closeModal('modal-parcelas-carrinho');
   // PIX sempre pelo total à vista (parcelamento combinado pelo WhatsApp)
@@ -955,6 +968,76 @@ function limparCarrinho() {
 }
 
 /* Confere estoque localmente antes de enviar o pedido (checagem final é do vendedor) */
+/* Relê do Firestore o estoque atual só dos produtos que estão no carrinho.
+   Atualiza o cache PRODUTOS e devolve a lista de itens que esgotaram/reduziram. */
+async function revalidarEstoqueCarrinho() {
+  const ids = [...new Set(CARRINHO.map(c => c.produtoId))];
+  if (!ids.length) return { mudou: false, avisos: [] };
+  const base = db.collection('usuarios').doc(VENDEDOR_ID).collection('produtos');
+
+  const frescos = await Promise.all(ids.map(async id => {
+    try { const d = await base.doc(id).get(); return d.exists ? { id, ...d.data() } : { id, _removido: true }; }
+    catch(e){ return null; }
+  }));
+
+  const avisos = [];
+  let mudou = false;
+
+  for (const f of frescos) {
+    if (!f) continue;
+    const idx = PRODUTOS.findIndex(p => p.id === f.id);
+    // Itens do carrinho que apontam para este produto
+    const itensCart = CARRINHO.filter(c => c.produtoId === f.id);
+
+    if (f._removido || (f.status && f.status !== 'ativo')) {
+      // Produto saiu do ar
+      itensCart.forEach(c => {
+        const p = PRODUTOS.find(x=>x.id===c.produtoId);
+        avisos.push((p?p.nome:'Um produto') + (c.variacao?` · ${c.variacao}`:''));
+      });
+      CARRINHO = CARRINHO.filter(c => c.produtoId !== f.id);
+      if (idx !== -1) PRODUTOS.splice(idx,1);
+      mudou = true;
+      continue;
+    }
+
+    // Atualiza o cache com os dados frescos
+    if (idx !== -1) PRODUTOS[idx] = f; else PRODUTOS.push(f);
+
+    // Ajusta cada item do carrinho ao estoque real
+    itensCart.forEach(c => {
+      const disp = temVariacoes(f) ? estoqueDaVariacao(f, c.variacao) : (f.estoque||0);
+      const rot = f.nome + (c.variacao?` · ${c.variacao}`:'');
+      if (disp <= 0) {
+        avisos.push(rot);
+        CARRINHO = CARRINHO.filter(x => !(x.produtoId===c.produtoId && (x.variacao||'')===(c.variacao||'')));
+        mudou = true;
+      } else if (c.qty > disp) {
+        c.qty = disp;                     // reduz para o que ainda há
+        avisos.push(`${rot} (só restam ${disp})`);
+        mudou = true;
+      }
+    });
+  }
+
+  if (mudou) {
+    salvarCarrinhoStorage();
+    atualizarBadgeCarrinho();
+    const busca = document.querySelector('.busca');
+    filtrar(busca ? busca.value : '');   // re-renderiza a vitrine com estoque novo
+  }
+  return { mudou, avisos };
+}
+
+/* Mostra o aviso gentil quando algo esgotou */
+function avisarEsgotados(avisos) {
+  if (!avisos.length) return;
+  const lista = avisos.length === 1
+    ? `"${avisos[0]}"`
+    : avisos.map(a=>`"${a}"`).join(', ');
+  toast(`Que pena! ${lista} ${avisos.length===1?'acabou de ser vendido':'acabaram de ser vendidos'} para outro cliente. Ajustamos seu carrinho.`, 'info');
+}
+
 function validarEstoqueCarrinho(itens) {
   for (const i of itens) {
     const disp = (i.estoqueItem!=null?i.estoqueItem:i.estoque) || 0;
@@ -966,13 +1049,22 @@ function validarEstoqueCarrinho(itens) {
 let __finalizandoPedido = false;
 
 async function finalizarCarrinhoWhats() {
-  const itens = itensCarrinhoDetalhados();
+  let itens = itensCarrinhoDetalhados();
   if (!itens.length || __finalizandoPedido) return;
 
   const nome = (document.getElementById('cart-cliente-nome').value || '').trim();
   const tel  = (document.getElementById('cart-cliente-tel').value || '').trim();
   if (nome.length < 2) { toast('Informe seu nome para enviar o pedido.', 'error'); return; }
 
+  // Última checagem de estoque em tempo real antes de enviar
+  const { mudou, avisos } = await revalidarEstoqueCarrinho();
+  if (mudou) {
+    renderCarrinho();
+    avisarEsgotados(avisos);
+    if (!CARRINHO.length) { closeModal('modal-carrinho'); }
+    return;   // deixa o cliente revisar o carrinho ajustado antes de reenviar
+  }
+  itens = itensCarrinhoDetalhados();
   try { validarEstoqueCarrinho(itens); }
   catch (e) { toast(e.message, 'error'); renderCarrinho(); return; }
 
