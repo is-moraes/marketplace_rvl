@@ -515,15 +515,6 @@
   </div>
 </div>
 
-<div class="modal-bg" id="modal-fiado">
-  <div class="modal" style="max-width:440px">
-    <button class="modal-close" onclick="closeModal('modal-fiado')">✕</button>
-    <h2 id="fiado-titulo">Controle do fiado</h2>
-    <div id="fiado-resumo" style="font-size:.85rem;color:var(--muted);margin-bottom:14px"></div>
-    <div id="fiado-parcelas"></div>
-    <div id="fiado-quitar-tudo" style="margin-top:6px"></div>
-  </div>
-</div>
 
 <div class="modal-bg" id="modal-venda">
   <div class="modal">
@@ -542,18 +533,10 @@
     <div class="form-row">
       <div class="fg"><label>Valor (R$)</label><input type="number" id="mv-valor" step="0.01"/></div>
       <div class="fg"><label>Pagamento</label>
-        <select id="mv-pag" onchange="toggleFiadoParcelas()"><option>PIX</option><option>Cartão</option><option>Dinheiro</option><option>Boleto</option><option>Fiado</option></select>
+        <select id="mv-pag"><option>PIX</option><option>Cartão</option><option>Dinheiro</option><option>Boleto</option></select>
       </div>
     </div>
-    <div class="fg" id="mv-fiado-wrap" style="display:none">
-      <label>Parcelas do fiado</label>
-      <select id="mv-fiado-parc">
-        <option value="1">À vista (1x)</option>
-        <option value="2">2x</option><option value="3">3x</option><option value="4">4x</option>
-        <option value="5">5x</option><option value="6">6x</option><option value="10">10x</option><option value="12">12x</option>
-      </select>
-      <div style="font-size:.72rem;color:var(--muted);margin-top:5px">O fiado entra como conta em aberto. Você marca cada parcela conforme o cliente paga.</div>
-    </div>
+
     <div class="fg"><label>Status</label>
       <select id="mv-status"><option value="pago">Pago</option><option value="pendente">Pendente</option><option value="cancelado">Cancelado</option></select>
     </div>
@@ -778,7 +761,7 @@ function goPage(p){
   const btn=document.getElementById('topbar-btn');
   btn.textContent=btnMap[p]||'';
   btn.style.display=btnMap[p]?'':'none';
-  btn.onclick=()=>{ if(p==='produtos')abrirModalNovoProduto(); else if(p==='vendas'){document.getElementById('mv-var-wrap').style.display='none';document.getElementById('mv-fiado-wrap').style.display='none';document.getElementById('mv-pag').value='PIX';openModal('modal-venda');} else if(p==='gastos')abrirModalGasto(); else if(p==='clientes'){ document.getElementById('mc-id').value=''; document.getElementById('mc-titulo').textContent='Novo Cliente'; document.getElementById('mc-nome').value=''; document.getElementById('mc-tel').value=''; document.getElementById('mc-email').value=''; document.getElementById('mc-obs').value=''; openModal('modal-cliente'); } };
+  btn.onclick=()=>{ if(p==='produtos')abrirModalNovoProduto(); else if(p==='vendas'){document.getElementById('mv-var-wrap').style.display='none';document.getElementById('mv-pag').value='PIX';openModal('modal-venda');} else if(p==='gastos')abrirModalGasto(); else if(p==='clientes'){ document.getElementById('mc-id').value=''; document.getElementById('mc-titulo').textContent='Novo Cliente'; document.getElementById('mc-nome').value=''; document.getElementById('mc-tel').value=''; document.getElementById('mc-email').value=''; document.getElementById('mc-obs').value=''; openModal('modal-cliente'); } };
   if(p==='dashboard')renderDashboard();
   if(p==='produtos')renderProdutos();
   if(p==='vendas')renderVendas();
@@ -1141,49 +1124,52 @@ function gerarParcelasFiado(total, n){
   return arr;
 }
 
-function toggleFiadoParcelas(){
-  const ehF=document.getElementById('mv-pag').value==='Fiado';
-  document.getElementById('mv-fiado-wrap').style.display = ehF?'':'none';
+/* Estado: quais linhas de fiado estão expandidas */
+const _fiadoExpandido = new Set();
+function toggleExpandirFiado(id){
+  if(_fiadoExpandido.has(id)) _fiadoExpandido.delete(id);
+  else _fiadoExpandido.add(id);
+  renderVendas();
 }
 
-/* Abre o modal de controle das parcelas de um fiado */
-let _fiadoVendaId=null;
-function abrirFiado(id){
+/* Converter uma venda à vista (já aprovada) em fiado parcelado.
+   É o "acordo de confiança" feito depois — o vendedor decide. */
+async function abrirTornarFiado(id){
   const v=VENDAS.find(x=>x.id===id); if(!v)return;
-  _fiadoVendaId=id;
-  const ps=parcelasDe(v);
-  const pago=valorPago(v), aberto=valorEmAberto(v);
-  document.getElementById('fiado-titulo').textContent=`Fiado — ${v.cliente||'Cliente'}`;
-  document.getElementById('fiado-resumo').innerHTML=
-    `Total <strong>R$ ${fmt(v.valor)}</strong> · Pago <strong style="color:#16A34A">R$ ${fmt(pago)}</strong> · Em aberto <strong style="color:#B45309">R$ ${fmt(aberto)}</strong>`;
-  document.getElementById('fiado-parcelas').innerHTML = ps.map((p,i)=>`
-    <div class="parc-linha ${p.pago?'paga':''}">
-      <div class="parc-info">Parcela ${p.n}/${ps.length} — <strong>R$ ${fmt(p.valor)}</strong>
-        ${p.pago?`<small>✅ paga em ${p.dataPag||'—'}</small>`:'<small>em aberto</small>'}</div>
-      <button class="btn btn-xs ${p.pago?'':'btn-primary'}" style="${p.pago?'background:var(--bg);border:1px solid var(--border)':''}"
-        onclick="togglePagamentoParcela(${i})">${p.pago?'Desfazer':'Marcar paga'}</button>
-    </div>`).join('');
-  const faltam=ps.filter(p=>!p.pago).length;
-  document.getElementById('fiado-quitar-tudo').innerHTML = faltam>1
-    ? `<button class="btn btn-primary btn-full" onclick="quitarFiado()">Quitar tudo (${faltam} parcelas)</button>` : '';
-  openModal('modal-fiado');
+  const entrada = prompt(
+    `Tornar a venda de ${v.cliente} (R$ ${fmt(v.valor)}) em FIADO.\n\nEm quantas parcelas? (1 a 12)`,
+    '2'
+  );
+  if(entrada===null) return; // cancelou
+  let n = parseInt(entrada,10);
+  if(!n || n<1) n=1; if(n>12) n=12;
+  const upd = {
+    fiado: true,
+    pagamento: 'Fiado',
+    parcelas: gerarParcelasFiado(Number(v.valor||0), n),
+    status: 'aberto'
+  };
+  await updateDoc2('vendas', id, upd);
+  Object.assign(v, upd);
+  _fiadoExpandido.add(id); // já abre para o vendedor ver as parcelas
+  renderVendas(); renderDashboard(); renderClientes();
+  const parcVal = fmt(upd.parcelas[0].valor);
+  toast(`Venda convertida em fiado: ${n}x de R$ ${parcVal}.`, 'success');
 }
 
-async function togglePagamentoParcela(i){
-  const v=VENDAS.find(x=>x.id===_fiadoVendaId); if(!v)return;
+async function togglePagamentoParcela(id, i){
+  const v=VENDAS.find(x=>x.id===id); if(!v)return;
   const ps=parcelasDe(v); if(!ps[i])return;
   ps[i].pago=!ps[i].pago;
   ps[i].dataPag=ps[i].pago?new Date().toLocaleDateString('pt-BR'):null;
   await salvarEstadoFiado(v);
-  abrirFiado(v.id); // re-render modal
 }
 
-async function quitarFiado(){
-  const v=VENDAS.find(x=>x.id===_fiadoVendaId); if(!v)return;
+async function quitarFiado(id){
+  const v=VENDAS.find(x=>x.id===id); if(!v)return;
   const hoje=new Date().toLocaleDateString('pt-BR');
   parcelasDe(v).forEach(p=>{ if(!p.pago){ p.pago=true; p.dataPag=hoje; } });
   await salvarEstadoFiado(v);
-  abrirFiado(v.id);
 }
 
 /* Grava parcelas + atualiza status (aberto/pago) e persiste */
@@ -1213,39 +1199,78 @@ function renderVendas(){
     const pend = v.status==='pendente';
     const daLoja = v.origem==='loja';
     const itensTxt = (v.itens||[]).map(i=>`${i.nome} x${i.qty}`).join(' | ');
-    return `
-    <tr>
+    const fiado = ehFiado(v) && parcelasDe(v).length>0;
+    const quitado = fiado && fiadoQuitado(v);
+    const aberto = fiado && !quitado;
+    const expandido = _fiadoExpandido.has(v.id);
+
+    // Cor da linha principal: verde-claro quando fiado quitado
+    const bgLinha = quitado ? 'background:#F0FDF4;' : '';
+
+    // Célula de pagamento (com mini-progresso se fiado)
+    let cellPag = v.pagamento||'-';
+    if(fiado){
+      const ps=parcelasDe(v), pago=valorPago(v), pct=v.valor>0?Math.round(pago/Number(v.valor)*100):0, npg=ps.filter(p=>p.pago).length;
+      cellPag = `Fiado ${ps.length}x
+        <div class="fiado-prog"><div class="fiado-bar"><i style="width:${pct}%"></i></div>
+        <div class="fiado-txt">${npg}/${ps.length} pagas · R$ ${fmt(pago)} de R$ ${fmt(v.valor)}</div></div>`;
+    }
+
+    // Badge de status
+    let badge;
+    if(v.status==='pendente') badge='<span class="badge badge-pendente">pendente</span>';
+    else if(v.status==='cancelado') badge='<span class="badge badge-cancelado">negada</span>';
+    else if(fiado) badge = quitado?'<span class="badge badge-quitada">quitada</span>':'<span class="badge badge-aberto">em aberto</span>';
+    else badge='<span class="badge badge-ativo">aprovada</span>';
+
+    // Ações
+    let acoes;
+    if(pend){
+      acoes = `<button class="btn btn-primary btn-xs" onclick="aprovarVenda('${v.id}')">✅ Aprovar</button>
+               <button class="btn btn-danger btn-xs" onclick="negarVenda('${v.id}')">✖ Negar</button>`;
+    } else {
+      // Venda aprovada à vista (não-fiado): pode virar fiado
+      const podeVirarFiado = !fiado && v.status==='pago';
+      acoes = `${podeVirarFiado?`<button class="btn btn-primary btn-xs" onclick="abrirTornarFiado('${v.id}')">💳 Tornar fiado</button>`:''}
+               ${aberto?`<button class="btn btn-xs" style="background:var(--bg);border:1px solid var(--border)" onclick="toggleExpandirFiado('${v.id}')">${expandido?'▲ Fechar':'▼ Parcelas'}</button>`:''}
+               <button class="btn btn-xs" style="background:var(--bg);border:1px solid var(--border)" onclick="reabrirVenda('${v.id}')">↩ Pendente</button>`;
+    }
+
+    // Linha principal
+    let html = `
+    <tr style="${bgLinha}${aberto?'cursor:pointer':''}" ${aberto?`onclick="if(!event.target.closest('button'))toggleExpandirFiado('${v.id}')"`:''}>
       <td style="color:var(--muted);font-size:.78rem">${v.data||'-'}</td>
-      <td>${v.cliente||'-'}${daLoja?' <span style="font-size:.68rem;background:#EDE9FE;color:#5B21B6;border-radius:20px;padding:2px 7px;font-weight:700">LOJA</span>':''}${v.clienteTel?`<div style="font-size:.72rem;color:var(--muted)">${v.clienteTel}</div>`:''}</td>
+      <td>${aberto?`<span style="color:var(--purple-dark);font-weight:700">${expandido?'▾':'▸'}</span> `:''}${v.cliente||'-'}${daLoja?' <span style="font-size:.68rem;background:#EDE9FE;color:#5B21B6;border-radius:20px;padding:2px 7px;font-weight:700">LOJA</span>':''}${v.clienteTel?`<div style="font-size:.72rem;color:var(--muted)">${v.clienteTel}</div>`:''}</td>
       <td title="${itensTxt}">${v.produto||'-'}${itensTxt?`<div style="font-size:.72rem;color:var(--muted);max-width:230px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${itensTxt}</div>`:''}</td>
       <td>R$ ${fmt(v.valor)}</td>
-      <td>${v.pagamento||'-'}${(function(){
-        if(!ehFiado(v) || v.status==='pendente' || v.status==='cancelado') return '';
-        const ps=parcelasDe(v); if(!ps.length) return '';
-        const pago=valorPago(v), pct=v.valor>0?Math.round(pago/Number(v.valor)*100):0;
-        const npg=ps.filter(p=>p.pago).length;
-        return `<div class="fiado-prog"><div class="fiado-bar"><i style="width:${pct}%"></i></div>
-          <div class="fiado-txt">${npg}/${ps.length} parcelas · R$ ${fmt(pago)} de R$ ${fmt(v.valor)}</div></div>`;
-      })()}</td>
-      <td>${(function(){
-        if(v.status==='pendente') return '<span class="badge badge-pendente">pendente</span>';
-        if(v.status==='cancelado') return '<span class="badge badge-cancelado">negada</span>';
-        if(ehFiado(v)){
-          return fiadoQuitado(v)
-            ? '<span class="badge badge-quitada">quitada</span>'
-            : '<span class="badge badge-aberto">em aberto</span>';
-        }
-        return '<span class="badge badge-ativo">aprovada</span>';
-      })()}</td>
-      <td style="white-space:nowrap">
-        ${pend?`<button class="btn btn-primary btn-xs" onclick="aprovarVenda('${v.id}')">✅ Aprovar</button>
-                <button class="btn btn-danger btn-xs" onclick="negarVenda('${v.id}')">✖ Negar</button>`
-              :`${ehFiado(v)&&!fiadoQuitado(v)?`<button class="btn btn-primary btn-xs" onclick="abrirFiado('${v.id}')">💰 Gerenciar</button>`:''}
-                <button class="btn btn-xs" style="background:var(--bg);border:1px solid var(--border)" onclick="reabrirVenda('${v.id}')">↩ Pendente</button>`}
+      <td>${cellPag}</td>
+      <td>${badge}</td>
+      <td style="white-space:nowrap">${acoes}
         <button class="btn btn-danger btn-xs" onclick="excluirVenda('${v.id}')">🗑️</button>
       </td>
-    </tr>`;}).join(''):'<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:28px">Nenhuma venda registrada.</td></tr>';
+    </tr>`;
+
+    // Sub-linha expandida com as parcelas
+    if(aberto && expandido){
+      const ps=parcelasDe(v);
+      html += `<tr class="fiado-detalhe"><td colspan="7" style="background:#FAFAFC;padding:12px 18px">
+        <div style="font-size:.78rem;color:var(--muted);margin-bottom:8px">Parcelas do fiado — clique para marcar como paga:</div>
+        <div style="display:flex;flex-direction:column;gap:6px">
+          ${ps.map((p,i)=>`
+            <div class="parc-linha ${p.pago?'paga':''}" style="margin:0">
+              <div class="parc-info">Parcela ${p.n}/${ps.length} — <strong>R$ ${fmt(p.valor)}</strong>
+                ${p.pago?`<small>✅ paga em ${p.dataPag||'—'}</small>`:'<small>em aberto</small>'}</div>
+              <button class="btn btn-xs ${p.pago?'':'btn-primary'}" style="${p.pago?'background:var(--bg);border:1px solid var(--border)':''}"
+                onclick="togglePagamentoParcela('${v.id}',${i})">${p.pago?'Desfazer':'✓ Marcar paga'}</button>
+            </div>`).join('')}
+        </div>
+        ${ps.filter(p=>!p.pago).length>1?`<button class="btn btn-primary btn-xs" style="margin-top:10px" onclick="quitarFiado('${v.id}')">Quitar todas as parcelas restantes</button>`:''}
+      </td></tr>`;
+    }
+    return html;
+  }).join(''):'<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:28px">Nenhuma venda registrada.</td></tr>';
 }
+
 /* ══════════════════════════════════════════════════════════
    COMBOBOX DE CLIENTES — busca por nome, telefone ou e-mail
    ══════════════════════════════════════════════════════════ */
@@ -1327,13 +1352,6 @@ async function salvarVenda(){
   const varNome=(varWrap.style.display!=='none')?document.getElementById('mv-variacao').value:'';
   const data={clienteId,cliente:clienteNome,produto:prodBase+(varNome?` · ${varNome}`:''),valor:parseFloat(document.getElementById('mv-valor').value)||0,pagamento:document.getElementById('mv-pag').value,status:document.getElementById('mv-status').value,obs:document.getElementById('mv-obs').value,data:new Date().toLocaleDateString('pt-BR')};
   if(!data.clienteId){toast('Selecione um cliente da lista.','error');return}
-  // Fiado: gera parcelas e entra como conta em aberto (só conta receita conforme paga)
-  if(data.pagamento==='Fiado'){
-    const nParc=parseInt(document.getElementById('mv-fiado-parc').value)||1;
-    data.fiado=true;
-    data.parcelas=gerarParcelasFiado(data.valor, nParc);
-    data.status='aberto';
-  }
   const id=await addDoc2('vendas',data);VENDAS.unshift({id,...data});
   await db.collection('vendedores').doc(VENDEDOR_DOC.id).update({totalVendas:firebase.firestore.FieldValue.increment(1)});
   comboReset();
@@ -1400,18 +1418,10 @@ async function aprovarVenda(id) {
     return;
   }
   const upd = { status: 'pago', estoqueBaixado: itens.length ? true : false };
-  // Se for fiado, entra como conta em aberto e gera parcelas
-  if (ehFiado(v) && !parcelasDe(v).length) {
-    let n = parseInt(prompt(`Fiado de ${v.cliente} — em quantas parcelas? (1 a 12)`, '1')||'1',10);
-    if (!n || n<1) n=1; if (n>12) n=12;
-    upd.fiado = true;
-    upd.parcelas = gerarParcelasFiado(Number(v.valor||0), n);
-    upd.status = 'aberto';
-  }
   await updateDoc2('vendas', id, upd);
   Object.assign(v, upd);
   renderVendas(); renderProdutos(); renderDashboard();
-  toast(upd.status==='aberto' ? 'Fiado aprovado! Conta em aberto criada.' : 'Pedido aprovado! Estoque atualizado.', 'success');
+  toast('Pedido aprovado! Estoque atualizado.', 'success');
 }
 
 async function negarVenda(id) {
