@@ -71,7 +71,12 @@
   .card:hover{transform:translateY(-5px);box-shadow:0 16px 32px rgba(124,58,237,.14)}
   .card-img{width:100%;aspect-ratio:3/4;background:linear-gradient(135deg,var(--purple-light),#fdf0f7);display:flex;align-items:center;justify-content:center;color:#c4b5fd;font-size:2.4rem;position:relative;overflow:hidden}
   .card-img img{width:100%;height:100%;object-fit:cover}
-  .badge-stock{position:absolute;top:9px;right:9px;background:var(--danger);color:#fff;border-radius:20px;padding:3px 10px;font-size:.66rem;font-weight:700}
+  /* Selo "últimas peças" — âmbar, chama atenção sem alarmar */
+  .badge-low{position:absolute;top:9px;right:9px;background:#F59E0B;color:#fff;border-radius:20px;padding:3px 10px;font-size:.66rem;font-weight:700;box-shadow:0 2px 6px rgba(245,158,11,.4);display:flex;align-items:center;gap:3px;z-index:2}
+  /* Produto esgotado: imagem esmaecida + faixa diagonal vermelha translúcida */
+  .card-img.is-esgotado img{filter:grayscale(.7) brightness(.82)}
+  .faixa-esgotado{position:absolute;top:0;left:0;width:100%;height:100%;overflow:hidden;pointer-events:none;z-index:3}
+  .faixa-esgotado span{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%) rotate(-30deg);width:170%;text-align:center;background:rgba(220,38,38,.82);color:#fff;font-weight:800;font-size:.86rem;letter-spacing:2px;text-transform:uppercase;padding:7px 0;box-shadow:0 2px 10px rgba(0,0,0,.25);backdrop-filter:blur(1px)}
   .card-info{padding:14px 15px 16px}
   .card-name{font-weight:600;font-size:.92rem;margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--text)}
   .card-price{color:var(--purple-dark);font-weight:800;font-size:1.1rem;font-family:var(--font-head)}
@@ -232,10 +237,8 @@
     <div class="det-estoque" id="det-estoque"></div>
     <div class="det-parc" id="det-parc" onclick="abrirParcelas()" style="cursor:pointer;text-decoration:underline;text-underline-offset:2px"></div>
     <div class="det-desc" id="det-desc"></div>
-    <div id="det-aviso-parc" style="display:none;background:#FEF3C7;border:1px solid #FDE68A;border-radius:10px;padding:10px 14px;font-size:.82rem;color:#92400E;margin-bottom:10px">💳 Parcelado: pague na maquininha do vendedor ou via PIX, um QR Code por parcela. Combine pelo WhatsApp.</div>
-    <button class="btn-action btn-pix" id="det-btn-pix" onclick="abrirPix()">💠 Pagar via PIX</button>
-    <button class="btn-action btn-whats" onclick="pedirWhats()">💬 Pedir pelo WhatsApp</button>
-    <button class="btn-action" style="background:var(--bg);color:var(--purple-dark);border:1px solid var(--border)" onclick="adicionarAoCarrinhoDetalhe()">🛒 Adicionar ao carrinho</button>
+    <div id="det-aviso-parc" style="display:none;background:#FEF3C7;border:1px solid #FDE68A;border-radius:10px;padding:10px 14px;font-size:.82rem;color:#92400E;margin-bottom:10px">💳 Este produto pode ser parcelado. Escolha a forma de pagamento no carrinho ao finalizar.</div>
+    <button class="btn-action btn-whats" onclick="adicionarAoCarrinhoDetalhe()">🛒 Adicionar ao carrinho</button>
   </div>
 </div>
 
@@ -456,9 +459,12 @@ function render(lista) {
     const parcTxt = melhorParcelamentoTexto(p.preco, maxP);
     return `
     <div class="card" onclick="verDetalhe('${p.id}')">
-      <div class="card-img">
+      <div class="card-img${estoqueTotal(p)===0?' is-esgotado':''}">
         ${p.img?`<img src="${p.img}" alt="${p.nome}" loading="lazy"/>`:'📷'}
-        ${estoqueTotal(p)===0?'<div class="badge-stock">Esgotado</div>':(estoqueTotal(p)<=2?'<div class="badge-stock">Últimas peças</div>':'')}${temVariacoes(p)?'<div class="badge-var">'+p.variacoes.length+' opções</div>':''}
+        ${estoqueTotal(p)===0
+          ? '<div class="faixa-esgotado"><span>Esgotado</span></div>'
+          : (estoqueTotal(p)<=2 ? `<div class="badge-low">🔥 Últimas ${estoqueTotal(p)} ${estoqueTotal(p)===1?'peça':'peças'}</div>` : '')}
+        ${temVariacoes(p)?'<div class="badge-var">'+p.variacoes.length+' opções</div>':''}
       </div>
       <div class="card-info">
         <div class="card-name">${p.nome}</div>
@@ -549,8 +555,8 @@ function selecionarParcelaItem(listId, idx, opcoes, isProduto) {
   if (isProduto) {
     parcelaProdutoAtual = escolha;
     const parcelado = escolha && escolha.n > 1;
-    document.getElementById('det-btn-pix').style.display = '';
-    document.getElementById('det-aviso-parc').style.display = parcelado ? '' : 'none';
+    const av = document.getElementById('det-aviso-parc');
+    if (av) av.style.display = parcelado ? '' : 'none';
   } else {
     parcelaCarrinhoAtual = escolha;
     const parcelado = escolha && escolha.n > 1;
@@ -748,17 +754,6 @@ function copiarPix() {
   navigator.clipboard.writeText(t).then(()=>toast('Código PIX copiado!','success'));
 }
 
-function abrirPix() {
-  if(!produtoAtual) return;
-  closeModal('modal-detalhe');
-  closeModal('modal-parcelas');
-  // PIX sempre à vista, valor cheio (parcelamento é combinado pelo WhatsApp)
-  abrirPixContexto({
-    titulo: produtoAtual.nome,
-    parcelas: [{ label: 'Total à vista', valor: produtoAtual.preco }]
-  });
-}
-
 /* ══════════════════════════════════════════════════════════
    ABERTURA DO WHATSAPP
    - Mobile: tenta o esquema whatsapp:// (abre o app direto),
@@ -789,17 +784,6 @@ function abrirWhatsApp(num, msgEncoded) {
   window.location.href = appUrl;
 }
 
-function pedirWhats() {
-  if(!produtoAtual) return;
-  const num = CONFIG_LOJA.whatsapp||VENDEDOR_DOC.whatsapp||'';
-  const parc = parcelaProdutoAtual;
-  const descParc = parc && parc.n > 1
-    ? ` — ${parc.n}x de R$ ${fmt(parc.valParc)} (total R$ ${fmt(parc.total)})`
-    : ` — R$ ${fmt(produtoAtual.preco)} à vista`;
-  const varTxt = (temVariacoes(produtoAtual)&&variacaoAtual)?` (${variacaoAtual})`:'';
-  const msg = encodeURIComponent(`Olá! Tenho interesse no produto:\n\n*${produtoAtual.nome}${varTxt}*${descParc}`);
-  abrirWhatsApp(num, msg);
-}
 
 /* ══════════════════════════════════════════════════════════
    CARRINHO DE COMPRAS
@@ -1035,8 +1019,7 @@ async function finalizarCarrinhoWhats() {
     // Loga o código real do Firebase para diagnóstico, mas segue com o WhatsApp
     const codigo = (e && (e.code || e.message)) || 'desconhecido';
     console.error('Falha ao registrar pedido:', codigo, e);
-    // Diagnóstico visível: mostra o motivo real na tela (remover depois de resolver)
-    toast('Pedido não registrado no painel — motivo: ' + codigo, 'error');
+    toast('Enviando pelo WhatsApp…', 'info');
   }
 
   const refTxt = pedidoId ? `\n\n_Pedido #${pedidoId.slice(-6).toUpperCase()}_` : '';
