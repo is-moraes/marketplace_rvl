@@ -146,12 +146,14 @@
   .badge-cancelado,.badge-inativo{background:#FEE2E2;color:var(--danger)}
   .badge-aberto{background:#FEF3C7;color:#B45309}
   .badge-quitada{background:#DCFCE7;color:var(--success)}
+  .badge-aguardando{background:#DBEAFE;color:#1E40AF}
   /* Filtros de status */
   .filtro-status{display:flex;gap:7px;flex-wrap:wrap}
   .fchip{padding:6px 13px;border-radius:20px;border:1px solid var(--border);background:#fff;font-size:.78rem;font-weight:600;color:var(--muted);cursor:pointer;transition:all .15s;white-space:nowrap}
   .fchip:hover{border-color:var(--purple)}
   .fchip.active{background:var(--purple);border-color:var(--purple);color:#fff}
   .fchip.f-aprovada{color:#16A34A}.fchip.f-aprovada.active{background:#16A34A;border-color:#16A34A;color:#fff}
+  .fchip.f-aguardando{color:#2563EB}.fchip.f-aguardando.active{background:#2563EB;border-color:#2563EB;color:#fff}
   .fchip.f-pendente{color:#B45309}.fchip.f-pendente.active{background:#F59E0B;border-color:#F59E0B;color:#fff}
   .fchip.f-aberto{color:#B45309}.fchip.f-aberto.active{background:#D97706;border-color:#D97706;color:#fff}
   .fchip.f-negada{color:#DC2626}.fchip.f-negada.active{background:#DC2626;border-color:#DC2626;color:#fff}
@@ -161,6 +163,7 @@
   tr.row-aberto{box-shadow:inset 4px 0 0 #D97706}
   tr.row-cancelado{box-shadow:inset 4px 0 0 #DC2626}
   tr.row-quitada{box-shadow:inset 4px 0 0 #16A34A}
+  tr.row-aguardando{box-shadow:inset 4px 0 0 #2563EB}
   .fiado-prog{margin-top:5px;width:150px}
   .fiado-bar{height:6px;background:#E9E7F2;border-radius:99px;overflow:hidden}
   .fiado-bar > i{display:block;height:100%;background:linear-gradient(90deg,#F59E0B,#16A34A);border-radius:99px;transition:width .3s}
@@ -376,7 +379,8 @@
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:10px">
         <div class="filtro-status" id="filtro-status">
           <button class="fchip active" data-f="todos" onclick="setFiltroVenda('todos')">Todos</button>
-          <button class="fchip f-aprovada" data-f="pago" onclick="setFiltroVenda('pago')">● Aprovadas</button>
+          <button class="fchip f-aprovada" data-f="pago" onclick="setFiltroVenda('pago')">● Pagas</button>
+          <button class="fchip f-aguardando" data-f="aguardando" onclick="setFiltroVenda('aguardando')">● Aguardando pgto</button>
           <button class="fchip f-pendente" data-f="pendente" onclick="setFiltroVenda('pendente')">● Pendentes</button>
           <button class="fchip f-aberto" data-f="aberto" onclick="setFiltroVenda('aberto')">● Fiado em aberto</button>
           <button class="fchip f-negada" data-f="cancelado" onclick="setFiltroVenda('cancelado')">● Negadas</button>
@@ -1148,10 +1152,16 @@ async function excluirProduto(id){if(!confirm('Excluir produto?'))return;await d
    ══════════════════════════════════════════════════════════ */
 function ehFiado(v){ return v && (v.fiado === true || v.pagamento === 'Fiado'); }
 function parcelasDe(v){ return Array.isArray(v.parcelas)?v.parcelas:[]; }
+/* Uma venda não-fiada foi efetivamente recebida (dinheiro entrou)?
+   Retrocompat: vendas antigas sem o campo "recebido" contam como recebidas. */
+function foiRecebida(v){
+  if(v.status!=='pago') return false;
+  return v.recebido !== false;   // undefined/true = recebida; só false = aprovada mas não paga
+}
 function valorPago(v){
   if(ehFiado(v) && parcelasDe(v).length) return parcelasDe(v).filter(p=>p.pago).reduce((s,p)=>s+Number(p.valor||0),0);
-  // não-fiado: se está 'pago', conta o valor cheio; senão 0
-  return v.status==='pago' ? Number(v.valor||0) : 0;
+  // não-fiado: conta só se foi efetivamente recebida
+  return foiRecebida(v) ? Number(v.valor||0) : 0;
 }
 function valorEmAberto(v){ return Math.max(0, Number(v.valor||0) - valorPago(v)); }
 function fiadoQuitado(v){ const ps=parcelasDe(v); return ps.length>0 && ps.every(p=>p.pago); }
@@ -1235,7 +1245,8 @@ function statusEfetivo(v){
   if(v.status==='pendente') return 'pendente';
   if(v.status==='cancelado') return 'cancelado';
   if(ehFiado(v) && parcelasDe(v).length>0 && !fiadoQuitado(v)) return 'aberto';
-  return 'pago';  // pago à vista ou fiado quitado
+  if(!ehFiado(v) && v.status==='pago' && !foiRecebida(v)) return 'aguardando'; // aprovada, sem pgto
+  return 'pago';  // recebida à vista ou fiado quitado
 }
 function renderVendas(){
   const selProd=document.getElementById('mv-produto');
@@ -1277,7 +1288,9 @@ function renderVendas(){
     if(v.status==='pendente') badge='<span class="badge badge-pendente">pendente</span>';
     else if(v.status==='cancelado') badge='<span class="badge badge-cancelado">negada</span>';
     else if(fiado) badge = quitado?'<span class="badge badge-quitada">quitada</span>':'<span class="badge badge-aberto">em aberto</span>';
-    else badge='<span class="badge badge-ativo">aprovada</span>';
+    else badge = foiRecebida(v)
+      ? '<span class="badge badge-ativo">✓ pago</span>'
+      : '<span class="badge badge-aguardando">aguardando pgto</span>';
 
     // Ações
     let acoes;
@@ -1285,9 +1298,11 @@ function renderVendas(){
       acoes = `<button class="btn btn-primary btn-xs" onclick="aprovarVenda('${v.id}')">✅ Aprovar</button>
                <button class="btn btn-danger btn-xs" onclick="negarVenda('${v.id}')">✖ Negar</button>`;
     } else {
-      // Venda aprovada à vista (não-fiado): pode virar fiado
-      const podeVirarFiado = !fiado && v.status==='pago';
-      acoes = `${podeVirarFiado?`<button class="btn btn-primary btn-xs" onclick="abrirTornarFiado('${v.id}')">💳 Tornar fiado</button>`:''}
+      const naoFiadoPago = !fiado && v.status==='pago';
+      const jaRecebida = foiRecebida(v);
+      acoes = `${(naoFiadoPago && !jaRecebida)?`<button class="btn btn-primary btn-xs" onclick="togglePago('${v.id}')">💰 Marcar pago</button>`:''}
+               ${(naoFiadoPago && jaRecebida)?`<button class="btn btn-xs" style="background:var(--bg);border:1px solid var(--border)" onclick="togglePago('${v.id}')">↩ Desfazer pago</button>`:''}
+               ${naoFiadoPago?`<button class="btn btn-primary btn-xs" onclick="abrirTornarFiado('${v.id}')">💳 Tornar fiado</button>`:''}
                ${aberto?`<button class="btn btn-xs" style="background:var(--bg);border:1px solid var(--border)" onclick="toggleExpandirFiado('${v.id}')">${expandido?'▲ Fechar':'▼ Parcelas'}</button>`:''}
                <button class="btn btn-xs" style="background:var(--bg);border:1px solid var(--border)" onclick="reabrirVenda('${v.id}')">↩ Pendente</button>`;
     }
@@ -1503,11 +1518,21 @@ async function aprovarVenda(id) {
     toast(e.message || 'Falha ao baixar estoque.', 'error');
     return;
   }
-  const upd = { status: 'pago', estoqueBaixado: itens.length ? true : false };
+  const upd = { status: 'pago', recebido: false, estoqueBaixado: itens.length ? true : false };
   await updateDoc2('vendas', id, upd);
   Object.assign(v, upd);
   renderVendas(); renderProdutos(); renderDashboard();
-  toast('Pedido aprovado! Estoque atualizado.', 'success');
+  toast('Pedido aprovado! Marque como pago quando o dinheiro entrar.', 'success');
+}
+
+/* Marca/desmarca o recebimento de uma venda aprovada à vista */
+async function togglePago(id){
+  const v=VENDAS.find(x=>x.id===id); if(!v || v.status!=='pago')return;
+  const novo = !foiRecebida(v);
+  await updateDoc2('vendas', id, { recebido: novo });
+  v.recebido = novo;
+  renderVendas(); renderDashboard(); renderClientes();
+  toast(novo?'Pagamento confirmado! 💰':'Marcado como não recebido.', novo?'success':'info');
 }
 
 async function negarVenda(id) {
