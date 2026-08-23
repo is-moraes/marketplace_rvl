@@ -146,6 +146,21 @@
   .badge-cancelado,.badge-inativo{background:#FEE2E2;color:var(--danger)}
   .badge-aberto{background:#FEF3C7;color:#B45309}
   .badge-quitada{background:#DCFCE7;color:var(--success)}
+  /* Filtros de status */
+  .filtro-status{display:flex;gap:7px;flex-wrap:wrap}
+  .fchip{padding:6px 13px;border-radius:20px;border:1px solid var(--border);background:#fff;font-size:.78rem;font-weight:600;color:var(--muted);cursor:pointer;transition:all .15s;white-space:nowrap}
+  .fchip:hover{border-color:var(--purple)}
+  .fchip.active{background:var(--purple);border-color:var(--purple);color:#fff}
+  .fchip.f-aprovada{color:#16A34A}.fchip.f-aprovada.active{background:#16A34A;border-color:#16A34A;color:#fff}
+  .fchip.f-pendente{color:#B45309}.fchip.f-pendente.active{background:#F59E0B;border-color:#F59E0B;color:#fff}
+  .fchip.f-aberto{color:#B45309}.fchip.f-aberto.active{background:#D97706;border-color:#D97706;color:#fff}
+  .fchip.f-negada{color:#DC2626}.fchip.f-negada.active{background:#DC2626;border-color:#DC2626;color:#fff}
+  /* Barra colorida à esquerda da linha, por status */
+  tr.row-pago{box-shadow:inset 4px 0 0 #16A34A}
+  tr.row-pendente{box-shadow:inset 4px 0 0 #F59E0B}
+  tr.row-aberto{box-shadow:inset 4px 0 0 #D97706}
+  tr.row-cancelado{box-shadow:inset 4px 0 0 #DC2626}
+  tr.row-quitada{box-shadow:inset 4px 0 0 #16A34A}
   .fiado-prog{margin-top:5px;width:150px}
   .fiado-bar{height:6px;background:#E9E7F2;border-radius:99px;overflow:hidden}
   .fiado-bar > i{display:block;height:100%;background:linear-gradient(90deg,#F59E0B,#16A34A);border-radius:99px;transition:width .3s}
@@ -358,7 +373,14 @@
 
     <!-- VENDAS -->
     <div class="page" id="page-vendas">
-      <div style="display:flex;justify-content:flex-end;margin-bottom:16px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:10px">
+        <div class="filtro-status" id="filtro-status">
+          <button class="fchip active" data-f="todos" onclick="setFiltroVenda('todos')">Todos</button>
+          <button class="fchip f-aprovada" data-f="pago" onclick="setFiltroVenda('pago')">● Aprovadas</button>
+          <button class="fchip f-pendente" data-f="pendente" onclick="setFiltroVenda('pendente')">● Pendentes</button>
+          <button class="fchip f-aberto" data-f="aberto" onclick="setFiltroVenda('aberto')">● Fiado em aberto</button>
+          <button class="fchip f-negada" data-f="cancelado" onclick="setFiltroVenda('cancelado')">● Negadas</button>
+        </div>
         <button class="btn btn-primary btn-sm" onclick="openModal('modal-venda')">+ Registrar venda</button>
       </div>
       <div class="table-wrap">
@@ -1202,6 +1224,19 @@ async function salvarEstadoFiado(v){
   if(quitado) toast('Fiado quitado! 🎉','success');
 }
 
+let _filtroVenda='todos';
+function setFiltroVenda(f){
+  _filtroVenda=f;
+  document.querySelectorAll('#filtro-status .fchip').forEach(c=>c.classList.toggle('active', c.dataset.f===f));
+  renderVendas();
+}
+/* Um status "efetivo" para filtrar: fiado em aberto é distinto de pago à vista */
+function statusEfetivo(v){
+  if(v.status==='pendente') return 'pendente';
+  if(v.status==='cancelado') return 'cancelado';
+  if(ehFiado(v) && parcelasDe(v).length>0 && !fiadoQuitado(v)) return 'aberto';
+  return 'pago';  // pago à vista ou fiado quitado
+}
 function renderVendas(){
   const selProd=document.getElementById('mv-produto');
   comboReset();
@@ -1215,7 +1250,8 @@ function renderVendas(){
     }else{ sv.innerHTML=''; wrap.style.display='none'; }
     atualizarValorVenda();
   };
-  document.getElementById('tbody-vend').innerHTML=VENDAS.length?VENDAS.map(v=>{
+  const listaV = VENDAS.filter(v => _filtroVenda==='todos' || statusEfetivo(v)===_filtroVenda);
+  document.getElementById('tbody-vend').innerHTML=listaV.length?listaV.map(v=>{
     const pend = v.status==='pendente';
     const daLoja = v.origem==='loja';
     const itensTxt = (v.itens||[]).map(i=>`${i.nome} x${i.qty}`).join(' | ');
@@ -1258,7 +1294,7 @@ function renderVendas(){
 
     // Linha principal
     let html = `
-    <tr style="${bgLinha}${aberto?'cursor:pointer':''}" ${aberto?`onclick="if(!event.target.closest('button'))toggleExpandirFiado('${v.id}')"`:''}>
+    <tr class="row-${statusEfetivo(v)}${quitado?' row-quitada':''}" style="${bgLinha}${aberto?'cursor:pointer':''}" ${aberto?`onclick="if(!event.target.closest('button'))toggleExpandirFiado('${v.id}')"`:''}>
       <td data-label="Data" style="color:var(--muted);font-size:.78rem">${v.data||'-'}</td>
       <td data-label="Cliente">${aberto?`<span style="color:var(--purple-dark);font-weight:700">${expandido?'▾':'▸'}</span> `:''}${v.cliente||'-'}${daLoja?' <span style="font-size:.68rem;background:#EDE9FE;color:#5B21B6;border-radius:20px;padding:2px 7px;font-weight:700">LOJA</span>':''}${v.clienteTel?`<div style="font-size:.72rem;color:var(--muted)">${v.clienteTel}</div>`:''}</td>
       <td data-label="Produto" title="${itensTxt}">${v.produto||'-'}${itensTxt?`<div style="font-size:.72rem;color:var(--muted);max-width:230px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${itensTxt}</div>`:''}</td>
@@ -1288,7 +1324,7 @@ function renderVendas(){
       </td></tr>`;
     }
     return html;
-  }).join(''):'<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:28px">Nenhuma venda registrada.</td></tr>';
+  }).join(''):`<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:28px">${_filtroVenda==='todos'?'Nenhuma venda registrada.':'Nenhuma venda neste filtro.'}</td></tr>`;
 }
 
 /* ══════════════════════════════════════════════════════════
