@@ -198,10 +198,26 @@
     .sidebar.open{left:0}
     .menu-toggle{display:block}
     .main{width:100%}
-    .page{padding:16px}
+    .page{padding:14px}
     .dash-kpis{grid-template-columns:1fr 1fr}
     .dash-row.cols-2{grid-template-columns:1fr}
     .form-row{grid-template-columns:1fr}
+
+    /* Tabelas viram cards empilhados — cada linha é um cartão */
+    .table-wrap{border:none;background:transparent;overflow:visible}
+    .table-wrap table,.table-wrap thead,.table-wrap tbody,.table-wrap th,.table-wrap td,.table-wrap tr{display:block}
+    .table-wrap thead{position:absolute;left:-9999px}  /* esconde cabeçalho */
+    .table-wrap tr{background:#fff;border:1px solid var(--border);border-radius:14px;margin-bottom:12px;padding:12px 14px;box-shadow:0 1px 3px rgba(0,0,0,.04)}
+    .table-wrap td{border:none;padding:6px 0;display:flex;justify-content:space-between;align-items:flex-start;gap:14px;text-align:right}
+    .table-wrap td::before{content:attr(data-label);font-weight:600;color:var(--muted);font-size:.76rem;text-align:left;flex-shrink:0;padding-top:2px}
+    .table-wrap td:last-child{justify-content:flex-start;flex-wrap:wrap;gap:6px;padding-top:12px;margin-top:8px;border-top:1px solid var(--bg)}
+    .table-wrap td:last-child::before{display:none}
+    .table-wrap td:last-child .btn{flex:1;min-width:calc(50% - 3px);justify-content:center}
+    /* Célula sem rótulo (sub-linha expandida do fiado) ocupa largura toda */
+    .table-wrap td[colspan]{display:block;text-align:left;padding:8px 0}
+    .table-wrap td[colspan]::before{display:none}
+    /* Progresso do fiado alinhado à direita fica melhor à esquerda no card */
+    .fiado-prog{width:100%;margin-left:auto}
   }
 </style>
 </head>
@@ -530,8 +546,9 @@
     </div>
     <div class="fg"><label>Produto</label><select id="mv-produto"><option value="">— Selecionar —</option></select></div>
     <div class="fg" id="mv-var-wrap" style="display:none"><label>Variação</label><select id="mv-variacao"></select></div>
+    <div class="fg"><label>Quantidade</label><input type="number" id="mv-qtd" min="1" value="1" step="1" onchange="atualizarValorVenda()"/></div>
     <div class="form-row">
-      <div class="fg"><label>Valor (R$)</label><input type="number" id="mv-valor" step="0.01"/></div>
+      <div class="fg"><label>Valor total (R$)</label><input type="number" id="mv-valor" step="0.01"/></div>
       <div class="fg"><label>Pagamento</label>
         <select id="mv-pag"><option>PIX</option><option>Cartão</option><option>Dinheiro</option><option>Boleto</option></select>
       </div>
@@ -761,7 +778,7 @@ function goPage(p){
   const btn=document.getElementById('topbar-btn');
   btn.textContent=btnMap[p]||'';
   btn.style.display=btnMap[p]?'':'none';
-  btn.onclick=()=>{ if(p==='produtos')abrirModalNovoProduto(); else if(p==='vendas'){document.getElementById('mv-var-wrap').style.display='none';document.getElementById('mv-pag').value='PIX';openModal('modal-venda');} else if(p==='gastos')abrirModalGasto(); else if(p==='clientes'){ document.getElementById('mc-id').value=''; document.getElementById('mc-titulo').textContent='Novo Cliente'; document.getElementById('mc-nome').value=''; document.getElementById('mc-tel').value=''; document.getElementById('mc-email').value=''; document.getElementById('mc-obs').value=''; openModal('modal-cliente'); } };
+  btn.onclick=()=>{ if(p==='produtos')abrirModalNovoProduto(); else if(p==='vendas'){document.getElementById('mv-var-wrap').style.display='none';document.getElementById('mv-pag').value='PIX';document.getElementById('mv-qtd').value='1';document.getElementById('mv-valor').value='';document.getElementById('mv-produto').value='';openModal('modal-venda');} else if(p==='gastos')abrirModalGasto(); else if(p==='clientes'){ document.getElementById('mc-id').value=''; document.getElementById('mc-titulo').textContent='Novo Cliente'; document.getElementById('mc-nome').value=''; document.getElementById('mc-tel').value=''; document.getElementById('mc-email').value=''; document.getElementById('mc-obs').value=''; openModal('modal-cliente'); } };
   if(p==='dashboard')renderDashboard();
   if(p==='produtos')renderProdutos();
   if(p==='vendas')renderVendas();
@@ -883,10 +900,10 @@ function renderProdutos(){
   document.getElementById('limite-msg').textContent=max<999?`${ativos}/${max} produtos ativos no seu plano`:'';
   document.getElementById('tbody-prod').innerHTML=PRODUTOS.length?PRODUTOS.map(p=>`
     <tr>
-      <td>${p.img?`<img src="${p.img}" style="width:36px;height:36px;border-radius:7px;object-fit:cover;margin-right:8px;vertical-align:middle;"/>`:''}${p.nome}</td>
-      <td>R$ ${fmt(p.preco)}</td><td>${estoqueTotal(p)}${temVariacoes(p)?` <span style="font-size:.68rem;color:var(--muted)">(${p.variacoes.length} var.)</span>`:''}</td>
-      <td><span class="badge ${p.status==='ativo'?'badge-ativo':'badge-inativo'}">${p.status||'ativo'}</span></td>
-      <td class="td-actions"><button class="btn btn-secondary btn-xs" onclick="editarProduto('${p.id}')">✏️</button><button class="btn btn-danger btn-xs" onclick="excluirProduto('${p.id}')">🗑️</button></td>
+      <td data-label="Produto">${p.img?`<img src="${p.img}" style="width:36px;height:36px;border-radius:7px;object-fit:cover;margin-right:8px;vertical-align:middle;"/>`:''}${p.nome}</td>
+      <td data-label="Preço">R$ ${fmt(p.preco)}</td><td data-label="Estoque">${estoqueTotal(p)}${temVariacoes(p)?` <span style="font-size:.68rem;color:var(--muted)">(${p.variacoes.length} var.)</span>`:''}</td>
+      <td data-label="Status"><span class="badge ${p.status==='ativo'?'badge-ativo':'badge-inativo'}">${p.status||'ativo'}</span></td>
+      <td data-label="Ações" class="td-actions"><button class="btn btn-secondary btn-xs" onclick="editarProduto('${p.id}')">✏️</button><button class="btn btn-danger btn-xs" onclick="excluirProduto('${p.id}')">🗑️</button></td>
     </tr>`).join(''):'<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:28px">Nenhum produto cadastrado.</td></tr>';
 }
 /* ─── Select de parcelamento dinâmico ──────────────────── */
@@ -1190,14 +1207,13 @@ function renderVendas(){
   comboReset();
   selProd.innerHTML='<option value="">— Selecionar —</option>'+PRODUTOS.map(p=>`<option value="${p.id}" data-preco="${p.preco}">${p.nome}</option>`).join('');
   selProd.onchange=()=>{
-    const o=selProd.selectedOptions[0];
-    document.getElementById('mv-valor').value=o?.dataset.preco||'';
     const p=PRODUTOS.find(x=>x.id===selProd.value);
     const wrap=document.getElementById('mv-var-wrap'), sv=document.getElementById('mv-variacao');
     if(p&&temVariacoes(p)){
       sv.innerHTML=p.variacoes.map(v=>`<option value="${String(v.nome).replace(/"/g,'&quot;')}">${v.nome} (${v.estoque||0} un.)</option>`).join('');
       wrap.style.display='';
     }else{ sv.innerHTML=''; wrap.style.display='none'; }
+    atualizarValorVenda();
   };
   document.getElementById('tbody-vend').innerHTML=VENDAS.length?VENDAS.map(v=>{
     const pend = v.status==='pendente';
@@ -1243,13 +1259,13 @@ function renderVendas(){
     // Linha principal
     let html = `
     <tr style="${bgLinha}${aberto?'cursor:pointer':''}" ${aberto?`onclick="if(!event.target.closest('button'))toggleExpandirFiado('${v.id}')"`:''}>
-      <td style="color:var(--muted);font-size:.78rem">${v.data||'-'}</td>
-      <td>${aberto?`<span style="color:var(--purple-dark);font-weight:700">${expandido?'▾':'▸'}</span> `:''}${v.cliente||'-'}${daLoja?' <span style="font-size:.68rem;background:#EDE9FE;color:#5B21B6;border-radius:20px;padding:2px 7px;font-weight:700">LOJA</span>':''}${v.clienteTel?`<div style="font-size:.72rem;color:var(--muted)">${v.clienteTel}</div>`:''}</td>
-      <td title="${itensTxt}">${v.produto||'-'}${itensTxt?`<div style="font-size:.72rem;color:var(--muted);max-width:230px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${itensTxt}</div>`:''}</td>
-      <td>R$ ${fmt(v.valor)}</td>
-      <td>${cellPag}</td>
-      <td>${badge}</td>
-      <td style="white-space:nowrap">${acoes}
+      <td data-label="Data" style="color:var(--muted);font-size:.78rem">${v.data||'-'}</td>
+      <td data-label="Cliente">${aberto?`<span style="color:var(--purple-dark);font-weight:700">${expandido?'▾':'▸'}</span> `:''}${v.cliente||'-'}${daLoja?' <span style="font-size:.68rem;background:#EDE9FE;color:#5B21B6;border-radius:20px;padding:2px 7px;font-weight:700">LOJA</span>':''}${v.clienteTel?`<div style="font-size:.72rem;color:var(--muted)">${v.clienteTel}</div>`:''}</td>
+      <td data-label="Produto" title="${itensTxt}">${v.produto||'-'}${itensTxt?`<div style="font-size:.72rem;color:var(--muted);max-width:230px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${itensTxt}</div>`:''}</td>
+      <td data-label="Valor">R$ ${fmt(v.valor)}</td>
+      <td data-label="Pagamento">${cellPag}</td>
+      <td data-label="Status">${badge}</td>
+      <td data-label="Ações" style="white-space:nowrap">${acoes}
         <button class="btn btn-danger btn-xs" onclick="excluirVenda('${v.id}')">🗑️</button>
       </td>
     </tr>`;
@@ -1347,19 +1363,49 @@ document.addEventListener('click',e=>{
   if(!e.target.closest('.combo'))comboFechar();
 });
 
+function atualizarValorVenda(){
+  const sel=document.getElementById('mv-produto');
+  const p=PRODUTOS.find(x=>x.id===sel.value);
+  const qtd=Math.max(1, parseInt(document.getElementById('mv-qtd').value)||1);
+  if(p) document.getElementById('mv-valor').value=(Number(p.preco||0)*qtd).toFixed(2);
+}
+
 async function salvarVenda(){
   const clienteId=document.getElementById('mv-cliente').value;
   const cliObj=CLIENTES.find(c=>c.id===clienteId);
   const clienteNome=cliObj?cliObj.nome:'';
-  const prodBase=document.getElementById('mv-produto').selectedOptions[0]?.text||'';
+  const sel=document.getElementById('mv-produto');
+  const prodId=sel.value;
+  const prodBase=sel.selectedOptions[0]?.text||'';
   const varWrap=document.getElementById('mv-var-wrap');
   const varNome=(varWrap.style.display!=='none')?document.getElementById('mv-variacao').value:'';
-  const data={clienteId,cliente:clienteNome,produto:prodBase+(varNome?` · ${varNome}`:''),valor:parseFloat(document.getElementById('mv-valor').value)||0,pagamento:document.getElementById('mv-pag').value,status:document.getElementById('mv-status').value,obs:document.getElementById('mv-obs').value,data:new Date().toLocaleDateString('pt-BR')};
+  const qtd=Math.max(1, parseInt(document.getElementById('mv-qtd').value)||1);
+  const status=document.getElementById('mv-status').value;
+
+  const data={clienteId,cliente:clienteNome,produto:prodBase+(varNome?` · ${varNome}`:'')+(qtd>1?` × ${qtd}`:''),valor:parseFloat(document.getElementById('mv-valor').value)||0,pagamento:document.getElementById('mv-pag').value,status,obs:document.getElementById('mv-obs').value,data:new Date().toLocaleDateString('pt-BR')};
   if(!data.clienteId){toast('Selecione um cliente da lista.','error');return}
+
+  // Se um produto do catálogo foi escolhido, guarda o item e baixa estoque (quando pago)
+  const prod=PRODUTOS.find(x=>x.id===prodId);
+  if(prod){
+    data.itens=[{id:prod.id, nome:prod.nome, preco:Number(prod.preco||0), qty:qtd, variacao:varNome||''}];
+    if(status==='pago'){
+      try{
+        await ajustarEstoque(data.itens, -1);
+        data.estoqueBaixado=true;
+      }catch(e){
+        toast(e.message||'Estoque insuficiente.','error');
+        return;
+      }
+    }else{
+      data.estoqueBaixado=false;
+    }
+  }
+
   const id=await addDoc2('vendas',data);VENDAS.unshift({id,...data});
-  await db.collection('vendedores').doc(VENDEDOR_DOC.id).update({totalVendas:firebase.firestore.FieldValue.increment(1)});
+  try{ await db.collection('vendedores').doc(VENDEDOR_DOC.id).update({totalVendas:firebase.firestore.FieldValue.increment(1)}); }catch(e){}
   comboReset();
-  closeModal('modal-venda');renderVendas();renderClientes();toast('Venda registrada!','success');
+  closeModal('modal-venda');renderVendas();renderProdutos();renderClientes();renderDashboard();toast('Venda registrada!','success');
 }
 /* ══════════════════════════════════════════════════════════
    APROVAÇÃO DE PEDIDOS — baixa/estorno de estoque
@@ -1596,12 +1642,12 @@ function renderGastos(){
 
   document.getElementById('tbody-gastos').innerHTML=lista.length?lista.map(g=>`
     <tr>
-      <td style="color:var(--muted);font-size:.78rem">${g.data?g.data.split('-').reverse().join('/'):'-'}</td>
-      <td>${g.descricao||'-'}${g.obs?`<div style="font-size:.72rem;color:var(--muted)">${g.obs}</div>`:''}</td>
-      <td><span class="badge" style="background:var(--bg);color:var(--purple-dark)">${g.categoria||'-'}</span>
+      <td data-label="Data" style="color:var(--muted);font-size:.78rem">${g.data?g.data.split('-').reverse().join('/'):'-'}</td>
+      <td data-label="Descrição">${g.descricao||'-'}${g.obs?`<div style="font-size:.72rem;color:var(--muted)">${g.obs}</div>`:''}</td>
+      <td data-label="Categoria"><span class="badge" style="background:var(--bg);color:var(--purple-dark)">${g.categoria||'-'}</span>
           ${g.tipo==='fixo'?'<span style="font-size:.66rem;background:#DBEAFE;color:#1E40AF;border-radius:20px;padding:2px 7px;font-weight:700;margin-left:4px">FIXO</span>':''}</td>
-      <td style="color:#DC2626;font-weight:600">− R$ ${fmt(g.valor)}</td>
-      <td style="white-space:nowrap">
+      <td data-label="Valor" style="color:#DC2626;font-weight:600">− R$ ${fmt(g.valor)}</td>
+      <td data-label="Ações" style="white-space:nowrap">
         <button class="btn btn-secondary btn-xs" onclick="editarGasto('${g.id}')">✏️</button>
         <button class="btn btn-danger btn-xs" onclick="excluirGasto('${g.id}')">🗑️</button>
       </td>
