@@ -364,9 +364,16 @@
 
     <!-- PRODUTOS -->
     <div class="page" id="page-produtos">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:10px">
         <div id="limite-msg" style="font-size:.8rem;color:var(--muted)"></div>
         <button class="btn btn-primary btn-sm" onclick="abrirModalNovoProduto()">+ Novo produto</button>
+      </div>
+      <div class="filtro-status" id="filtro-cat-prod" style="margin-bottom:14px">
+        <button class="fchip active" data-c="" onclick="setFiltroCatProd('')">Todas</button>
+        <button class="fchip" data-c="Vestimenta" onclick="setFiltroCatProd('Vestimenta')">👗 Vestimenta</button>
+        <button class="fchip" data-c="Saúde" onclick="setFiltroCatProd('Saúde')">💊 Saúde</button>
+        <button class="fchip" data-c="Beleza" onclick="setFiltroCatProd('Beleza')">💄 Beleza</button>
+        <button class="fchip" data-c="Outros" onclick="setFiltroCatProd('Outros')">📦 Outros</button>
       </div>
       <div class="table-wrap">
         <table><thead><tr><th>Produto</th><th>Preço</th><th>Estoque</th><th>Status</th><th>Ações</th></tr></thead>
@@ -510,6 +517,14 @@
     <div class="form-row">
       <div class="fg"><label>Preço (R$)</label><input type="number" id="mprod-preco" step="0.01" placeholder="89.90" oninput="popularSelectParcelamento(document.getElementById('mprod-parc').value)"/></div>
       <div class="fg" id="mprod-estoque-wrap"><label>Estoque</label><input type="number" id="mprod-estoque" placeholder="10"/></div>
+    </div>
+    <div class="fg"><label>Categoria</label>
+      <select id="mprod-cat">
+        <option value="Vestimenta">👗 Vestimenta</option>
+        <option value="Saúde">💊 Saúde</option>
+        <option value="Beleza">💄 Beleza</option>
+        <option value="Outros">📦 Outros</option>
+      </select>
     </div>
     <div class="fg">
       <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
@@ -919,18 +934,25 @@ function renderDashboard(){
 }
 function sc(l,v){return ''} // legado, não usado
 
+let _filtroCatProd='';
+function setFiltroCatProd(c){
+  _filtroCatProd=c;
+  document.querySelectorAll('#filtro-cat-prod .fchip').forEach(x=>x.classList.toggle('active',x.dataset.c===c));
+  renderProdutos();
+}
 function renderProdutos(){
   const plano=PLANOS.find(p=>p.id===VENDEDOR_DOC?.planoId);
   const max=plano?.maxProdutos||999;
   const ativos=PRODUTOS.filter(p=>p.status==='ativo').length;
   document.getElementById('limite-msg').textContent=max<999?`${ativos}/${max} produtos ativos no seu plano`:'';
-  document.getElementById('tbody-prod').innerHTML=PRODUTOS.length?PRODUTOS.map(p=>`
+  const listaProd=PRODUTOS.filter(p=>!_filtroCatProd || (p.categoria||'Outros')===_filtroCatProd);
+  document.getElementById('tbody-prod').innerHTML=listaProd.length?listaProd.map(p=>`
     <tr>
-      <td data-label="Produto">${p.img?`<img src="${p.img}" style="width:36px;height:36px;border-radius:7px;object-fit:cover;margin-right:8px;vertical-align:middle;"/>`:''}${p.nome}</td>
+      <td data-label="Produto">${p.img?`<img src="${p.img}" style="width:36px;height:36px;border-radius:7px;object-fit:cover;margin-right:8px;vertical-align:middle;"/>`:''}${p.nome}<div style="font-size:.68rem;color:var(--muted);margin-top:2px">${p.categoria||'Outros'}</div></td>
       <td data-label="Preço">R$ ${fmt(p.preco)}</td><td data-label="Estoque">${estoqueTotal(p)}${temVariacoes(p)?` <span style="font-size:.68rem;color:var(--muted)">(${p.variacoes.length} var.)</span>`:''}</td>
       <td data-label="Status"><span class="badge ${p.status==='ativo'?'badge-ativo':'badge-inativo'}">${p.status||'ativo'}</span></td>
       <td data-label="Ações" class="td-actions"><button class="btn btn-secondary btn-xs" onclick="editarProduto('${p.id}')">✏️</button><button class="btn btn-danger btn-xs" onclick="excluirProduto('${p.id}')">🗑️</button></td>
-    </tr>`).join(''):'<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:28px">Nenhum produto cadastrado.</td></tr>';
+    </tr>`).join(''):`<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:28px">${_filtroCatProd?'Nenhum produto nesta categoria.':'Nenhum produto cadastrado.'}</td></tr>`;
 }
 /* ─── Select de parcelamento dinâmico ──────────────────── */
 function popularSelectParcelamento(valorAtual) {
@@ -1023,6 +1045,7 @@ function abrirModalNovoProduto(){
   document.getElementById('mprod-estoque').value='';
   document.getElementById('mprod-desc').value='';
   document.getElementById('mprod-status').value='ativo';
+  document.getElementById('mprod-cat').value='Vestimenta';
   document.getElementById('mprod-tem-var').checked=false;
   document.getElementById('mprod-var-list').innerHTML='';
   toggleVariacoes(false);
@@ -1041,6 +1064,7 @@ function editarProduto(id){
   document.getElementById('mprod-img').value=p.img||'';
   if(p.img){ mostrarPreviewImagem(p.img); }
   document.getElementById('mprod-status').value=p.status||'ativo';
+  document.getElementById('mprod-cat').value=p.categoria||'Outros';
   document.getElementById('mprod-var-list').innerHTML='';
   const temVar=temVariacoes(p);
   document.getElementById('mprod-tem-var').checked=temVar;
@@ -1130,6 +1154,7 @@ async function salvarProduto(){
     desc:document.getElementById('mprod-desc').value,
     img:imgUrl,
     parcelamento:document.getElementById('mprod-parc').value,
+    categoria:document.getElementById('mprod-cat').value||'Outros',
     status:document.getElementById('mprod-status').value
   };
   if(id){await updateDoc2('produtos',id,data);const idx=PRODUTOS.findIndex(x=>x.id===id);if(idx!==-1)Object.assign(PRODUTOS[idx],data);toast('Produto atualizado!','success')}
