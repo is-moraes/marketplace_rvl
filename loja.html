@@ -412,7 +412,16 @@ async function carregarLoja() {
 
     document.getElementById('loading-screen').style.display = 'none';
     document.getElementById('loja-app').style.display = '';
-    render(PRODUTOS);
+
+    // Categoria inicial definida pelo vendedor nas Configurações
+    const catInicial = CONFIG_LOJA.categoriaInicial || '';
+    if (catInicial) {
+      categoriaAtual = catInicial;
+      document.querySelectorAll('.cat-chip').forEach(c => {
+        c.classList.toggle('active', (c.getAttribute('onclick')||'').includes(`setCategoria('${catInicial}'`));
+      });
+    }
+    filtrar('');   // passa pelo filtro → esgotados vão pro fim já na 1ª carga
     carregarCarrinhoStorage();
     atualizarBadgeCarrinho();
   } catch(e) {
