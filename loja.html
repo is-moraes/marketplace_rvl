@@ -212,9 +212,17 @@
 
   <div class="filtros">
     <input class="busca" type="text" placeholder="🔍 Buscar produto…" oninput="filtrar(this.value)"/>
-    <div class="filtro-chip active" onclick="setOrdem('',this)">Todos</div>
-    <div class="filtro-chip" onclick="setOrdem('asc',this)">Menor preço</div>
-    <div class="filtro-chip" onclick="setOrdem('desc',this)">Maior preço</div>
+  </div>
+  <div class="filtros filtros-cat">
+    <div class="filtro-chip cat-chip active" onclick="setCategoria('',this)">Todos</div>
+    <div class="filtro-chip cat-chip" onclick="setCategoria('Vestimenta',this)">👗 Vestimenta</div>
+    <div class="filtro-chip cat-chip" onclick="setCategoria('Saúde',this)">💊 Saúde</div>
+    <div class="filtro-chip cat-chip" onclick="setCategoria('Beleza',this)">💄 Beleza</div>
+  </div>
+  <div class="filtros">
+    <div class="filtro-chip ord-chip active" onclick="setOrdem('',this)">Relevância</div>
+    <div class="filtro-chip ord-chip" onclick="setOrdem('asc',this)">Menor preço</div>
+    <div class="filtro-chip ord-chip" onclick="setOrdem('desc',this)">Maior preço</div>
   </div>
 
   <div class="loja-body">
@@ -341,6 +349,7 @@ function estoqueDaVariacao(p,nome){
 let parcelaProdutoAtual = null;  // { n, valParc, total, taxa } escolhida pelo cliente no produto
 let parcelaCarrinhoAtual = null; // { n, valParc, total, taxa } escolhida pelo cliente no carrinho
 let ordemAtual = '';
+let categoriaAtual = '';
 
 window.addEventListener('DOMContentLoaded', async () => {
   const params = new URLSearchParams(window.location.search);
@@ -478,14 +487,31 @@ function render(lista) {
 }
 
 function filtrar(q) {
-  let lista = PRODUTOS.filter(p => (p.nome||'').toLowerCase().includes(q.toLowerCase()));
+  const termo=(q||'').toLowerCase();
+  let lista = PRODUTOS.filter(p =>
+    (p.nome||'').toLowerCase().includes(termo) &&
+    (!categoriaAtual || (p.categoria||'Outros')===categoriaAtual)
+  );
+  // Ordenação por preço, se escolhida
   if (ordemAtual==='asc') lista.sort((a,b)=>a.preco-b.preco);
-  if (ordemAtual==='desc') lista.sort((a,b)=>b.preco-a.preco);
+  else if (ordemAtual==='desc') lista.sort((a,b)=>b.preco-a.preco);
+  // Esgotados SEMPRE por último (preserva a ordem anterior dentro de cada grupo)
+  lista.sort((a,b)=>{
+    const ea=estoqueTotal(a)===0?1:0, eb=estoqueTotal(b)===0?1:0;
+    return ea-eb;
+  });
   render(lista);
+}
+
+function setCategoria(cat, el) {
+  categoriaAtual = cat;
+  document.querySelectorAll('.cat-chip').forEach(c=>c.classList.remove('active'));
+  el.classList.add('active');
+  filtrar(document.querySelector('.busca').value);
 }
 function setOrdem(o, el) {
   ordemAtual = o;
-  document.querySelectorAll('.filtro-chip').forEach(c=>c.classList.remove('active'));
+  document.querySelectorAll('.ord-chip').forEach(c=>c.classList.remove('active'));
   el.classList.add('active');
   filtrar(document.querySelector('.busca').value);
 }
