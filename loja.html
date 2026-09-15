@@ -496,6 +496,16 @@ async function carregarLoja() {
         return;
       }
     }
+    // Se é uma sub-loja (multi-loja), confirma que ela ainda existe.
+    // Loja excluída → não deve ficar acessível pelo link.
+    if (LOJA_SLUG) {
+      const lojaDoc = await lojaBaseRef().get();
+      if (!lojaDoc.exists) {
+        mostrarOffline('Esta loja não está mais disponível.');
+        return;
+      }
+    }
+
     let cfgDoc;
     if (LOJA_SLUG) cfgDoc = await lojaBaseRef().collection('meta').doc('config').get();
     else cfgDoc = await db.collection('config').doc(VENDEDOR_ID).get();
@@ -504,6 +514,7 @@ async function carregarLoja() {
     // Aplicar cor primária do vendedor na loja
     if (CONFIG_LOJA.corPrimaria) aplicarCorTemaLoja(CONFIG_LOJA.corPrimaria);
     // Aplicar estilo visual (ex: elegante para Mary Kay)
+    console.log('[loja] estiloVisual =', CONFIG_LOJA.estiloVisual || '(não definido)');
     if (CONFIG_LOJA.estiloVisual === 'elegante') document.body.classList.add('estilo-elegante');
     else document.body.classList.remove('estilo-elegante');
 
