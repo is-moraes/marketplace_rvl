@@ -237,6 +237,74 @@
     /* Progresso do fiado alinhado à direita fica melhor à esquerda no card */
     .fiado-prog{width:100%;margin-left:auto}
   }
+  /* ═══════════════════════════════════════════════════════════
+     REFINAMENTO GLOBAL — acabamento sofisticado e "chique"
+     Degradês tom-sobre-tom, cantos suaves, sombras difusas.
+     ═══════════════════════════════════════════════════════════ */
+  body{
+    background:linear-gradient(180deg, #FBFAFE 0%, var(--bg) 40%, #EFEBFA 100%);
+    background-attachment:fixed;
+  }
+  /* Sidebar com degradê vertical profundo */
+  .sidebar{
+    background:linear-gradient(180deg, #211E3C 0%, var(--sidebar) 55%, #151327 100%) !important;
+  }
+  .sb-logo-text{ letter-spacing:.3px; }
+
+  /* Botões principais: degradê do roxo para o roxo escuro + sombra */
+  .btn{ border-radius:12px; transition:transform .12s, box-shadow .2s, opacity .15s; }
+  .btn-primary{
+    background:linear-gradient(135deg, var(--purple) 0%, var(--purple-dark) 100%) !important;
+    box-shadow:0 4px 14px rgba(124,58,237,.22);
+  }
+  .btn-primary:hover{ transform:translateY(-1px); box-shadow:0 6px 20px rgba(124,58,237,.3); }
+  .btn-primary:active{ transform:translateY(0); }
+
+  /* Cartões (KPIs, gráficos, tabelas): cantos suaves e sombra difusa baixa */
+  .kpi-card, .chart-card, .table-wrap, .auth-box{
+    border-radius:18px !important;
+    box-shadow:0 4px 24px rgba(31,27,46,.05) !important;
+  }
+  .kpi-card{
+    background:linear-gradient(160deg, #FFFFFF 0%, #FCFBFE 100%) !important;
+    transition:transform .25s cubic-bezier(.2,.8,.2,1), box-shadow .25s;
+  }
+  .kpi-card:hover{ transform:translateY(-3px); box-shadow:0 12px 32px rgba(31,27,46,.09) !important; }
+  .kpi-icon{
+    border-radius:14px;
+    box-shadow:inset 0 1px 2px rgba(255,255,255,.5);
+  }
+
+  /* Ícones dos KPIs com leve degradê nas cores de fundo */
+  .kpi-icon.green{ background:linear-gradient(145deg,#DCFCE7,#BBF7D0) !important; }
+  .kpi-icon.purple{ background:linear-gradient(145deg,var(--purple-light),#DDD3F7) !important; }
+  .kpi-icon.blue{ background:linear-gradient(145deg,#DBEAFE,#BFDBFE) !important; }
+  .kpi-icon.orange{ background:linear-gradient(145deg,#FEF3C7,#FDE68A) !important; }
+
+  /* Topbar translúcida com leve degradê */
+  .topbar{
+    background:linear-gradient(180deg, #FFFFFF 0%, #FDFCFE 100%) !important;
+    backdrop-filter:saturate(1.1);
+  }
+
+  /* Inputs e selects: cantos mais suaves */
+  .fg input,.fg select,.fg textarea{ border-radius:11px; }
+
+  /* Itens de navegação: acento em degradê quando ativo */
+  .nav-item.active{
+    background:linear-gradient(135deg, rgba(124,58,237,.9), rgba(91,33,182,.9)) !important;
+    color:#fff !important;
+    box-shadow:0 4px 14px rgba(124,58,237,.25);
+  }
+
+  /* Badges: cantos totalmente arredondados (pílula) */
+  .badge{ border-radius:30px; }
+
+  /* Modais: cantos suaves e sombra rica */
+  .modal{ border-radius:20px !important; box-shadow:0 24px 60px rgba(31,27,46,.22) !important; }
+
+  /* Avatar do usuário com degradê já existente, reforçado */
+  .user-av{ box-shadow:0 3px 10px rgba(124,58,237,.3); }
 </style>
 </head>
 <body>
