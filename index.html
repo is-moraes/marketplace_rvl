@@ -290,6 +290,7 @@
       <div class="sb-logo-text">👗 Meu Closet</div>
       <div class="sb-loja" id="sb-loja-nome">Minha Loja</div>
     </div>
+    <div id="seletor-lojas" style="padding:0 16px 10px"></div>
     <p class="nav-section">Principal</p>
     <div class="nav-item active" onclick="goPage('dashboard')">
       <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
@@ -370,7 +371,7 @@
       </div>
       <div class="filtro-status" id="filtro-cat-prod" style="margin-bottom:14px">
         <button class="fchip active" data-c="" onclick="setFiltroCatProd('')">Todas</button>
-        <button class="fchip" data-c="Vestimenta" onclick="setFiltroCatProd('Vestimenta')">👗 Moda</button>
+        <button class="fchip" data-c="Vestimenta" onclick="setFiltroCatProd('Vestimenta')">👗 Vestimenta</button>
         <button class="fchip" data-c="Saúde" onclick="setFiltroCatProd('Saúde')">💊 Saúde</button>
         <button class="fchip" data-c="Beleza" onclick="setFiltroCatProd('Beleza')">💄 Beleza</button>
         <button class="fchip" data-c="Outros" onclick="setFiltroCatProd('Outros')">📦 Outros</button>
@@ -782,6 +783,8 @@ async function iniciarApp(user) {
   }
 
   showScreen('app');
+  await carregarLojas();
+  renderSeletorLojas();
   await carregarDados();
   definirLinkLoja();
 }
@@ -802,16 +805,97 @@ function closeModal(id){document.getElementById(id).classList.remove('open')}
 document.querySelectorAll('.modal-bg').forEach(bg=>bg.addEventListener('click',e=>{if(e.target===bg)bg.classList.remove('open')}));
 function toast(msg,type='info'){const d=document.createElement('div');d.className=`toast ${type}`;d.textContent=msg;document.getElementById('toast-area').appendChild(d);setTimeout(()=>d.remove(),3000)}
 
-const col = name => db.collection('usuarios').doc(uid).collection(name);
+/* ══════════════════════════════════════════════════════════
+   MULTI-LOJA — cada conta pode ter várias lojas independentes.
+   Caminho: usuarios/{uid}/lojas/{LOJA_ATUAL}/{produtos|vendas|clientes|gastos}
+   Config da loja: usuarios/{uid}/lojas/{LOJA_ATUAL}/meta/config
+   ══════════════════════════════════════════════════════════ */
+let LOJAS = [];          // [{id, nome, cor, ...}]
+let LOJA_ATUAL = null;   // id da loja selecionada
+
+const lojaRef = () => db.collection('usuarios').doc(uid).collection('lojas').doc(LOJA_ATUAL);
+const col = name => lojaRef().collection(name);
 async function getAll(name){const s=await col(name).orderBy('criadoEm','desc').get();return s.docs.map(d=>({id:d.id,...d.data()}))}
 async function addDoc2(name,data){const r=await col(name).add({criadoEm:new Date().toISOString(),...data});return r.id}
 async function updateDoc2(name,id,data){await col(name).doc(id).update(data)}
 async function deleteDoc2(name,id){await col(name).doc(id).delete()}
 
+/* Carrega a lista de lojas da conta. Se não houver nenhuma, migra os
+   dados legados (usuarios/{uid}/produtos + config/{uid}) para a 1ª loja. */
+async function carregarLojas(){
+  const lojasSnap = await db.collection('usuarios').doc(uid).collection('lojas').orderBy('criadoEm','asc').get();
+  LOJAS = lojasSnap.docs.map(d=>({id:d.id, ...d.data()}));
+
+  if(LOJAS.length===0){
+    await migrarParaMultiLoja();
+    const s2 = await db.collection('usuarios').doc(uid).collection('lojas').orderBy('criadoEm','asc').get();
+    LOJAS = s2.docs.map(d=>({id:d.id, ...d.data()}));
+  }
+  // Restaura a última loja usada, ou a primeira
+  const salva = localStorage.getItem('loja_ativa_'+uid);
+  LOJA_ATUAL = (salva && LOJAS.find(l=>l.id===salva)) ? salva : (LOJAS[0]?.id || null);
+}
+
+/* Migração única: move os dados legados para uma loja "principal". */
+async function migrarParaMultiLoja(){
+  const novaLojaRef = db.collection('usuarios').doc(uid).collection('lojas').doc();
+  const lojaId = novaLojaRef.id;
+
+  // Config legada vira a config da loja principal
+  let cfgLegada = {};
+  try{ const c = await db.collection('config').doc(uid).get(); if(c.exists) cfgLegada = c.data(); }catch(e){}
+
+  await novaLojaRef.set({
+    nome: cfgLegada.nomeLoja || VENDEDOR_DOC.nomeLoja || 'Minha Loja',
+    cor: cfgLegada.corPrimaria || '#7C3AED',
+    criadoEm: new Date().toISOString(),
+    principal: true
+  });
+  // Guarda a config dentro da loja
+  await novaLojaRef.collection('meta').doc('config').set(cfgLegada, {merge:true});
+
+  // Copia as subcoleções legadas para dentro da loja
+  for(const nome of ['produtos','clientes','vendas','gastos']){
+    try{
+      const snap = await db.collection('usuarios').doc(uid).collection(nome).get();
+      let batch = db.batch(); let n=0;
+      for(const d of snap.docs){
+        batch.set(novaLojaRef.collection(nome).doc(d.id), d.data());
+        if(++n>=400){ await batch.commit(); batch=db.batch(); n=0; }
+      }
+      if(n>0) await batch.commit();
+    }catch(e){ console.warn('Migração de',nome,'falhou:',e); }
+  }
+  console.log('Migração multi-loja concluída. Loja principal:', lojaId);
+}
+
+function trocarLoja(id){
+  if(id===LOJA_ATUAL) return;
+  LOJA_ATUAL = id;
+  localStorage.setItem('loja_ativa_'+uid, id);
+  location.reload();  // recarrega o painel na loja escolhida (mais seguro que re-render parcial)
+}
+
+/* Renderiza o seletor de lojas no topo da sidebar */
+function renderSeletorLojas(){
+  const el=document.getElementById('seletor-lojas'); if(!el)return;
+  if(LOJAS.length<=1 && LOJAS.length>0){
+    // Uma loja só: mostra botão para criar a segunda
+    el.innerHTML=`<div style="font-size:.7rem;color:rgba(255,255,255,.5);margin-bottom:6px">LOJA ATIVA</div>
+      <div style="background:rgba(255,255,255,.1);border-radius:8px;padding:8px 11px;font-size:.85rem;color:#fff;font-weight:600">${LOJAS[0]?.nome||'Minha Loja'}</div>`;
+    return;
+  }
+  const opcoes=LOJAS.map(l=>`<option value="${l.id}" ${l.id===LOJA_ATUAL?'selected':''}>${l.nome||'Loja'}</option>`).join('');
+  el.innerHTML=`<div style="font-size:.7rem;color:rgba(255,255,255,.5);margin-bottom:6px">TROCAR DE LOJA</div>
+    <select onchange="trocarLoja(this.value)" style="width:100%;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);border-radius:8px;padding:8px 11px;font-size:.85rem;color:#fff;font-weight:600;cursor:pointer">
+      ${opcoes}
+    </select>`;
+}
+
 let GASTOS=[];
 async function carregarDados(){
   [PRODUTOS,CLIENTES,VENDAS,GASTOS] = await Promise.all([getAll('produtos'),getAll('clientes'),getAll('vendas'),getAll('gastos')]);
-  const cfgDoc = await db.collection('config').doc(uid).get();
+  const cfgDoc = await lojaRef().collection('meta').doc('config').get();
   CONFIG = cfgDoc.exists ? cfgDoc.data() : {};
   if(CONFIG.corPrimaria) aplicarCorTema(CONFIG.corPrimaria);
   renderDashboard();
@@ -1870,10 +1954,14 @@ async function salvarConfig(){
   const taxasJuros = coletarTaxasGrid();
   const corPrimaria = document.getElementById('cfg-cor').value||'#7C3AED';
   CONFIG={nomeLoja:document.getElementById('cfg-loja').value,subtitulo:document.getElementById('cfg-slogan').value,logoUrl:document.getElementById('cfg-logo').value,whatsapp:document.getElementById('cfg-whats').value,pixChave:document.getElementById('cfg-pix').value,pixNome:document.getElementById('cfg-pix-nome').value,pixCidade:document.getElementById('cfg-pix-cidade').value,pixTipo:document.getElementById('cfg-pix-tipo').value,categoriaInicial:document.getElementById('cfg-cat-inicial').value,taxasJuros,corPrimaria};
-  await db.collection('config').doc(uid).set(CONFIG,{merge:true});
-  await db.collection('config').doc(uid).update({taxasJuros: firebase.firestore.FieldValue.delete()});
-  await db.collection('config').doc(uid).update({taxasJuros});
-  await db.collection('vendedores').doc(VENDEDOR_DOC.id).update({nomeLoja:CONFIG.nomeLoja,whatsapp:CONFIG.whatsapp});
+  const cfgRef = lojaRef().collection('meta').doc('config');
+  await cfgRef.set(CONFIG,{merge:true});
+  await cfgRef.update({taxasJuros: firebase.firestore.FieldValue.delete()});
+  await cfgRef.update({taxasJuros});
+  // Atualiza o nome/cor da loja no seletor
+  await lojaRef().update({nome:CONFIG.nomeLoja||'Minha Loja', cor:corPrimaria});
+  const lj=LOJAS.find(l=>l.id===LOJA_ATUAL); if(lj){lj.nome=CONFIG.nomeLoja; lj.cor=corPrimaria;}
+  renderSeletorLojas();
   document.getElementById('sb-loja-nome').textContent=CONFIG.nomeLoja||'Minha Loja';
   aplicarCorTema(corPrimaria);
   toast('Configurações salvas!','success');
@@ -1881,7 +1969,7 @@ async function salvarConfig(){
 }
 
 function definirLinkLoja(){
-  const link=`${BASE_URL}/loja.html?loja=${VENDEDOR_DOC?.id||uid}`;
+  const link=`${BASE_URL}/loja.html?loja=${VENDEDOR_DOC?.id||uid}&s=${LOJA_ATUAL||''}`;
   const el=document.getElementById('link-loja-vend');
   if(el)el.textContent=link;
 }
