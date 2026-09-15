@@ -834,6 +834,11 @@ async function carregarLojas(){
   // Restaura a última loja usada, ou a primeira
   const salva = localStorage.getItem('loja_ativa_'+uid);
   LOJA_ATUAL = (salva && LOJAS.find(l=>l.id===salva)) ? salva : (LOJAS[0]?.id || null);
+
+  // Segurança: se nenhuma loja estiver marcada como principal, a mais antiga vira principal
+  if(LOJAS.length && !LOJAS.some(l=>l.principal)){
+    LOJAS[0].principal = true;
+  }
 }
 
 /* Migração única: move os dados legados para uma loja "principal". */
@@ -882,15 +887,18 @@ function slugify(txt){
     .toLowerCase().replace(/[^a-z0-9]+/g,'').slice(0,24);
 }
 
-/* Cria uma nova loja (vazia) com um apelido único */
+/* Cria uma nova loja (vazia) com um apelido único — máximo 2 lojas por conta */
 async function criarNovaLoja(){
+  if(LOJAS.length>=2){
+    toast('Você já atingiu o limite de 2 lojas.','error');
+    return;
+  }
   const nome = prompt('Nome da nova loja (ex: Mary Kay):');
   if(nome===null) return;
   if(nome.trim().length<2){ toast('Dê um nome com pelo menos 2 letras.','error'); return; }
 
   let slug = slugify(nome);
   if(!slug){ toast('Nome inválido. Use letras ou números.','error'); return; }
-  // Garante unicidade: se já existir, acrescenta número
   const idsExistentes = new Set(LOJAS.map(l=>l.id));
   if(idsExistentes.has(slug)){
     let i=2; while(idsExistentes.has(slug+i)) i++;
@@ -907,7 +915,6 @@ async function criarNovaLoja(){
       pixChave:'', pixNome:'', pixCidade:''
     });
     toast(`Loja "${nome.trim()}" criada!`,'success');
-    // Já entra na loja nova
     LOJA_ATUAL = slug;
     localStorage.setItem('loja_ativa_'+uid, slug);
     location.reload();
@@ -917,16 +924,72 @@ async function criarNovaLoja(){
   }
 }
 
+/* Exclui uma loja e TODOS os seus dados (produtos, vendas, clientes, gastos).
+   A loja principal (a primeira/migrada) não pode ser excluída. */
+async function excluirLoja(id){
+  const loja = LOJAS.find(l=>l.id===id);
+  if(!loja) return;
+  if(loja.principal || LOJAS.length<=1){
+    toast('A loja principal não pode ser excluída.','error');
+    return;
+  }
+  const conf = prompt(`Isto vai APAGAR a loja "${loja.nome}" e TODOS os seus produtos, vendas, clientes e gastos. Esta ação é irreversível.\n\nPara confirmar, digite o nome da loja:`);
+  if(conf===null) return;
+  if(slugify(conf)!==slugify(loja.nome)){ toast('Nome não confere. Exclusão cancelada.','info'); return; }
+
+  try{
+    const base = db.collection('usuarios').doc(uid).collection('lojas').doc(id);
+    // Apaga subcoleções em lotes
+    for(const nome of ['produtos','vendas','clientes','gastos']){
+      const snap = await base.collection(nome).get();
+      let batch=db.batch(), n=0;
+      for(const d of snap.docs){ batch.delete(d.ref); if(++n>=400){await batch.commit();batch=db.batch();n=0;} }
+      if(n>0) await batch.commit();
+    }
+    // Apaga meta/config
+    try{ await base.collection('meta').doc('config').delete(); }catch(e){}
+    // Apaga o doc da loja
+    await base.delete();
+
+    toast(`Loja "${loja.nome}" excluída.`,'success');
+    // Volta para a loja principal
+    const principal = LOJAS.find(l=>l.principal) || LOJAS.find(l=>l.id!==id);
+    LOJA_ATUAL = principal?.id || null;
+    if(LOJA_ATUAL) localStorage.setItem('loja_ativa_'+uid, LOJA_ATUAL);
+    location.reload();
+  }catch(e){
+    console.error(e);
+    toast('Falha ao excluir a loja.','error');
+  }
+}
+
 /* Renderiza o seletor de lojas no topo da sidebar */
 function renderSeletorLojas(){
   const el=document.getElementById('seletor-lojas'); if(!el)return;
-  const opcoes=LOJAS.map(l=>`<option value="${l.id}" ${l.id===LOJA_ATUAL?'selected':''}>${l.nome||'Loja'}</option>`).join('');
+  const lojaAtiva = LOJAS.find(l=>l.id===LOJA_ATUAL);
+  const podeCriar = LOJAS.length<2;
+  const podeExcluir = lojaAtiva && !lojaAtiva.principal && LOJAS.length>1;
+
+  // Botões de loja empilhados (nome sempre visível, sem depender de hover)
+  const botoes = LOJAS.map(l=>{
+    const ativa = l.id===LOJA_ATUAL;
+    return `<button onclick="trocarLoja('${l.id}')" title="${l.nome||'Loja'}"
+      style="width:100%;text-align:left;display:flex;align-items:center;gap:8px;
+             background:${ativa?'rgba(255,255,255,.18)':'transparent'};
+             border:1px solid ${ativa?'rgba(255,255,255,.3)':'rgba(255,255,255,.12)'};
+             border-radius:8px;padding:8px 11px;font-size:.83rem;color:#fff;
+             font-weight:${ativa?'700':'500'};cursor:pointer;margin-bottom:5px">
+      <span style="width:9px;height:9px;border-radius:50%;background:${l.cor||'#7C3AED'};flex-shrink:0"></span>
+      <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${l.nome||'Loja'}</span>
+      ${ativa?'<span style="font-size:.6rem;opacity:.7">●</span>':''}
+    </button>`;
+  }).join('');
+
   el.innerHTML=`
-    <div style="font-size:.7rem;color:rgba(255,255,255,.5);margin-bottom:6px">${LOJAS.length>1?'TROCAR DE LOJA':'LOJA ATIVA'}</div>
-    <select onchange="trocarLoja(this.value)" style="width:100%;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);border-radius:8px;padding:8px 11px;font-size:.85rem;color:#fff;font-weight:600;cursor:pointer;margin-bottom:7px">
-      ${opcoes}
-    </select>
-    <button onclick="criarNovaLoja()" style="width:100%;background:transparent;border:1px dashed rgba(255,255,255,.3);border-radius:8px;padding:7px;font-size:.78rem;color:rgba(255,255,255,.8);cursor:pointer">+ Nova loja</button>`;
+    <div style="font-size:.7rem;color:rgba(255,255,255,.5);margin-bottom:7px">MINHAS LOJAS</div>
+    ${botoes}
+    ${podeCriar?`<button onclick="criarNovaLoja()" style="width:100%;background:transparent;border:1px dashed rgba(255,255,255,.3);border-radius:8px;padding:7px;font-size:.76rem;color:rgba(255,255,255,.8);cursor:pointer;margin-top:2px">+ Nova loja</button>`:''}
+    ${podeExcluir?`<button onclick="excluirLoja('${LOJA_ATUAL}')" style="width:100%;background:transparent;border:none;padding:6px;font-size:.72rem;color:rgba(255,150,150,.85);cursor:pointer;margin-top:4px">🗑️ Excluir "${lojaAtiva.nome}"</button>`:''}`;
 }
 
 let GASTOS=[];
