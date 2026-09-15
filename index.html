@@ -551,6 +551,14 @@
           </div>
         </div>
         <div class="chart-card" style="margin-bottom:16px">
+          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+            <h3 style="margin:0">Seções da loja (cursos, sobre mim, depoimentos)</h3>
+            <button type="button" class="btn btn-secondary btn-xs" onclick="addSecao()">+ Adicionar seção</button>
+          </div>
+          <div style="font-size:.75rem;color:var(--muted);margin:6px 0 12px">Blocos que aparecem na sua loja abaixo dos produtos. Só aparecem os que você preencher. Ótimo para divulgar cursos com botão de WhatsApp.</div>
+          <div id="secoes-editor"></div>
+        </div>
+        <div class="chart-card" style="margin-bottom:16px">
           <h3>Dados PIX</h3>
           <div class="form-row">
             <div class="fg"><label>Tipo da chave</label>
@@ -2086,6 +2094,99 @@ async function salvarCliente(){
 }
 async function excluirCliente(id){if(!confirm('Excluir?'))return;await deleteDoc2('clientes',id);CLIENTES=CLIENTES.filter(x=>x.id!==id);renderClientes()}
 
+/* ══════════════════════════════════════════════════════════
+   EDITOR DE SEÇÕES DA LOJA (cursos, sobre mim, depoimentos)
+   ══════════════════════════════════════════════════════════ */
+let SECOES_EDIT = [];
+
+function addSecao(tipo){
+  SECOES_EDIT.push({ tipo: tipo||'padrao', titulo:'', subtitulo:'', texto:'', botaoTexto:'', botaoMsg:'', itens:[] });
+  renderSecoesEditor();
+}
+function removerSecao(i){ SECOES_EDIT.splice(i,1); renderSecoesEditor(); }
+function moverSecao(i,dir){
+  const j=i+dir; if(j<0||j>=SECOES_EDIT.length) return;
+  [SECOES_EDIT[i],SECOES_EDIT[j]]=[SECOES_EDIT[j],SECOES_EDIT[i]];
+  renderSecoesEditor();
+}
+function addDepo(i){
+  if(!Array.isArray(SECOES_EDIT[i].itens)) SECOES_EDIT[i].itens=[];
+  SECOES_EDIT[i].itens.push({texto:'',autor:''});
+  renderSecoesEditor();
+}
+function removerDepo(i,j){ SECOES_EDIT[i].itens.splice(j,1); renderSecoesEditor(); }
+
+/* Lê os valores dos campos de volta para o array (antes de re-render ou salvar) */
+function coletarSecoesDoDOM(){
+  SECOES_EDIT.forEach((s,i)=>{
+    const g=id=>document.getElementById(`sec-${i}-${id}`);
+    if(g('titulo')) s.titulo=g('titulo').value;
+    if(g('subtitulo')) s.subtitulo=g('subtitulo').value;
+    if(g('texto')) s.texto=g('texto').value;
+    if(g('btntexto')) s.botaoTexto=g('btntexto').value;
+    if(g('btnmsg')) s.botaoMsg=g('btnmsg').value;
+    if(s.tipo==='depoimentos' && Array.isArray(s.itens)){
+      s.itens.forEach((d,j)=>{
+        const dt=document.getElementById(`sec-${i}-depo-${j}-txt`);
+        const da=document.getElementById(`sec-${i}-depo-${j}-aut`);
+        if(dt) d.texto=dt.value;
+        if(da) d.autor=da.value;
+      });
+    }
+  });
+}
+
+function renderSecoesEditor(){
+  coletarSecoesDoDOM();
+  const el=document.getElementById('secoes-editor'); if(!el)return;
+  if(!SECOES_EDIT.length){
+    el.innerHTML=`<div style="font-size:.8rem;color:var(--muted);padding:10px 0">Nenhuma seção ainda. Clique em "Adicionar seção" para criar uma área de cursos, sobre você, ou depoimentos.</div>`;
+    return;
+  }
+  el.innerHTML=SECOES_EDIT.map((s,i)=>{
+    const tipoSel=`<select onchange="mudarTipoSecao(${i},this.value)" style="padding:6px 9px;border:1px solid var(--border);border-radius:8px;font-size:.8rem;font-family:inherit">
+      <option value="padrao" ${s.tipo==='padrao'?'selected':''}>Texto + botão WhatsApp</option>
+      <option value="depoimentos" ${s.tipo==='depoimentos'?'selected':''}>Depoimentos</option>
+    </select>`;
+    let corpo;
+    if(s.tipo==='depoimentos'){
+      const depos=(s.itens||[]).map((d,j)=>`
+        <div style="display:flex;gap:6px;margin-bottom:6px;align-items:flex-start">
+          <textarea id="sec-${i}-depo-${j}-txt" rows="2" placeholder="Depoimento do cliente" style="flex:1;padding:8px;border:1px solid var(--border);border-radius:8px;font-size:.82rem;font-family:inherit">${(d.texto||'').replace(/</g,'&lt;')}</textarea>
+          <input id="sec-${i}-depo-${j}-aut" placeholder="Nome" value="${(d.autor||'').replace(/"/g,'&quot;')}" style="width:110px;padding:8px;border:1px solid var(--border);border-radius:8px;font-size:.82rem;font-family:inherit"/>
+          <button type="button" onclick="removerDepo(${i},${j})" style="background:none;color:var(--danger);font-size:1.1rem;padding:4px">✕</button>
+        </div>`).join('');
+      corpo=`
+        <input id="sec-${i}-titulo" placeholder="Título (ex: O que dizem sobre mim)" value="${(s.titulo||'').replace(/"/g,'&quot;')}" style="width:100%;padding:9px;border:1px solid var(--border);border-radius:8px;font-size:.85rem;font-family:inherit;margin-bottom:6px"/>
+        <input id="sec-${i}-subtitulo" placeholder="Subtítulo (opcional)" value="${(s.subtitulo||'').replace(/"/g,'&quot;')}" style="width:100%;padding:9px;border:1px solid var(--border);border-radius:8px;font-size:.85rem;font-family:inherit;margin-bottom:8px"/>
+        ${depos}
+        <button type="button" class="btn btn-secondary btn-xs" onclick="addDepo(${i})">+ Depoimento</button>`;
+    } else {
+      corpo=`
+        <input id="sec-${i}-titulo" placeholder="Título (ex: Cursos e Treinamentos)" value="${(s.titulo||'').replace(/"/g,'&quot;')}" style="width:100%;padding:9px;border:1px solid var(--border);border-radius:8px;font-size:.85rem;font-family:inherit;margin-bottom:6px"/>
+        <input id="sec-${i}-subtitulo" placeholder="Subtítulo (opcional)" value="${(s.subtitulo||'').replace(/"/g,'&quot;')}" style="width:100%;padding:9px;border:1px solid var(--border);border-radius:8px;font-size:.85rem;font-family:inherit;margin-bottom:6px"/>
+        <textarea id="sec-${i}-texto" rows="3" placeholder="Texto da seção…" style="width:100%;padding:9px;border:1px solid var(--border);border-radius:8px;font-size:.85rem;font-family:inherit;margin-bottom:6px">${(s.texto||'').replace(/</g,'&lt;')}</textarea>
+        <div class="form-row">
+          <div class="fg" style="margin:0"><input id="sec-${i}-btntexto" placeholder="Texto do botão (ex: Quero saber mais)" value="${(s.botaoTexto||'').replace(/"/g,'&quot;')}" style="width:100%;padding:9px;border:1px solid var(--border);border-radius:8px;font-size:.85rem;font-family:inherit"/></div>
+          <div class="fg" style="margin:0"><input id="sec-${i}-btnmsg" placeholder="Mensagem WhatsApp ao clicar" value="${(s.botaoMsg||'').replace(/"/g,'&quot;')}" style="width:100%;padding:9px;border:1px solid var(--border);border-radius:8px;font-size:.85rem;font-family:inherit"/></div>
+        </div>
+        <div style="font-size:.7rem;color:var(--muted);margin-top:4px">Deixe o botão em branco se a seção for só informativa. O WhatsApp usa o número configurado acima.</div>`;
+    }
+    return `<div style="border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:12px;background:var(--bg)">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;gap:8px;flex-wrap:wrap">
+        <div style="display:flex;gap:6px;align-items:center">${tipoSel}</div>
+        <div style="display:flex;gap:4px">
+          <button type="button" onclick="moverSecao(${i},-1)" title="Subir" style="background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:4px 8px;cursor:pointer">↑</button>
+          <button type="button" onclick="moverSecao(${i},1)" title="Descer" style="background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:4px 8px;cursor:pointer">↓</button>
+          <button type="button" onclick="removerSecao(${i})" class="btn btn-danger btn-xs">Remover</button>
+        </div>
+      </div>
+      ${corpo}
+    </div>`;
+  }).join('');
+}
+function mudarTipoSecao(i,tipo){ coletarSecoesDoDOM(); SECOES_EDIT[i].tipo=tipo; if(tipo==='depoimentos'&&!SECOES_EDIT[i].itens.length) SECOES_EDIT[i].itens=[{texto:'',autor:''}]; renderSecoesEditor(); }
+
 function carregarFormCfg(){
   document.getElementById('cfg-loja').value=CONFIG.nomeLoja||'';
   document.getElementById('cfg-slogan').value=CONFIG.subtitulo||'';
@@ -2097,6 +2198,8 @@ function carregarFormCfg(){
   document.getElementById('cfg-cat-inicial').value=CONFIG.categoriaInicial||'';
   document.getElementById('cfg-estilo').value=CONFIG.estiloVisual||'';
   document.getElementById('cfg-pix-tipo').value=CONFIG.pixTipo||'email';
+  SECOES_EDIT = Array.isArray(CONFIG.secoes) ? JSON.parse(JSON.stringify(CONFIG.secoes)) : [];
+  renderSecoesEditor();
   const cor=CONFIG.corPrimaria||'#7C3AED';
   document.getElementById('cfg-cor').value=cor;
   document.getElementById('cfg-cor-hex').value=cor;
@@ -2144,7 +2247,10 @@ function coletarTaxasGrid(){
 async function salvarConfig(){
   const taxasJuros = coletarTaxasGrid();
   const corPrimaria = document.getElementById('cfg-cor').value||'#7C3AED';
-  CONFIG={nomeLoja:document.getElementById('cfg-loja').value,subtitulo:document.getElementById('cfg-slogan').value,logoUrl:document.getElementById('cfg-logo').value,whatsapp:document.getElementById('cfg-whats').value,pixChave:document.getElementById('cfg-pix').value,pixNome:document.getElementById('cfg-pix-nome').value,pixCidade:document.getElementById('cfg-pix-cidade').value,pixTipo:document.getElementById('cfg-pix-tipo').value,categoriaInicial:document.getElementById('cfg-cat-inicial').value,estiloVisual:document.getElementById('cfg-estilo').value,taxasJuros,corPrimaria};
+  coletarSecoesDoDOM();
+  // Limpa seções totalmente vazias
+  const secoes = SECOES_EDIT.filter(s => s.titulo || s.texto || (Array.isArray(s.itens)&&s.itens.some(d=>d.texto)));
+  CONFIG={nomeLoja:document.getElementById('cfg-loja').value,subtitulo:document.getElementById('cfg-slogan').value,logoUrl:document.getElementById('cfg-logo').value,whatsapp:document.getElementById('cfg-whats').value,pixChave:document.getElementById('cfg-pix').value,pixNome:document.getElementById('cfg-pix-nome').value,pixCidade:document.getElementById('cfg-pix-cidade').value,pixTipo:document.getElementById('cfg-pix-tipo').value,categoriaInicial:document.getElementById('cfg-cat-inicial').value,estiloVisual:document.getElementById('cfg-estilo').value,secoes,taxasJuros,corPrimaria};
   const cfgRef = lojaRef().collection('meta').doc('config');
   await cfgRef.set(CONFIG,{merge:true});
   await cfgRef.update({taxasJuros: firebase.firestore.FieldValue.delete()});
