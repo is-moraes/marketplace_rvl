@@ -474,6 +474,13 @@
             </select>
             <div style="font-size:.72rem;color:var(--muted);margin-top:4px">Quando o cliente abrir a loja, verá primeiro essa categoria. Ele pode trocar depois.</div>
           </div>
+          <div class="fg"><label>Estilo visual da loja</label>
+            <select id="cfg-estilo">
+              <option value="">Padrão (moderno)</option>
+              <option value="elegante">Elegante (títulos serifados, clima sofisticado)</option>
+            </select>
+            <div style="font-size:.72rem;color:var(--muted);margin-top:4px">O estilo "Elegante" combina com cosméticos e beleza. A cor você define acima.</div>
+          </div>
         </div>
         <div class="chart-card" style="margin-bottom:16px">
           <h3>Dados PIX</h3>
@@ -905,7 +912,7 @@ async function criarNovaLoja(){
     slug = slug+i;
   }
 
-  const cor = prompt('Cor principal da loja (hex, ex: #E91E8C para rosa Mary Kay):','#E91E8C') || '#7C3AED';
+  const cor = prompt('Cor principal da loja (hex, ex: #C2185B para rosa elegante):','#C2185B') || '#7C3AED';
 
   try{
     const ref = db.collection('usuarios').doc(uid).collection('lojas').doc(slug);
@@ -964,32 +971,47 @@ async function excluirLoja(id){
 }
 
 /* Renderiza o seletor de lojas no topo da sidebar */
+let _menuLojaAberto = null;
+function toggleMenuLoja(id, ev){
+  if(ev) ev.stopPropagation();
+  _menuLojaAberto = (_menuLojaAberto===id) ? null : id;
+  renderSeletorLojas();
+}
+document.addEventListener('click', ()=>{ if(_menuLojaAberto){ _menuLojaAberto=null; renderSeletorLojas(); } });
+
 function renderSeletorLojas(){
   const el=document.getElementById('seletor-lojas'); if(!el)return;
-  const lojaAtiva = LOJAS.find(l=>l.id===LOJA_ATUAL);
   const podeCriar = LOJAS.length<2;
-  const podeExcluir = lojaAtiva && !lojaAtiva.principal && LOJAS.length>1;
 
-  // Botões de loja empilhados (nome sempre visível, sem depender de hover)
   const botoes = LOJAS.map(l=>{
     const ativa = l.id===LOJA_ATUAL;
-    return `<button onclick="trocarLoja('${l.id}')" title="${l.nome||'Loja'}"
-      style="width:100%;text-align:left;display:flex;align-items:center;gap:8px;
+    const podeExcluir = !l.principal && LOJAS.length>1;
+    const menuAberto = _menuLojaAberto===l.id;
+    return `<div style="position:relative;margin-bottom:5px">
+      <div style="display:flex;align-items:center;
              background:${ativa?'rgba(255,255,255,.18)':'transparent'};
              border:1px solid ${ativa?'rgba(255,255,255,.3)':'rgba(255,255,255,.12)'};
-             border-radius:8px;padding:8px 11px;font-size:.83rem;color:#fff;
-             font-weight:${ativa?'700':'500'};cursor:pointer;margin-bottom:5px">
-      <span style="width:9px;height:9px;border-radius:50%;background:${l.cor||'#7C3AED'};flex-shrink:0"></span>
-      <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${l.nome||'Loja'}</span>
-      ${ativa?'<span style="font-size:.6rem;opacity:.7">●</span>':''}
-    </button>`;
+             border-radius:8px;overflow:hidden">
+        <button onclick="trocarLoja('${l.id}')" title="${l.nome||'Loja'}"
+          style="flex:1;min-width:0;text-align:left;display:flex;align-items:center;gap:8px;
+                 background:transparent;border:none;padding:8px 4px 8px 11px;font-size:.83rem;color:#fff;
+                 font-weight:${ativa?'700':'500'};cursor:pointer">
+          <span style="width:9px;height:9px;border-radius:50%;background:${l.cor||'#7C3AED'};flex-shrink:0"></span>
+          <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${l.nome||'Loja'}</span>
+        </button>
+        ${podeExcluir?`<button onclick="toggleMenuLoja('${l.id}',event)" title="Opções"
+          style="background:transparent;border:none;color:rgba(255,255,255,.6);cursor:pointer;padding:8px 10px;font-size:1.05rem;line-height:1;flex-shrink:0">⋮</button>`:''}
+      </div>
+      ${menuAberto?`<div style="position:absolute;right:0;top:calc(100% + 3px);z-index:50;background:#fff;border-radius:9px;box-shadow:0 6px 20px rgba(0,0,0,.25);overflow:hidden;min-width:150px">
+        <button onclick="excluirLoja('${l.id}')" style="width:100%;text-align:left;background:transparent;border:none;padding:11px 14px;font-size:.82rem;color:#DC2626;cursor:pointer;display:flex;align-items:center;gap:8px">🗑️ Excluir loja</button>
+      </div>`:''}
+    </div>`;
   }).join('');
 
   el.innerHTML=`
     <div style="font-size:.7rem;color:rgba(255,255,255,.5);margin-bottom:7px">MINHAS LOJAS</div>
     ${botoes}
-    ${podeCriar?`<button onclick="criarNovaLoja()" style="width:100%;background:transparent;border:1px dashed rgba(255,255,255,.3);border-radius:8px;padding:7px;font-size:.76rem;color:rgba(255,255,255,.8);cursor:pointer;margin-top:2px">+ Nova loja</button>`:''}
-    ${podeExcluir?`<button onclick="excluirLoja('${LOJA_ATUAL}')" style="width:100%;background:transparent;border:none;padding:6px;font-size:.72rem;color:rgba(255,150,150,.85);cursor:pointer;margin-top:4px">🗑️ Excluir "${lojaAtiva.nome}"</button>`:''}`;
+    ${podeCriar?`<button onclick="criarNovaLoja()" style="width:100%;background:transparent;border:1px dashed rgba(255,255,255,.3);border-radius:8px;padding:7px;font-size:.76rem;color:rgba(255,255,255,.8);cursor:pointer;margin-top:2px">+ Nova loja</button>`:''}`;
 }
 
 let GASTOS=[];
@@ -2005,6 +2027,7 @@ function carregarFormCfg(){
   document.getElementById('cfg-pix-nome').value=CONFIG.pixNome||'';
   document.getElementById('cfg-pix-cidade').value=CONFIG.pixCidade||'';
   document.getElementById('cfg-cat-inicial').value=CONFIG.categoriaInicial||'';
+  document.getElementById('cfg-estilo').value=CONFIG.estiloVisual||'';
   document.getElementById('cfg-pix-tipo').value=CONFIG.pixTipo||'email';
   const cor=CONFIG.corPrimaria||'#7C3AED';
   document.getElementById('cfg-cor').value=cor;
@@ -2053,7 +2076,7 @@ function coletarTaxasGrid(){
 async function salvarConfig(){
   const taxasJuros = coletarTaxasGrid();
   const corPrimaria = document.getElementById('cfg-cor').value||'#7C3AED';
-  CONFIG={nomeLoja:document.getElementById('cfg-loja').value,subtitulo:document.getElementById('cfg-slogan').value,logoUrl:document.getElementById('cfg-logo').value,whatsapp:document.getElementById('cfg-whats').value,pixChave:document.getElementById('cfg-pix').value,pixNome:document.getElementById('cfg-pix-nome').value,pixCidade:document.getElementById('cfg-pix-cidade').value,pixTipo:document.getElementById('cfg-pix-tipo').value,categoriaInicial:document.getElementById('cfg-cat-inicial').value,taxasJuros,corPrimaria};
+  CONFIG={nomeLoja:document.getElementById('cfg-loja').value,subtitulo:document.getElementById('cfg-slogan').value,logoUrl:document.getElementById('cfg-logo').value,whatsapp:document.getElementById('cfg-whats').value,pixChave:document.getElementById('cfg-pix').value,pixNome:document.getElementById('cfg-pix-nome').value,pixCidade:document.getElementById('cfg-pix-cidade').value,pixTipo:document.getElementById('cfg-pix-tipo').value,categoriaInicial:document.getElementById('cfg-cat-inicial').value,estiloVisual:document.getElementById('cfg-estilo').value,taxasJuros,corPrimaria};
   const cfgRef = lojaRef().collection('meta').doc('config');
   await cfgRef.set(CONFIG,{merge:true});
   await cfgRef.update({taxasJuros: firebase.firestore.FieldValue.delete()});
