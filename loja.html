@@ -224,21 +224,30 @@
 
   /* Body */
   .loja-body{padding:28px 32px;max-width:1400px;margin:0 auto}
-  /* Seções informativas (cursos, sobre, depoimentos) */
-  .info-sec{margin-top:44px;padding:36px 32px;border-radius:16px;background:var(--surface);border:1px solid var(--border);text-align:center}
-  .info-sec + .info-sec{margin-top:24px}
-  .info-sec h2{font-family:var(--font-head,inherit);font-size:1.5rem;margin-bottom:6px;color:var(--text)}
-  .info-sec .info-sub{color:var(--muted);font-size:.9rem;margin-bottom:18px}
-  .info-sec p.info-txt{max-width:640px;margin:0 auto 22px;line-height:1.7;color:var(--text);white-space:pre-line}
-  .info-sec .info-btn{display:inline-flex;align-items:center;gap:8px;background:var(--purple);color:#fff;padding:13px 26px;border-radius:30px;font-weight:600;font-size:.9rem;text-decoration:none;transition:transform .15s,box-shadow .2s}
+  /* Seções informativas (cursos, sobre, depoimentos) — grade de cards compactos */
+  #secoes-info{
+    display:grid; grid-template-columns:repeat(auto-fill, minmax(300px, 1fr));
+    gap:20px; margin-top:44px;
+  }
+  .info-sec{
+    padding:28px 24px; border-radius:18px; background:var(--surface);
+    border:1px solid var(--border); text-align:center;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    min-height:230px;
+  }
+  .info-sec h2{font-family:var(--font-head,inherit);font-size:1.3rem;margin-bottom:4px;color:var(--text);line-height:1.25}
+  .info-sec .info-sub{color:var(--muted);font-size:.82rem;margin-bottom:4px}
+  .info-sec .info-ministrante{color:var(--purple-dark);font-size:.82rem;font-weight:600;margin-bottom:14px}
+  .info-sec p.info-txt{margin:0 0 20px;line-height:1.6;color:var(--text);white-space:pre-line;font-size:.92rem}
+  .info-sec .info-btn{display:inline-flex;align-items:center;gap:8px;background:var(--purple);color:#fff;padding:12px 22px;border-radius:30px;font-weight:600;font-size:.82rem;text-decoration:none;transition:transform .15s,box-shadow .2s}
   .info-sec .info-btn:hover{transform:translateY(-2px);box-shadow:0 6px 18px rgba(0,0,0,.15)}
-  .info-depo{display:flex;flex-wrap:wrap;gap:16px;justify-content:center;margin-top:8px}
-  .info-depo .depo{background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:18px 20px;max-width:280px;text-align:left}
-  .info-depo .depo p{font-style:italic;color:var(--text);line-height:1.55;margin-bottom:8px;font-size:.9rem}
+  /* Depoimentos: seção ocupa a linha toda e distribui os cards */
+  .info-sec.depo-sec{grid-column:1/-1}
+  .info-depo{display:flex;flex-wrap:wrap;gap:16px;justify-content:center;margin-top:8px;width:100%}
+  .info-depo .depo{background:var(--bg);border:1px solid var(--border);border-radius:14px;padding:18px 20px;max-width:260px;text-align:left}
+  .info-depo .depo p{font-style:italic;color:var(--text);line-height:1.55;margin-bottom:8px;font-size:.88rem}
   .info-depo .depo span{color:var(--muted);font-size:.8rem;font-weight:600}
-  body.estilo-elegante .info-sec{border-radius:6px;background:#fff}
-  body.estilo-elegante .info-sec h2{letter-spacing:.5px;font-weight:500}
-  body.estilo-elegante .info-btn{border-radius:2px;letter-spacing:1px;text-transform:uppercase;font-size:.78rem}
+  body.estilo-elegante .info-sec h2{letter-spacing:.5px;font-weight:400}
   .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:22px}
 
   .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;cursor:pointer;transition:transform .18s,box-shadow .18s;box-shadow:0 1px 2px rgba(31,27,46,.04)}
@@ -681,7 +690,7 @@ function renderSecoesInfo(){
         `<div class="depo"><p>“${escapeHtml(d.texto)}”</p><span>— ${escapeHtml(d.autor||'Cliente')}</span></div>`
       ).join('');
       if(!cards && !s.texto) return '';
-      return `<div class="info-sec">
+      return `<div class="info-sec depo-sec">
         ${s.titulo?`<h2>${escapeHtml(s.titulo)}</h2>`:''}
         ${s.subtitulo?`<div class="info-sub">${escapeHtml(s.subtitulo)}</div>`:''}
         <div class="info-depo">${cards}</div>
@@ -697,6 +706,7 @@ function renderSecoesInfo(){
     return `<div class="info-sec">
       ${s.titulo?`<h2>${escapeHtml(s.titulo)}</h2>`:''}
       ${s.subtitulo?`<div class="info-sub">${escapeHtml(s.subtitulo)}</div>`:''}
+      ${s.ministrante?`<div class="info-ministrante">com ${escapeHtml(s.ministrante)}</div>`:''}
       ${s.texto?`<p class="info-txt">${escapeHtml(s.texto)}</p>`:''}
       ${botao}
     </div>`;
