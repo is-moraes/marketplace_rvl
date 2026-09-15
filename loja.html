@@ -215,7 +215,7 @@
   </div>
   <div class="filtros filtros-cat">
     <div class="filtro-chip cat-chip active" onclick="setCategoria('',this)">Todos</div>
-    <div class="filtro-chip cat-chip" onclick="setCategoria('Vestimenta',this)">👗 Moda</div>
+    <div class="filtro-chip cat-chip" onclick="setCategoria('Vestimenta',this)">👗 Vestimenta</div>
     <div class="filtro-chip cat-chip" onclick="setCategoria('Saúde',this)">💊 Saúde</div>
     <div class="filtro-chip cat-chip" onclick="setCategoria('Beleza',this)">💄 Beleza</div>
   </div>
@@ -330,6 +330,12 @@ const firebaseConfig = {
 
 let db;
 let VENDEDOR_ID = null;
+let LOJA_SLUG = null;
+/* Referência base da loja: nova estrutura (usuarios/{uid}/lojas/{s}) ou legada */
+function lojaBaseRef(){
+  const u = db.collection('usuarios').doc(VENDEDOR_ID);
+  return LOJA_SLUG ? u.collection('lojas').doc(LOJA_SLUG) : u;
+}
 let CONFIG_LOJA = {};
 let VENDEDOR_DOC = {};
 let PRODUTOS = [];
@@ -354,6 +360,7 @@ let categoriaAtual = '';
 window.addEventListener('DOMContentLoaded', async () => {
   const params = new URLSearchParams(window.location.search);
   VENDEDOR_ID = params.get('loja');
+  LOJA_SLUG = params.get('s') || null;   // id da sub-loja (multi-loja)
 
   if (!VENDEDOR_ID) {
     mostrarOffline('Link de loja inválido. Peça ao vendedor o link correto.');
@@ -388,13 +395,15 @@ async function carregarLoja() {
         return;
       }
     }
-    const cfgDoc = await db.collection('config').doc(VENDEDOR_ID).get();
+    let cfgDoc;
+    if (LOJA_SLUG) cfgDoc = await lojaBaseRef().collection('meta').doc('config').get();
+    else cfgDoc = await db.collection('config').doc(VENDEDOR_ID).get();
     CONFIG_LOJA = cfgDoc.exists ? cfgDoc.data() : {};
 
     // Aplicar cor primária do vendedor na loja
     if (CONFIG_LOJA.corPrimaria) aplicarCorTemaLoja(CONFIG_LOJA.corPrimaria);
 
-    const pSnap = await db.collection('usuarios').doc(VENDEDOR_ID).collection('produtos')
+    const pSnap = await lojaBaseRef().collection('produtos')
       .where('status','==','ativo').get();
     PRODUTOS = pSnap.docs.map(d => ({ id: d.id, ...d.data() }));
 
@@ -1008,7 +1017,7 @@ function limparCarrinho() {
 async function revalidarEstoqueCarrinho() {
   const ids = [...new Set(CARRINHO.map(c => c.produtoId))];
   if (!ids.length) return { mudou: false, avisos: [] };
-  const base = db.collection('usuarios').doc(VENDEDOR_ID).collection('produtos');
+  const base = lojaBaseRef().collection('produtos');
 
   const frescos = await Promise.all(ids.map(async id => {
     try { const d = await base.doc(id).get(); return d.exists ? { id, ...d.data() } : { id, _removido: true }; }
@@ -1140,7 +1149,7 @@ async function finalizarCarrinhoWhats() {
       obs: '',
       itens: itens.map(i => ({ id: i.id, nome: i.nome, preco: i.preco, qty: i.qty, variacao: i.variacao||'' }))
     };
-    const ref = await db.collection('usuarios').doc(VENDEDOR_ID).collection('vendas').add(doc);
+    const ref = await lojaBaseRef().collection('vendas').add(doc);
     pedidoId = ref.id;
   } catch (e) {
     // Loga o código real do Firebase para diagnóstico, mas segue com o WhatsApp
