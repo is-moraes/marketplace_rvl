@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>Loja</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,500&display=swap" rel="stylesheet"/>
 <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
@@ -22,6 +22,96 @@
   *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
   body{font-family:var(--font-body);background:var(--bg);color:var(--text);min-height:100vh;-webkit-font-smoothing:antialiased}
   button{cursor:pointer;border:none;font-family:var(--font-body)}
+
+  /* ═══════ TEMA ELEGANTE — sofisticado, dessaturado, adulto ═══════ */
+  body.estilo-elegante{
+    --bg:#F7F4F2;            /* off-white quente, quase linho */
+    --surface:#FFFFFF;
+    --border:#EAE3E0;        /* borda cinza-rosé muito sutil */
+    --text:#2A2427;          /* carvão quente, não preto puro */
+    --muted:#9A8E8C;         /* cinza-taupe para texto secundário */
+    --font-head:'Playfair Display',Georgia,serif;
+    /* Degradê de fundo tom-sobre-tom: do off-white para um leve toque da cor da marca */
+    background:linear-gradient(180deg, #FFFFFF 0%, var(--bg) 34%, var(--tint-1, #F3EEF0) 100%) !important;
+    background-attachment:fixed !important;
+    min-height:100vh;
+  }
+  /* Cabeçalho: branco com um sopro do tom da marca em degradê, filete no topo */
+  body.estilo-elegante .loja-header{
+    background:linear-gradient(160deg, #FFFFFF 0%, var(--tint-1, #FCF6F8) 100%) !important;
+    border-bottom:1px solid var(--border);
+    color:var(--text) !important;
+    padding:34px 32px !important;
+    position:relative;
+  }
+  body.estilo-elegante .loja-header::before{
+    content:''; position:absolute; top:0; left:0; right:0; height:3px;
+    background:linear-gradient(90deg, var(--purple) 0%, var(--purple-dark) 100%);
+  }
+  body.estilo-elegante .brand-name{
+    font-weight:500; font-size:1.7rem; letter-spacing:1px; color:var(--text);
+  }
+  body.estilo-elegante .brand-sub{ color:var(--muted); font-style:italic; letter-spacing:.3px; }
+  body.estilo-elegante .brand-icon{
+    background:linear-gradient(145deg, var(--purple) 0%, var(--purple-dark) 100%) !important;
+    color:#fff !important;
+  }
+  body.estilo-elegante .topbar-title{ font-weight:500; letter-spacing:.5px; }
+
+  /* Cards: cantos suaves, sombra difusa; imagem com fundo em degradê tênue */
+  body.estilo-elegante .card{
+    border-radius:14px; border:1px solid var(--border);
+    box-shadow:0 4px 20px rgba(42,36,39,.04);
+    transition:transform .3s cubic-bezier(.2,.8,.2,1), box-shadow .3s;
+    background:var(--surface);
+  }
+  body.estilo-elegante .card:hover{ transform:translateY(-5px); box-shadow:0 16px 40px rgba(42,36,39,.1); }
+  body.estilo-elegante .card-img{
+    border-radius:14px 14px 0 0;
+    background:linear-gradient(160deg, #FFFFFF 0%, var(--tint-2, #FAF4F6) 100%);
+  }
+  body.estilo-elegante .card-info{ padding:16px 16px 18px !important; }
+  body.estilo-elegante .card-name{
+    font-family:var(--font-head); font-weight:500; font-size:1.05rem;
+    white-space:normal; line-height:1.35; color:var(--text);
+  }
+  body.estilo-elegante .card-price{ color:var(--text); font-weight:500; }
+
+  /* Busca e filtros */
+  body.estilo-elegante .busca{ border-radius:30px; background:var(--surface); border-color:var(--border); }
+  body.estilo-elegante .filtro-chip{
+    border-radius:30px; background:transparent; border-color:var(--border);
+    color:var(--muted); font-weight:500; letter-spacing:.2px; font-size:.8rem; text-transform:none;
+  }
+  body.estilo-elegante .filtro-chip.active,
+  body.estilo-elegante .filtro-chip:hover{
+    background:linear-gradient(135deg, var(--purple) 0%, var(--purple-dark) 100%);
+    border-color:var(--purple-dark); color:#fff;
+  }
+
+  /* Botões: degradê tom-sobre-tom, do rosa para o rosa mais fechado */
+  body.estilo-elegante .btn-action{
+    border-radius:30px; letter-spacing:.4px; text-transform:none;
+    font-size:.85rem; font-weight:600; padding:13px;
+  }
+  body.estilo-elegante .btn-whats{
+    background:linear-gradient(135deg, var(--purple) 0%, var(--purple-darker, var(--purple-dark)) 100%) !important;
+    box-shadow:0 4px 14px rgba(42,36,39,.12);
+  }
+  body.estilo-elegante .btn-pix{
+    background:linear-gradient(135deg, var(--purple-dark) 0%, var(--purple-darker, #7a1540) 100%) !important;
+  }
+
+  /* Detalhe do produto */
+  body.estilo-elegante .det-name{ font-family:var(--font-head); font-weight:500; letter-spacing:.3px; }
+  body.estilo-elegante .det-price{ font-family:var(--font-head); font-weight:500; color:var(--purple-dark); }
+
+  /* Selos */
+  body.estilo-elegante .badge-var{
+    border-radius:30px; letter-spacing:.3px; font-weight:500;
+    background:linear-gradient(135deg, var(--purple) 0%, var(--purple-dark) 100%);
+  }
+  body.estilo-elegante .badge-low{ border-radius:30px; }
   input{font-family:var(--font-body)}
   ::-webkit-scrollbar{width:6px}::-webkit-scrollbar-thumb{background:var(--border);border-radius:10px}
 
@@ -402,6 +492,9 @@ async function carregarLoja() {
 
     // Aplicar cor primária do vendedor na loja
     if (CONFIG_LOJA.corPrimaria) aplicarCorTemaLoja(CONFIG_LOJA.corPrimaria);
+    // Aplicar estilo visual (ex: elegante para Mary Kay)
+    if (CONFIG_LOJA.estiloVisual === 'elegante') document.body.classList.add('estilo-elegante');
+    else document.body.classList.remove('estilo-elegante');
 
     const pSnap = await lojaBaseRef().collection('produtos')
       .where('status','==','ativo').get();
@@ -1178,12 +1271,21 @@ async function finalizarCarrinhoWhats() {
 function aplicarCorTemaLoja(hex){
   if(!hex||!/^#[0-9A-Fa-f]{6}$/.test(hex)) return;
   const r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16);
-  const dark='#'+[Math.max(0,r-40),Math.max(0,g-40),Math.max(0,b-40)].map(x=>x.toString(16).padStart(2,'0')).join('');
-  const light='#'+[Math.min(255,r+130),Math.min(255,g+130),Math.min(255,b+130)].map(x=>x.toString(16).padStart(2,'0')).join('');
+  const clamp=x=>Math.max(0,Math.min(255,Math.round(x)));
+  const hx=(rr,gg,bb)=>'#'+[rr,gg,bb].map(x=>clamp(x).toString(16).padStart(2,'0')).join('');
+  const dark = hx(r-40,g-40,b-40);
+  const darker = hx(r-70,g-55,b-60);          // para o fim do degradê de botão
+  const light = hx(r+130,g+130,b+130);
+  // Tons muito claros derivados da cor (para degradês tom-sobre-tom de fundo)
+  const tint1 = hx(r+192,g+196,b+194);        // quase branco, leve toque da cor
+  const tint2 = hx(r+180,g+188,b+186);
   const root=document.documentElement;
   root.style.setProperty('--purple',hex);
   root.style.setProperty('--purple-dark',dark);
+  root.style.setProperty('--purple-darker',darker);
   root.style.setProperty('--purple-light',light+'33');
+  root.style.setProperty('--tint-1',tint1);
+  root.style.setProperty('--tint-2',tint2);
 }
 </script>
 </body>
