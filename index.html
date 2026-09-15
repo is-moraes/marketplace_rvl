@@ -876,20 +876,57 @@ function trocarLoja(id){
   location.reload();  // recarrega o painel na loja escolhida (mais seguro que re-render parcial)
 }
 
+/* Transforma "Mary Kay" em "marykay" — apelido usado no link e como id da loja */
+function slugify(txt){
+  return String(txt||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+    .toLowerCase().replace(/[^a-z0-9]+/g,'').slice(0,24);
+}
+
+/* Cria uma nova loja (vazia) com um apelido único */
+async function criarNovaLoja(){
+  const nome = prompt('Nome da nova loja (ex: Mary Kay):');
+  if(nome===null) return;
+  if(nome.trim().length<2){ toast('Dê um nome com pelo menos 2 letras.','error'); return; }
+
+  let slug = slugify(nome);
+  if(!slug){ toast('Nome inválido. Use letras ou números.','error'); return; }
+  // Garante unicidade: se já existir, acrescenta número
+  const idsExistentes = new Set(LOJAS.map(l=>l.id));
+  if(idsExistentes.has(slug)){
+    let i=2; while(idsExistentes.has(slug+i)) i++;
+    slug = slug+i;
+  }
+
+  const cor = prompt('Cor principal da loja (hex, ex: #E91E8C para rosa Mary Kay):','#E91E8C') || '#7C3AED';
+
+  try{
+    const ref = db.collection('usuarios').doc(uid).collection('lojas').doc(slug);
+    await ref.set({ nome:nome.trim(), cor, criadoEm:new Date().toISOString(), principal:false });
+    await ref.collection('meta').doc('config').set({
+      nomeLoja:nome.trim(), subtitulo:'', whatsapp:'', corPrimaria:cor,
+      pixChave:'', pixNome:'', pixCidade:''
+    });
+    toast(`Loja "${nome.trim()}" criada!`,'success');
+    // Já entra na loja nova
+    LOJA_ATUAL = slug;
+    localStorage.setItem('loja_ativa_'+uid, slug);
+    location.reload();
+  }catch(e){
+    console.error(e);
+    toast('Não foi possível criar a loja. Tente outro nome.','error');
+  }
+}
+
 /* Renderiza o seletor de lojas no topo da sidebar */
 function renderSeletorLojas(){
   const el=document.getElementById('seletor-lojas'); if(!el)return;
-  if(LOJAS.length<=1 && LOJAS.length>0){
-    // Uma loja só: mostra botão para criar a segunda
-    el.innerHTML=`<div style="font-size:.7rem;color:rgba(255,255,255,.5);margin-bottom:6px">LOJA ATIVA</div>
-      <div style="background:rgba(255,255,255,.1);border-radius:8px;padding:8px 11px;font-size:.85rem;color:#fff;font-weight:600">${LOJAS[0]?.nome||'Minha Loja'}</div>`;
-    return;
-  }
   const opcoes=LOJAS.map(l=>`<option value="${l.id}" ${l.id===LOJA_ATUAL?'selected':''}>${l.nome||'Loja'}</option>`).join('');
-  el.innerHTML=`<div style="font-size:.7rem;color:rgba(255,255,255,.5);margin-bottom:6px">TROCAR DE LOJA</div>
-    <select onchange="trocarLoja(this.value)" style="width:100%;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);border-radius:8px;padding:8px 11px;font-size:.85rem;color:#fff;font-weight:600;cursor:pointer">
+  el.innerHTML=`
+    <div style="font-size:.7rem;color:rgba(255,255,255,.5);margin-bottom:6px">${LOJAS.length>1?'TROCAR DE LOJA':'LOJA ATIVA'}</div>
+    <select onchange="trocarLoja(this.value)" style="width:100%;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);border-radius:8px;padding:8px 11px;font-size:.85rem;color:#fff;font-weight:600;cursor:pointer;margin-bottom:7px">
       ${opcoes}
-    </select>`;
+    </select>
+    <button onclick="criarNovaLoja()" style="width:100%;background:transparent;border:1px dashed rgba(255,255,255,.3);border-radius:8px;padding:7px;font-size:.78rem;color:rgba(255,255,255,.8);cursor:pointer">+ Nova loja</button>`;
 }
 
 let GASTOS=[];
