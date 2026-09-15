@@ -385,6 +385,10 @@
       <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
       Minha Loja
     </div>
+    <div class="nav-item" onclick="goPage('cursos')">
+      <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
+      Cursos e informações
+    </div>
     <div class="nav-item" onclick="goPage('configuracoes')">
       <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
       Configurações
@@ -551,14 +555,6 @@
           </div>
         </div>
         <div class="chart-card" style="margin-bottom:16px">
-          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
-            <h3 style="margin:0">Seções da loja (cursos, sobre mim, depoimentos)</h3>
-            <button type="button" class="btn btn-secondary btn-xs" onclick="addSecao()">+ Adicionar seção</button>
-          </div>
-          <div style="font-size:.75rem;color:var(--muted);margin:6px 0 12px">Blocos que aparecem na sua loja abaixo dos produtos. Só aparecem os que você preencher. Ótimo para divulgar cursos com botão de WhatsApp.</div>
-          <div id="secoes-editor"></div>
-        </div>
-        <div class="chart-card" style="margin-bottom:16px">
           <h3>Dados PIX</h3>
           <div class="form-row">
             <div class="fg"><label>Tipo da chave</label>
@@ -587,6 +583,18 @@
     </div>
 
     <!-- MEU PLANO -->
+    <div class="page" id="page-cursos">
+      <div class="chart-card" style="margin-bottom:16px">
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+          <h3 style="margin:0">Cursos e informações do vendedor</h3>
+          <button type="button" class="btn btn-primary btn-sm" onclick="addSecao()">+ Adicionar</button>
+        </div>
+        <div style="font-size:.78rem;color:var(--muted);margin:8px 0 16px">Blocos que aparecem na sua loja, abaixo dos produtos. Divulgue cursos (com botão de WhatsApp), fale sobre você, ou mostre depoimentos. Só aparece o que você preencher.</div>
+        <div id="secoes-editor"></div>
+        <button type="button" class="btn btn-primary btn-full" style="margin-top:14px" onclick="salvarSecoes()">Salvar cursos e informações</button>
+      </div>
+    </div>
+
     <div class="page" id="page-plano">
       <div style="max-width:600px">
         <div id="plano-status-card" class="chart-card" style="margin-bottom:16px"></div>
@@ -1104,7 +1112,7 @@ function goPage(p){
   document.querySelectorAll('.nav-item').forEach(el=>el.classList.remove('active'));
   document.getElementById('page-'+p).classList.add('active');
   document.querySelectorAll('.nav-item').forEach(n=>{if(n.textContent.trim().toLowerCase().includes(p.substring(0,5)))n.classList.add('active')});
-  const titles={dashboard:'Painel',produtos:'Produtos',vendas:'Vendas',clientes:'Clientes','minha-loja':'Minha Loja',configuracoes:'Configurações',plano:'Meu Plano'};
+  const titles={dashboard:'Painel',produtos:'Produtos',vendas:'Vendas',clientes:'Clientes','minha-loja':'Minha Loja',configuracoes:'Configurações',plano:'Meu Plano',cursos:'Cursos e informações'};
   document.getElementById('page-title').textContent=titles[p]||p;
   document.getElementById('sidebar').classList.remove('open');
   const btnMap={dashboard:'+ Novo',produtos:'+ Produto',vendas:'+ Venda',clientes:'+ Cliente'};
@@ -1118,6 +1126,7 @@ function goPage(p){
   if(p==='gastos')renderGastos();
   if(p==='clientes')renderClientes();
   if(p==='configuracoes')carregarFormCfg();
+  if(p==='cursos'){ if(!SECOES_EDIT.length && Array.isArray(CONFIG.secoes)) SECOES_EDIT=JSON.parse(JSON.stringify(CONFIG.secoes)); renderSecoesEditor(); }
   if(p==='plano')renderPlano();
 }
 
@@ -2122,6 +2131,7 @@ function coletarSecoesDoDOM(){
     const g=id=>document.getElementById(`sec-${i}-${id}`);
     if(g('titulo')) s.titulo=g('titulo').value;
     if(g('subtitulo')) s.subtitulo=g('subtitulo').value;
+    if(g('ministrante')) s.ministrante=g('ministrante').value;
     if(g('texto')) s.texto=g('texto').value;
     if(g('btntexto')) s.botaoTexto=g('btntexto').value;
     if(g('btnmsg')) s.botaoMsg=g('btnmsg').value;
@@ -2165,6 +2175,7 @@ function renderSecoesEditor(){
       corpo=`
         <input id="sec-${i}-titulo" placeholder="Título (ex: Cursos e Treinamentos)" value="${(s.titulo||'').replace(/"/g,'&quot;')}" style="width:100%;padding:9px;border:1px solid var(--border);border-radius:8px;font-size:.85rem;font-family:inherit;margin-bottom:6px"/>
         <input id="sec-${i}-subtitulo" placeholder="Subtítulo (opcional)" value="${(s.subtitulo||'').replace(/"/g,'&quot;')}" style="width:100%;padding:9px;border:1px solid var(--border);border-radius:8px;font-size:.85rem;font-family:inherit;margin-bottom:6px"/>
+        <input id="sec-${i}-ministrante" placeholder="Ministrante do curso (ex: Miriã Silva)" value="${(s.ministrante||'').replace(/"/g,'&quot;')}" style="width:100%;padding:9px;border:1px solid var(--border);border-radius:8px;font-size:.85rem;font-family:inherit;margin-bottom:6px"/>
         <textarea id="sec-${i}-texto" rows="3" placeholder="Texto da seção…" style="width:100%;padding:9px;border:1px solid var(--border);border-radius:8px;font-size:.85rem;font-family:inherit;margin-bottom:6px">${(s.texto||'').replace(/</g,'&lt;')}</textarea>
         <div class="form-row">
           <div class="fg" style="margin:0"><input id="sec-${i}-btntexto" placeholder="Texto do botão (ex: Quero saber mais)" value="${(s.botaoTexto||'').replace(/"/g,'&quot;')}" style="width:100%;padding:9px;border:1px solid var(--border);border-radius:8px;font-size:.85rem;font-family:inherit"/></div>
@@ -2186,6 +2197,20 @@ function renderSecoesEditor(){
   }).join('');
 }
 function mudarTipoSecao(i,tipo){ coletarSecoesDoDOM(); SECOES_EDIT[i].tipo=tipo; if(tipo==='depoimentos'&&!SECOES_EDIT[i].itens.length) SECOES_EDIT[i].itens=[{texto:'',autor:''}]; renderSecoesEditor(); }
+
+/* Salva só as seções na config da loja ativa (botão da página Cursos) */
+async function salvarSecoes(){
+  coletarSecoesDoDOM();
+  const secoes = SECOES_EDIT.filter(s => s.titulo || s.texto || (Array.isArray(s.itens)&&s.itens.some(d=>d.texto)));
+  try{
+    CONFIG = Object.assign({}, CONFIG, { secoes });
+    await lojaRef().collection('meta').doc('config').set({ secoes }, {merge:true});
+    toast('Cursos e informações salvos!','success');
+  }catch(e){
+    console.error(e);
+    toast('Não foi possível salvar. Tente novamente.','error');
+  }
+}
 
 function carregarFormCfg(){
   document.getElementById('cfg-loja').value=CONFIG.nomeLoja||'';
