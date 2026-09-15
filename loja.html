@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>Loja</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,500&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,500&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet"/>
 <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
@@ -23,106 +23,164 @@
   body{font-family:var(--font-body);background:var(--bg);color:var(--text);min-height:100vh;-webkit-font-smoothing:antialiased}
   button{cursor:pointer;border:none;font-family:var(--font-body)}
 
-  /* ═══════ TEMA ELEGANTE — sofisticado, dessaturado, adulto ═══════ */
+  /* ═══════════════════════════════════════════════════════════
+     TEMA ELEGANTE — sofisticação premium em fundo claro rosado
+     Glass, degradês mesh, serifada com degradê, glow suave.
+     ═══════════════════════════════════════════════════════════ */
   body.estilo-elegante{
-    --bg:#FFFFFF;
+    --bg:#FBF3F7;
     --surface:#FFFFFF;
-    --border:#ECE8E9;
-    --text:#3A2E33;          /* marrom-acinzentado escuro, sério */
-    --muted:#8B8085;
-    --font-head:'Playfair Display',Georgia,serif;
-    background:#FFFFFF !important;
+    --border:rgba(194,24,91,.12);
+    --text:#3A2733;
+    --muted:#9B8791;
+    --font-head:'DM Serif Display',Georgia,serif;
+    color:var(--text);
+    /* Fundo com degradês radiais "mesh" em tons de rosa, bem suaves */
+    background:
+      radial-gradient(circle at 12% 8%, rgba(194,24,91,.10), transparent 26%),
+      radial-gradient(circle at 88% 6%, rgba(233,30,140,.08), transparent 24%),
+      radial-gradient(circle at 78% 88%, rgba(154,0,51,.06), transparent 26%),
+      linear-gradient(180deg, #FFFFFF 0%, var(--bg) 60%, #F6E9F0 100%) !important;
+    background-attachment:fixed !important;
+    min-height:100vh;
   }
-  /* CABEÇALHO: branco, limpo, como o site oficial. Cor só num filete e no nome. */
+
+  /* Cabeçalho: glass claro com um véu de degradê rosa e filete brilhante */
   body.estilo-elegante .loja-header{
-    background:#FFFFFF !important;
+    background:linear-gradient(135deg, rgba(255,255,255,.82), rgba(251,243,247,.7)) !important;
+    backdrop-filter:blur(14px);
     border-bottom:1px solid var(--border);
     color:var(--text) !important;
-    padding:26px 40px !important;
+    padding:30px 40px !important;
     position:relative;
   }
   body.estilo-elegante .loja-header::before{
     content:''; position:absolute; top:0; left:0; right:0; height:3px;
-    background:linear-gradient(90deg, var(--purple) 0%, var(--purple-dark) 100%);
+    background:linear-gradient(90deg, transparent, var(--purple), var(--purple-dark), transparent);
   }
+  /* Nome da marca: serifada com degradê no próprio texto + glow tênue */
   body.estilo-elegante .brand-name{
-    font-weight:600; font-size:1.55rem; letter-spacing:3px; color:var(--text);
-    text-transform:uppercase;
+    font-family:var(--font-head); font-weight:400; font-size:1.85rem; letter-spacing:1px;
+    background:linear-gradient(135deg, var(--purple-dark), var(--purple), #E96BA8);
+    -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent;
+    text-shadow:0 2px 18px rgba(194,24,91,.15);
   }
-  body.estilo-elegante .brand-sub{ color:var(--muted); font-style:italic; letter-spacing:.4px; font-size:.8rem; }
+  body.estilo-elegante .brand-sub{ color:var(--muted); font-style:italic; letter-spacing:.4px; font-size:.82rem; }
   body.estilo-elegante .brand-icon{
-    background:linear-gradient(145deg, var(--purple) 0%, var(--purple-dark) 100%) !important;
-    color:#fff !important;
+    background:linear-gradient(145deg, var(--purple), var(--purple-dark)) !important;
+    color:#fff !important; box-shadow:0 6px 20px rgba(194,24,91,.3);
   }
-  /* Rótulos e botões de pagamento no topo: texto escuro agora que o fundo é claro */
   body.estilo-elegante .pay-label{ color:var(--muted) !important; }
   body.estilo-elegante .pay-chip{
-    background:#FAF7F8 !important; border:1px solid var(--border) !important;
-    color:var(--text) !important;
+    background:rgba(255,255,255,.6) !important; border:1px solid var(--border) !important;
+    color:var(--text) !important; backdrop-filter:blur(6px);
   }
 
-  /* Barra de filtros: fundo branco, respiro generoso */
-  body.estilo-elegante .filtros{ background:#FFFFFF !important; border-bottom:1px solid var(--border); padding:16px 40px !important; }
-  body.estilo-elegante .loja-body{ background:#FDFCFC; padding:32px 40px !important; }
-
-  /* Busca: linha fina e discreta */
+  /* Filtros: barra glass, chips pílula com destaque em degradê */
+  body.estilo-elegante .filtros{
+    background:linear-gradient(180deg, rgba(255,255,255,.7), rgba(255,255,255,.4)) !important;
+    backdrop-filter:blur(10px); border-bottom:1px solid var(--border); padding:16px 40px !important;
+  }
+  body.estilo-elegante .loja-body{ padding:34px 40px !important; }
   body.estilo-elegante .busca{
-    border-radius:2px; background:#FFFFFF; border:1px solid var(--border);
-    border-bottom:2px solid var(--purple); padding:12px 18px;
+    border-radius:999px; background:rgba(255,255,255,.75); border:1px solid var(--border);
+    padding:12px 20px; backdrop-filter:blur(6px);
   }
-  /* Filtros: texto, sem cápsula pesada, underline no ativo (estilo menu de loja) */
   body.estilo-elegante .filtro-chip{
-    border-radius:0; background:transparent; border:none;
-    border-bottom:2px solid transparent; padding:8px 4px; margin:0 8px;
-    color:var(--muted); font-weight:500; letter-spacing:.6px; font-size:.8rem;
-    text-transform:uppercase;
+    border-radius:999px; background:rgba(255,255,255,.5); border:1px solid var(--border);
+    color:var(--muted); font-weight:600; letter-spacing:.06em; font-size:.72rem;
+    text-transform:uppercase; padding:7px 15px; backdrop-filter:blur(6px);
   }
   body.estilo-elegante .filtro-chip.active,
   body.estilo-elegante .filtro-chip:hover{
-    background:transparent; color:var(--purple-dark);
-    border-bottom:2px solid var(--purple);
+    background:linear-gradient(135deg, var(--purple), var(--purple-dark));
+    border-color:transparent; color:#fff;
+    box-shadow:0 6px 18px rgba(194,24,91,.28);
   }
 
-  /* Cards: minimalistas, borda quase invisível, muito respiro, canto sutil */
+  /* Cards: glassmorphism claro, borda translúcida, sombra profunda suave */
   body.estilo-elegante .card{
-    border-radius:6px; border:1px solid #F2EEEF;
-    box-shadow:none;
-    transition:transform .3s cubic-bezier(.2,.8,.2,1), box-shadow .3s;
-    background:#FFFFFF;
+    border-radius:18px;
+    background:linear-gradient(180deg, rgba(255,255,255,.9), rgba(255,255,255,.72));
+    border:1px solid rgba(255,255,255,.7);
+    box-shadow:0 12px 34px rgba(58,39,51,.08);
+    backdrop-filter:blur(8px);
+    transition:transform .32s cubic-bezier(.2,.8,.2,1), box-shadow .32s;
   }
-  body.estilo-elegante .card:hover{ transform:translateY(-4px); box-shadow:0 12px 34px rgba(58,46,51,.09); }
-  body.estilo-elegante .card-img{ border-radius:6px 6px 0 0; background:#FAF7F8; }
+  body.estilo-elegante .card:hover{
+    transform:translateY(-6px);
+    box-shadow:0 22px 50px rgba(194,24,91,.16);
+  }
+  body.estilo-elegante .card-img{
+    border-radius:18px 18px 0 0;
+    background:linear-gradient(160deg, #FFFFFF, #FBEAF2);
+  }
   body.estilo-elegante .card-info{ padding:18px 16px 20px !important; text-align:center; }
   body.estilo-elegante .card-name{
-    font-family:var(--font-head); font-weight:500; font-size:1rem;
-    white-space:normal; line-height:1.4; color:var(--text);
+    font-family:var(--font-head); font-weight:400; font-size:1.08rem;
+    white-space:normal; line-height:1.35; color:var(--text);
   }
   body.estilo-elegante .card-price{
-    color:var(--purple-dark); font-weight:600; font-size:1.05rem; margin-top:4px;
+    font-family:var(--font-head);
+    background:linear-gradient(135deg, var(--purple-dark), var(--purple));
+    -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent;
+    font-size:1.2rem; margin-top:4px;
   }
 
-  /* Botões de ação: retângulo fino, elegante, cor cheia sóbria */
+  /* Botões: degradê rosa com glow, pílula */
   body.estilo-elegante .btn-action{
-    border-radius:2px; letter-spacing:1px; text-transform:uppercase;
-    font-size:.76rem; font-weight:600; padding:14px;
+    border-radius:999px; letter-spacing:.06em; text-transform:uppercase;
+    font-size:.78rem; font-weight:700; padding:14px;
   }
   body.estilo-elegante .btn-whats{
-    background:linear-gradient(135deg, var(--purple) 0%, var(--purple-darker, var(--purple-dark)) 100%) !important;
+    background:linear-gradient(135deg, var(--purple), var(--purple-dark)) !important;
+    box-shadow:0 8px 24px rgba(194,24,91,.32);
   }
   body.estilo-elegante .btn-pix{
-    background:var(--text) !important;
+    background:linear-gradient(135deg, var(--purple-dark), var(--purple-darker, #7a0f38)) !important;
+    box-shadow:0 8px 24px rgba(154,0,51,.3);
   }
 
   /* Detalhe do produto */
-  body.estilo-elegante .det-name{ font-family:var(--font-head); font-weight:500; letter-spacing:.5px; }
-  body.estilo-elegante .det-price{ font-family:var(--font-head); font-weight:600; color:var(--purple-dark); }
-
-  /* Selos discretos, sem cápsula gritante */
-  body.estilo-elegante .badge-var{
-    border-radius:2px; letter-spacing:.5px; font-weight:500; text-transform:uppercase; font-size:.62rem;
-    background:var(--text);
+  body.estilo-elegante .modal{
+    background:linear-gradient(180deg, rgba(255,255,255,.96), rgba(251,243,247,.96));
+    backdrop-filter:blur(16px); border:1px solid rgba(255,255,255,.7);
   }
-  body.estilo-elegante .badge-low{ border-radius:2px; letter-spacing:.5px; }
+  body.estilo-elegante .det-name{ font-family:var(--font-head); font-weight:400; letter-spacing:.3px; }
+  body.estilo-elegante .det-price{
+    font-family:var(--font-head);
+    background:linear-gradient(135deg, var(--purple-dark), var(--purple));
+    -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent;
+  }
+
+  /* Badges pílula com glass */
+  body.estilo-elegante .badge-var{
+    border-radius:999px; letter-spacing:.06em; font-weight:700; text-transform:uppercase; font-size:.64rem;
+    background:linear-gradient(135deg, var(--purple), var(--purple-dark));
+    box-shadow:0 4px 12px rgba(194,24,91,.28);
+  }
+  body.estilo-elegante .badge-low{ border-radius:999px; letter-spacing:.04em; }
+
+  /* Seções informativas em glass, no tema */
+  body.estilo-elegante .info-sec{
+    border-radius:20px;
+    background:linear-gradient(180deg, rgba(255,255,255,.86), rgba(255,255,255,.66));
+    border:1px solid rgba(255,255,255,.7); backdrop-filter:blur(8px);
+    box-shadow:0 12px 34px rgba(58,39,51,.07);
+  }
+  body.estilo-elegante .info-sec h2{
+    font-family:var(--font-head); font-weight:400; letter-spacing:.5px;
+    background:linear-gradient(135deg, var(--purple-dark), var(--purple));
+    -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent;
+  }
+  body.estilo-elegante .info-btn{
+    border-radius:999px; letter-spacing:.06em; text-transform:uppercase; font-size:.78rem;
+    background:linear-gradient(135deg, var(--purple), var(--purple-dark));
+    box-shadow:0 8px 24px rgba(194,24,91,.3);
+  }
+  body.estilo-elegante .info-depo .depo{
+    background:rgba(255,255,255,.6); border:1px solid var(--border); backdrop-filter:blur(6px);
+  }
   input{font-family:var(--font-body)}
   ::-webkit-scrollbar{width:6px}::-webkit-scrollbar-thumb{background:var(--border);border-radius:10px}
 
@@ -166,6 +224,21 @@
 
   /* Body */
   .loja-body{padding:28px 32px;max-width:1400px;margin:0 auto}
+  /* Seções informativas (cursos, sobre, depoimentos) */
+  .info-sec{margin-top:44px;padding:36px 32px;border-radius:16px;background:var(--surface);border:1px solid var(--border);text-align:center}
+  .info-sec + .info-sec{margin-top:24px}
+  .info-sec h2{font-family:var(--font-head,inherit);font-size:1.5rem;margin-bottom:6px;color:var(--text)}
+  .info-sec .info-sub{color:var(--muted);font-size:.9rem;margin-bottom:18px}
+  .info-sec p.info-txt{max-width:640px;margin:0 auto 22px;line-height:1.7;color:var(--text);white-space:pre-line}
+  .info-sec .info-btn{display:inline-flex;align-items:center;gap:8px;background:var(--purple);color:#fff;padding:13px 26px;border-radius:30px;font-weight:600;font-size:.9rem;text-decoration:none;transition:transform .15s,box-shadow .2s}
+  .info-sec .info-btn:hover{transform:translateY(-2px);box-shadow:0 6px 18px rgba(0,0,0,.15)}
+  .info-depo{display:flex;flex-wrap:wrap;gap:16px;justify-content:center;margin-top:8px}
+  .info-depo .depo{background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:18px 20px;max-width:280px;text-align:left}
+  .info-depo .depo p{font-style:italic;color:var(--text);line-height:1.55;margin-bottom:8px;font-size:.9rem}
+  .info-depo .depo span{color:var(--muted);font-size:.8rem;font-weight:600}
+  body.estilo-elegante .info-sec{border-radius:6px;background:#fff}
+  body.estilo-elegante .info-sec h2{letter-spacing:.5px;font-weight:500}
+  body.estilo-elegante .info-btn{border-radius:2px;letter-spacing:1px;text-transform:uppercase;font-size:.78rem}
   .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:22px}
 
   .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;cursor:pointer;transition:transform .18s,box-shadow .18s;box-shadow:0 1px 2px rgba(31,27,46,.04)}
@@ -314,12 +387,7 @@
   <div class="filtros">
     <input class="busca" type="text" placeholder="🔍 Buscar produto…" oninput="filtrar(this.value)"/>
   </div>
-  <div class="filtros filtros-cat">
-    <div class="filtro-chip cat-chip active" onclick="setCategoria('',this)">Todos</div>
-    <div class="filtro-chip cat-chip" onclick="setCategoria('Vestimenta',this)">👗 Vestimenta</div>
-    <div class="filtro-chip cat-chip" onclick="setCategoria('Saúde',this)">💊 Saúde</div>
-    <div class="filtro-chip cat-chip" onclick="setCategoria('Beleza',this)">💄 Beleza</div>
-  </div>
+  <div class="filtros filtros-cat" id="filtros-cat"></div>
   <div class="filtros">
     <div class="filtro-chip ord-chip active" onclick="setOrdem('',this)">Relevância</div>
     <div class="filtro-chip ord-chip" onclick="setOrdem('asc',this)">Menor preço</div>
@@ -332,6 +400,7 @@
       <span>🛍️</span>
       <p>Nenhum produto disponível no momento.</p>
     </div>
+    <div id="secoes-info"></div>
   </div>
 </div>
 
@@ -537,15 +606,20 @@ async function carregarLoja() {
     document.getElementById('loading-screen').style.display = 'none';
     document.getElementById('loja-app').style.display = '';
 
-    // Categoria inicial definida pelo vendedor nas Configurações
+    // Monta os chips de categoria só com as categorias que TÊM produto.
+    renderChipsCategoria();
+
+    // Categoria inicial definida pelo vendedor (se ainda houver produto nela)
     const catInicial = CONFIG_LOJA.categoriaInicial || '';
-    if (catInicial) {
+    const catsDisponiveis = categoriasComProduto();
+    if (catInicial && catsDisponiveis.includes(catInicial)) {
       categoriaAtual = catInicial;
-      document.querySelectorAll('.cat-chip').forEach(c => {
-        c.classList.toggle('active', (c.getAttribute('onclick')||'').includes(`setCategoria('${catInicial}'`));
-      });
+    } else {
+      categoriaAtual = '';   // cai em "Todos"
     }
+    marcarChipAtivo();
     filtrar('');   // passa pelo filtro → esgotados vão pro fim já na 1ª carga
+    renderSecoesInfo();
     carregarCarrinhoStorage();
     atualizarBadgeCarrinho();
   } catch(e) {
@@ -592,6 +666,49 @@ function toast(msg,type='info'){const d=document.createElement('div');d.classNam
 
 function parcelasNum(p){ return parseInt((p.parcelamento||'').replace(/[^\d]/g,''))||0; }
 
+/* Monta as seções informativas a partir de CONFIG_LOJA.secoes.
+   Cada seção só aparece se estiver preenchida. */
+function renderSecoesInfo(){
+  const el = document.getElementById('secoes-info');
+  if(!el) return;
+  const secoes = Array.isArray(CONFIG_LOJA.secoes) ? CONFIG_LOJA.secoes : [];
+  const num = CONFIG_LOJA.whatsapp || VENDEDOR_DOC.whatsapp || '';
+
+  const html = secoes.filter(s=>s && (s.titulo||s.texto)).map(s=>{
+    if(s.tipo==='depoimentos'){
+      const depos = Array.isArray(s.itens)?s.itens:[];
+      const cards = depos.filter(d=>d&&d.texto).map(d=>
+        `<div class="depo"><p>“${escapeHtml(d.texto)}”</p><span>— ${escapeHtml(d.autor||'Cliente')}</span></div>`
+      ).join('');
+      if(!cards && !s.texto) return '';
+      return `<div class="info-sec">
+        ${s.titulo?`<h2>${escapeHtml(s.titulo)}</h2>`:''}
+        ${s.subtitulo?`<div class="info-sub">${escapeHtml(s.subtitulo)}</div>`:''}
+        <div class="info-depo">${cards}</div>
+      </div>`;
+    }
+    // seção padrão: título + texto + botão opcional de WhatsApp
+    let botao = '';
+    if(s.botaoTexto){
+      const msg = encodeURIComponent(s.botaoMsg || `Olá! Gostaria de mais informações sobre: ${s.titulo||''}`);
+      const url = num ? `https://wa.me/55${num}?text=${msg}` : `https://wa.me/?text=${msg}`;
+      botao = `<a class="info-btn" href="${url}" target="_blank" rel="noopener">💬 ${escapeHtml(s.botaoTexto)}</a>`;
+    }
+    return `<div class="info-sec">
+      ${s.titulo?`<h2>${escapeHtml(s.titulo)}</h2>`:''}
+      ${s.subtitulo?`<div class="info-sub">${escapeHtml(s.subtitulo)}</div>`:''}
+      ${s.texto?`<p class="info-txt">${escapeHtml(s.texto)}</p>`:''}
+      ${botao}
+    </div>`;
+  }).join('');
+
+  el.innerHTML = html;
+}
+
+function escapeHtml(str){
+  return String(str||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
 function render(lista) {
   const grid=document.getElementById('grid-produtos'), empty=document.getElementById('empty-state');
   if(!lista.length){grid.innerHTML='';empty.style.display='';return}
@@ -636,10 +753,53 @@ function filtrar(q) {
   render(lista);
 }
 
-function setCategoria(cat, el) {
+/* Ordem e ícones das categorias conhecidas */
+const CATEGORIAS_LOJA = [
+  { id:'Vestimenta', label:'👗 Vestimenta' },
+  { id:'Saúde',      label:'💊 Saúde' },
+  { id:'Beleza',     label:'💄 Beleza' },
+  { id:'Outros',     label:'📦 Outros' }
+];
+
+/* Quais categorias realmente têm produto cadastrado nesta loja */
+function categoriasComProduto(){
+  const set = new Set(PRODUTOS.map(p => p.categoria || 'Outros'));
+  return CATEGORIAS_LOJA.map(c=>c.id).filter(id => set.has(id));
+}
+
+/* Monta os chips: "Todos" sempre + só as categorias com produto.
+   Loja nova (sem produto) mostra "Todos" e "Outros". */
+function renderChipsCategoria(){
+  const el = document.getElementById('filtros-cat');
+  if(!el) return;
+  let disponiveis = categoriasComProduto();
+  // Loja vazia: garante ao menos "Outros" para não ficar só com "Todos"
+  if(disponiveis.length === 0) disponiveis = ['Outros'];
+
+  // Se só existe uma categoria além de "Todos", o filtro é redundante → esconde a barra
+  if(disponiveis.length <= 1){
+    el.style.display = 'none';
+    return;
+  }
+  el.style.display = '';
+
+  let html = `<div class="filtro-chip cat-chip" data-cat="" onclick="setCategoria('')">Todos</div>`;
+  html += disponiveis.map(id=>{
+    const c = CATEGORIAS_LOJA.find(x=>x.id===id);
+    return `<div class="filtro-chip cat-chip" data-cat="${id}" onclick="setCategoria('${id}')">${c?c.label:id}</div>`;
+  }).join('');
+  el.innerHTML = html;
+}
+
+function marcarChipAtivo(){
+  document.querySelectorAll('.cat-chip').forEach(c=>{
+    c.classList.toggle('active', (c.getAttribute('data-cat')||'')===categoriaAtual);
+  });
+}
+
+function setCategoria(cat) {
   categoriaAtual = cat;
-  document.querySelectorAll('.cat-chip').forEach(c=>c.classList.remove('active'));
-  el.classList.add('active');
+  marcarChipAtivo();
   filtrar(document.querySelector('.busca').value);
 }
 function setOrdem(o, el) {
