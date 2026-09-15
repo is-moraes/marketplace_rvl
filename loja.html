@@ -25,23 +25,20 @@
 
   /* ═══════ TEMA ELEGANTE — sofisticado, dessaturado, adulto ═══════ */
   body.estilo-elegante{
-    --bg:#F7F4F2;            /* off-white quente, quase linho */
+    --bg:#FFFFFF;
     --surface:#FFFFFF;
-    --border:#EAE3E0;        /* borda cinza-rosé muito sutil */
-    --text:#2A2427;          /* carvão quente, não preto puro */
-    --muted:#9A8E8C;         /* cinza-taupe para texto secundário */
+    --border:#ECE8E9;
+    --text:#3A2E33;          /* marrom-acinzentado escuro, sério */
+    --muted:#8B8085;
     --font-head:'Playfair Display',Georgia,serif;
-    /* Degradê de fundo tom-sobre-tom: do off-white para um leve toque da cor da marca */
-    background:linear-gradient(180deg, #FFFFFF 0%, var(--bg) 34%, var(--tint-1, #F3EEF0) 100%) !important;
-    background-attachment:fixed !important;
-    min-height:100vh;
+    background:#FFFFFF !important;
   }
-  /* Cabeçalho: branco com um sopro do tom da marca em degradê, filete no topo */
+  /* CABEÇALHO: branco, limpo, como o site oficial. Cor só num filete e no nome. */
   body.estilo-elegante .loja-header{
-    background:linear-gradient(160deg, #FFFFFF 0%, var(--tint-1, #FCF6F8) 100%) !important;
+    background:#FFFFFF !important;
     border-bottom:1px solid var(--border);
     color:var(--text) !important;
-    padding:34px 32px !important;
+    padding:26px 40px !important;
     position:relative;
   }
   body.estilo-elegante .loja-header::before{
@@ -49,69 +46,83 @@
     background:linear-gradient(90deg, var(--purple) 0%, var(--purple-dark) 100%);
   }
   body.estilo-elegante .brand-name{
-    font-weight:500; font-size:1.7rem; letter-spacing:1px; color:var(--text);
+    font-weight:600; font-size:1.55rem; letter-spacing:3px; color:var(--text);
+    text-transform:uppercase;
   }
-  body.estilo-elegante .brand-sub{ color:var(--muted); font-style:italic; letter-spacing:.3px; }
+  body.estilo-elegante .brand-sub{ color:var(--muted); font-style:italic; letter-spacing:.4px; font-size:.8rem; }
   body.estilo-elegante .brand-icon{
     background:linear-gradient(145deg, var(--purple) 0%, var(--purple-dark) 100%) !important;
     color:#fff !important;
   }
-  body.estilo-elegante .topbar-title{ font-weight:500; letter-spacing:.5px; }
+  /* Rótulos e botões de pagamento no topo: texto escuro agora que o fundo é claro */
+  body.estilo-elegante .pay-label{ color:var(--muted) !important; }
+  body.estilo-elegante .pay-chip{
+    background:#FAF7F8 !important; border:1px solid var(--border) !important;
+    color:var(--text) !important;
+  }
 
-  /* Cards: cantos suaves, sombra difusa; imagem com fundo em degradê tênue */
-  body.estilo-elegante .card{
-    border-radius:14px; border:1px solid var(--border);
-    box-shadow:0 4px 20px rgba(42,36,39,.04);
-    transition:transform .3s cubic-bezier(.2,.8,.2,1), box-shadow .3s;
-    background:var(--surface);
-  }
-  body.estilo-elegante .card:hover{ transform:translateY(-5px); box-shadow:0 16px 40px rgba(42,36,39,.1); }
-  body.estilo-elegante .card-img{
-    border-radius:14px 14px 0 0;
-    background:linear-gradient(160deg, #FFFFFF 0%, var(--tint-2, #FAF4F6) 100%);
-  }
-  body.estilo-elegante .card-info{ padding:16px 16px 18px !important; }
-  body.estilo-elegante .card-name{
-    font-family:var(--font-head); font-weight:500; font-size:1.05rem;
-    white-space:normal; line-height:1.35; color:var(--text);
-  }
-  body.estilo-elegante .card-price{ color:var(--text); font-weight:500; }
+  /* Barra de filtros: fundo branco, respiro generoso */
+  body.estilo-elegante .filtros{ background:#FFFFFF !important; border-bottom:1px solid var(--border); padding:16px 40px !important; }
+  body.estilo-elegante .loja-body{ background:#FDFCFC; padding:32px 40px !important; }
 
-  /* Busca e filtros */
-  body.estilo-elegante .busca{ border-radius:30px; background:var(--surface); border-color:var(--border); }
+  /* Busca: linha fina e discreta */
+  body.estilo-elegante .busca{
+    border-radius:2px; background:#FFFFFF; border:1px solid var(--border);
+    border-bottom:2px solid var(--purple); padding:12px 18px;
+  }
+  /* Filtros: texto, sem cápsula pesada, underline no ativo (estilo menu de loja) */
   body.estilo-elegante .filtro-chip{
-    border-radius:30px; background:transparent; border-color:var(--border);
-    color:var(--muted); font-weight:500; letter-spacing:.2px; font-size:.8rem; text-transform:none;
+    border-radius:0; background:transparent; border:none;
+    border-bottom:2px solid transparent; padding:8px 4px; margin:0 8px;
+    color:var(--muted); font-weight:500; letter-spacing:.6px; font-size:.8rem;
+    text-transform:uppercase;
   }
   body.estilo-elegante .filtro-chip.active,
   body.estilo-elegante .filtro-chip:hover{
-    background:linear-gradient(135deg, var(--purple) 0%, var(--purple-dark) 100%);
-    border-color:var(--purple-dark); color:#fff;
+    background:transparent; color:var(--purple-dark);
+    border-bottom:2px solid var(--purple);
   }
 
-  /* Botões: degradê tom-sobre-tom, do rosa para o rosa mais fechado */
+  /* Cards: minimalistas, borda quase invisível, muito respiro, canto sutil */
+  body.estilo-elegante .card{
+    border-radius:6px; border:1px solid #F2EEEF;
+    box-shadow:none;
+    transition:transform .3s cubic-bezier(.2,.8,.2,1), box-shadow .3s;
+    background:#FFFFFF;
+  }
+  body.estilo-elegante .card:hover{ transform:translateY(-4px); box-shadow:0 12px 34px rgba(58,46,51,.09); }
+  body.estilo-elegante .card-img{ border-radius:6px 6px 0 0; background:#FAF7F8; }
+  body.estilo-elegante .card-info{ padding:18px 16px 20px !important; text-align:center; }
+  body.estilo-elegante .card-name{
+    font-family:var(--font-head); font-weight:500; font-size:1rem;
+    white-space:normal; line-height:1.4; color:var(--text);
+  }
+  body.estilo-elegante .card-price{
+    color:var(--purple-dark); font-weight:600; font-size:1.05rem; margin-top:4px;
+  }
+
+  /* Botões de ação: retângulo fino, elegante, cor cheia sóbria */
   body.estilo-elegante .btn-action{
-    border-radius:30px; letter-spacing:.4px; text-transform:none;
-    font-size:.85rem; font-weight:600; padding:13px;
+    border-radius:2px; letter-spacing:1px; text-transform:uppercase;
+    font-size:.76rem; font-weight:600; padding:14px;
   }
   body.estilo-elegante .btn-whats{
     background:linear-gradient(135deg, var(--purple) 0%, var(--purple-darker, var(--purple-dark)) 100%) !important;
-    box-shadow:0 4px 14px rgba(42,36,39,.12);
   }
   body.estilo-elegante .btn-pix{
-    background:linear-gradient(135deg, var(--purple-dark) 0%, var(--purple-darker, #7a1540) 100%) !important;
+    background:var(--text) !important;
   }
 
   /* Detalhe do produto */
-  body.estilo-elegante .det-name{ font-family:var(--font-head); font-weight:500; letter-spacing:.3px; }
-  body.estilo-elegante .det-price{ font-family:var(--font-head); font-weight:500; color:var(--purple-dark); }
+  body.estilo-elegante .det-name{ font-family:var(--font-head); font-weight:500; letter-spacing:.5px; }
+  body.estilo-elegante .det-price{ font-family:var(--font-head); font-weight:600; color:var(--purple-dark); }
 
-  /* Selos */
+  /* Selos discretos, sem cápsula gritante */
   body.estilo-elegante .badge-var{
-    border-radius:30px; letter-spacing:.3px; font-weight:500;
-    background:linear-gradient(135deg, var(--purple) 0%, var(--purple-dark) 100%);
+    border-radius:2px; letter-spacing:.5px; font-weight:500; text-transform:uppercase; font-size:.62rem;
+    background:var(--text);
   }
-  body.estilo-elegante .badge-low{ border-radius:30px; }
+  body.estilo-elegante .badge-low{ border-radius:2px; letter-spacing:.5px; }
   input{font-family:var(--font-body)}
   ::-webkit-scrollbar{width:6px}::-webkit-scrollbar-thumb{background:var(--border);border-radius:10px}
 
