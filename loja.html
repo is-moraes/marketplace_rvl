@@ -342,6 +342,14 @@
   /* Itens do carrinho */
   .badge-var{position:absolute;top:10px;left:10px;background:var(--purple);color:#fff;font-size:.66rem;font-weight:700;padding:3px 8px;border-radius:20px}
   .var-chips{display:flex;flex-wrap:wrap;gap:8px;margin:6px 0 14px}
+  /* Bolinhas de tom no card */
+  .card-swatches{display:flex;flex-wrap:wrap;gap:5px;justify-content:center;margin:8px 0 4px}
+  .card-swatches .swatch{width:18px;height:18px;border-radius:50%;border:1.5px solid #fff;box-shadow:0 0 0 1px var(--border);background-size:cover;background-position:center;flex-shrink:0}
+  .card-swatches .swatch.sw-esg{opacity:.35}
+  .card-swatches .swatch-mais{font-size:.72rem;color:var(--muted);font-weight:600;align-self:center;margin-left:2px}
+  /* Swatch grande no detalhe (chip com cor/foto + nome) */
+  .var-chip.swatch-chip{display:inline-flex;align-items:center;gap:8px;padding:6px 14px 6px 6px}
+  .var-chip.swatch-chip .sw-dot{width:26px;height:26px;border-radius:50%;border:1px solid rgba(0,0,0,.1);background-size:cover;background-position:center;flex-shrink:0}
   .var-chip{padding:8px 14px;border-radius:22px;border:1.5px solid var(--border);background:#fff;font-size:.82rem;font-weight:600;color:var(--text);cursor:pointer;transition:all .15s}
   .var-chip:hover{border-color:var(--purple)}
   .var-chip.active{background:var(--purple);border-color:var(--purple);color:#fff}
@@ -816,8 +824,24 @@ function abrirCursoDetalhe(id){  const dados = document.getElementById(id);
   openModal('modal-curso');
 }
 
-function render(lista) {
-  const grid=document.getElementById('grid-produtos'), empty=document.getElementById('empty-state');
+/* Bolinhas de tom no card (cor ou mini-foto), no estilo Mary Kay.
+   Mostra até 7; se houver mais, indica "+N". */
+function swatchesDoCard(p){
+  const comCor = p.variacoes.filter(v=>v.cor||v.swatchImg);
+  const MAX = 7;
+  const visiveis = comCor.slice(0, MAX);
+  const resto = comCor.length - visiveis.length;
+  const bolas = visiveis.map(v=>{
+    const esgotado = (v.estoque||0)===0;
+    const style = v.swatchImg
+      ? `background-image:url('${String(v.swatchImg).replace(/'/g,"%27")}')`
+      : `background:${v.cor||'#ccc'}`;
+    return `<span class="swatch ${esgotado?'sw-esg':''}" title="${escapeHtml(v.nome)}" style="${style}"></span>`;
+  }).join('');
+  return `<div class="card-swatches">${bolas}${resto>0?`<span class="swatch-mais">+${resto}</span>`:''}</div>`;
+}
+
+function render(lista) {  const grid=document.getElementById('grid-produtos'), empty=document.getElementById('empty-state');
   if(!lista.length){grid.innerHTML='';empty.style.display='';return}
   empty.style.display='none';
   grid.innerHTML = lista.map(p => {
@@ -835,6 +859,7 @@ function render(lista) {
       <div class="card-info">
         <div class="card-name">${p.nome}</div>
         <div class="card-price">R$ ${fmt(p.preco)}</div>
+        ${temVariacoes(p) && p.variacoes.some(v=>v.cor||v.swatchImg) ? swatchesDoCard(p) : ''}
         ${parcTxt?`<div class="card-parc">${parcTxt}</div>`:''}
         <button class="btn-ver" onclick="event.stopPropagation();verDetalhe('${p.id}')">Ver detalhes</button>
         <button class="btn-ver" style="margin-top:7px;background:var(--bg);color:var(--purple-dark);border:1px solid var(--border)" onclick="event.stopPropagation();adicionarAoCarrinho('${p.id}')">🛒 Adicionar</button>
@@ -932,7 +957,12 @@ function verDetalhe(id) {
     varEl.innerHTML = '<div style="font-size:.8rem;color:var(--muted);margin-bottom:2px">Escolha uma opção:</div><div class="var-chips">'+
       produtoAtual.variacoes.map(v=>{
         const sem=(v.estoque||0)===0;
-        return `<button class="var-chip ${v.nome===variacaoAtual?'active':''} ${sem?'esgotado':''}" ${sem?'disabled':''} onclick="selecionarVariacao('${String(v.nome).replace(/'/g,"\\'")}')">${v.nome}</button>`;
+        const temSwatch = v.cor || v.swatchImg;
+        const dot = temSwatch
+          ? `<span class="sw-dot" style="${v.swatchImg?`background-image:url('${String(v.swatchImg).replace(/'/g,"%27")}')`:`background:${v.cor}`}"></span>`
+          : '';
+        const cls = temSwatch ? 'var-chip swatch-chip' : 'var-chip';
+        return `<button class="${cls} ${v.nome===variacaoAtual?'active':''} ${sem?'esgotado':''}" ${sem?'disabled':''} onclick="selecionarVariacao('${String(v.nome).replace(/'/g,"\\'")}')">${dot}${escapeHtml(v.nome)}</button>`;
       }).join('')+'</div>';
   } else {
     varEl.innerHTML = '';
