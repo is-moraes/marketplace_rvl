@@ -585,6 +585,12 @@
     <!-- MEU PLANO -->
     <div class="page" id="page-cursos">
       <div class="chart-card" style="margin-bottom:16px">
+        <h3 style="margin:0 0 4px">Sobre mim</h3>
+        <div style="font-size:.78rem;color:var(--muted);margin-bottom:10px">Um texto de apresentação que aparece no topo da sua loja, logo abaixo do nome. Deixe em branco para não exibir.</div>
+        <textarea id="cfg-sobre" rows="4" placeholder="Ex: Sou consultora de beleza há 5 anos, apaixonada por ajudar mulheres a se sentirem incríveis..." style="width:100%;padding:11px;border:1px solid var(--border);border-radius:10px;font-size:.88rem;font-family:inherit;resize:vertical"></textarea>
+        <button type="button" class="btn btn-primary btn-sm" style="margin-top:10px" onclick="salvarSobre()">Salvar apresentação</button>
+      </div>
+      <div class="chart-card" style="margin-bottom:16px">
         <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
           <h3 style="margin:0">Cursos e informações do vendedor</h3>
           <button type="button" class="btn btn-primary btn-sm" onclick="addSecao()">+ Adicionar</button>
@@ -1126,7 +1132,7 @@ function goPage(p){
   if(p==='gastos')renderGastos();
   if(p==='clientes')renderClientes();
   if(p==='configuracoes')carregarFormCfg();
-  if(p==='cursos'){ if(!SECOES_EDIT.length && Array.isArray(CONFIG.secoes)) SECOES_EDIT=JSON.parse(JSON.stringify(CONFIG.secoes)); renderSecoesEditor(); }
+  if(p==='cursos'){ if(!SECOES_EDIT.length && Array.isArray(CONFIG.secoes)) SECOES_EDIT=JSON.parse(JSON.stringify(CONFIG.secoes)); const sob=document.getElementById('cfg-sobre'); if(sob) sob.value=CONFIG.sobreMim||''; renderSecoesEditor(); }
   if(p==='plano')renderPlano();
 }
 
@@ -2132,6 +2138,7 @@ function coletarSecoesDoDOM(){
     if(g('titulo')) s.titulo=g('titulo').value;
     if(g('subtitulo')) s.subtitulo=g('subtitulo').value;
     if(g('ministrante')) s.ministrante=g('ministrante').value;
+    if(g('img')) s.img=g('img').value;
     if(g('texto')) s.texto=g('texto').value;
     if(g('btntexto')) s.botaoTexto=g('btntexto').value;
     if(g('btnmsg')) s.botaoMsg=g('btnmsg').value;
@@ -2176,6 +2183,7 @@ function renderSecoesEditor(){
         <input id="sec-${i}-titulo" placeholder="Título (ex: Cursos e Treinamentos)" value="${(s.titulo||'').replace(/"/g,'&quot;')}" style="width:100%;padding:9px;border:1px solid var(--border);border-radius:8px;font-size:.85rem;font-family:inherit;margin-bottom:6px"/>
         <input id="sec-${i}-subtitulo" placeholder="Subtítulo (opcional)" value="${(s.subtitulo||'').replace(/"/g,'&quot;')}" style="width:100%;padding:9px;border:1px solid var(--border);border-radius:8px;font-size:.85rem;font-family:inherit;margin-bottom:6px"/>
         <input id="sec-${i}-ministrante" placeholder="Ministrante do curso (ex: Miriã Silva)" value="${(s.ministrante||'').replace(/"/g,'&quot;')}" style="width:100%;padding:9px;border:1px solid var(--border);border-radius:8px;font-size:.85rem;font-family:inherit;margin-bottom:6px"/>
+        <input id="sec-${i}-img" placeholder="Link da imagem do curso (opcional)" value="${(s.img||'').replace(/"/g,'&quot;')}" style="width:100%;padding:9px;border:1px solid var(--border);border-radius:8px;font-size:.85rem;font-family:inherit;margin-bottom:6px"/>
         <textarea id="sec-${i}-texto" rows="3" placeholder="Texto da seção…" style="width:100%;padding:9px;border:1px solid var(--border);border-radius:8px;font-size:.85rem;font-family:inherit;margin-bottom:6px">${(s.texto||'').replace(/</g,'&lt;')}</textarea>
         <div class="form-row">
           <div class="fg" style="margin:0"><input id="sec-${i}-btntexto" placeholder="Texto do botão (ex: Quero saber mais)" value="${(s.botaoTexto||'').replace(/"/g,'&quot;')}" style="width:100%;padding:9px;border:1px solid var(--border);border-radius:8px;font-size:.85rem;font-family:inherit"/></div>
@@ -2197,6 +2205,19 @@ function renderSecoesEditor(){
   }).join('');
 }
 function mudarTipoSecao(i,tipo){ coletarSecoesDoDOM(); SECOES_EDIT[i].tipo=tipo; if(tipo==='depoimentos'&&!SECOES_EDIT[i].itens.length) SECOES_EDIT[i].itens=[{texto:'',autor:''}]; renderSecoesEditor(); }
+
+/* Salva o texto "Sobre mim" na config da loja ativa */
+async function salvarSobre(){
+  const sobreMim = (document.getElementById('cfg-sobre').value||'').trim();
+  try{
+    CONFIG = Object.assign({}, CONFIG, { sobreMim });
+    await lojaRef().collection('meta').doc('config').set({ sobreMim }, {merge:true});
+    toast('Apresentação salva!','success');
+  }catch(e){
+    console.error(e);
+    toast('Não foi possível salvar. Tente novamente.','error');
+  }
+}
 
 /* Salva só as seções na config da loja ativa (botão da página Cursos) */
 async function salvarSecoes(){
