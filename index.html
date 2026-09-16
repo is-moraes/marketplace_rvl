@@ -1324,23 +1324,79 @@ function toggleVariacoes(on){
   document.getElementById('mprod-estoque-wrap').style.display = on?'none':'';
   if(on && !document.querySelector('#mprod-var-list .var-row')){ addLinhaVariacao(); addLinhaVariacao(); }
 }
-function addLinhaVariacao(nome='', estoque=''){
+let _varCounter = 0;
+function addLinhaVariacao(nome='', estoque='', cor='', swatchImg=''){
+  const uid_ = 'var'+(_varCounter++);
   const div=document.createElement('div');
   div.className='var-row';
-  div.style.cssText='display:flex;gap:8px;margin-bottom:6px;align-items:center';
+  div.dataset.cor = cor||'';
+  div.dataset.swatch = swatchImg||'';
+  div.style.cssText='display:flex;gap:8px;margin-bottom:6px;align-items:center;flex-wrap:wrap';
+  // prévia do swatch: foto tem prioridade, senão a cor, senão vazio
+  const previewStyle = swatchImg
+    ? `background-image:url('${swatchImg.replace(/'/g,"%27")}');background-size:cover;background-position:center`
+    : (cor ? `background:${cor}` : 'background:var(--bg)');
   div.innerHTML=`
-    <input type="text" class="var-nome" placeholder="Ex: Morango, Azul, 110V" value="${String(nome).replace(/"/g,'&quot;')}" style="flex:1;padding:9px 11px;border:1px solid var(--border);border-radius:9px;font-size:.85rem;font-family:inherit"/>
-    <input type="number" class="var-estoque" placeholder="Qtd" value="${estoque}" style="width:90px;padding:9px 11px;border:1px solid var(--border);border-radius:9px;font-size:.85rem;font-family:inherit"/>
-    <button type="button" onclick="this.parentElement.remove()" style="background:none;color:var(--danger);font-size:1.1rem;padding:4px 8px">✕</button>`;
+    <div class="var-swatch-prev" style="width:34px;height:34px;border-radius:50%;border:1px solid var(--border);flex-shrink:0;${previewStyle}"></div>
+    <input type="text" class="var-nome" placeholder="Ex: Rosé, Azul, P" value="${String(nome).replace(/"/g,'&quot;')}" style="flex:1;min-width:100px;padding:9px 11px;border:1px solid var(--border);border-radius:9px;font-size:.85rem;font-family:inherit"/>
+    <input type="number" class="var-estoque" placeholder="Qtd" value="${estoque}" style="width:70px;padding:9px 11px;border:1px solid var(--border);border-radius:9px;font-size:.85rem;font-family:inherit"/>
+    <input type="color" class="var-cor" value="${cor||'#cccccc'}" title="Cor do tom" onchange="atualizarSwatch(this)" style="width:36px;height:34px;border:1px solid var(--border);border-radius:8px;padding:2px;cursor:pointer;flex-shrink:0"/>
+    <input type="file" accept="image/jpeg,image/png,image/webp" class="var-imgfile" style="display:none" onchange="uploadSwatch(this)"/>
+    <button type="button" title="Foto do tom" onclick="this.parentElement.querySelector('.var-imgfile').click()" style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:6px 9px;cursor:pointer;flex-shrink:0">📷</button>
+    <button type="button" onclick="this.parentElement.remove()" style="background:none;color:var(--danger);font-size:1.1rem;padding:4px 8px;flex-shrink:0">✕</button>`;
   document.getElementById('mprod-var-list').appendChild(div);
 }
+
+/* Ao escolher cor no picker, atualiza a prévia e marca que usa cor (remove foto) */
+function atualizarSwatch(input){
+  const row = input.closest('.var-row');
+  row.dataset.cor = input.value;
+  row.dataset.swatch = '';   // escolher cor remove a foto
+  const prev = row.querySelector('.var-swatch-prev');
+  prev.style.backgroundImage = '';
+  prev.style.background = input.value;
+}
+
+/* Upload da foto do tom (swatch) */
+async function uploadSwatch(input){
+  const file = input.files && input.files[0];
+  if(!file) return;
+  if(!/^image\/(jpeg|jpg|png|webp)$/.test(file.type)){ toast('Use JPG, PNG ou WEBP.','error'); return; }
+  if(file.size > 5*1024*1024){ toast('Imagem muito grande (máx. 5MB).','error'); return; }
+  const row = input.closest('.var-row');
+  const prev = row.querySelector('.var-swatch-prev');
+  prev.style.opacity = '.5';
+  try{
+    const ext = (file.name.split('.').pop()||'jpg').toLowerCase();
+    const path = `swatches/${uid}/${Date.now()}.${ext}`;
+    const ref = storage.ref().child(path);
+    const task = await ref.put(file);
+    const url = await task.ref.getDownloadURL();
+    row.dataset.swatch = url;
+    prev.style.backgroundImage = `url('${url.replace(/'/g,"%27")}')`;
+    prev.style.backgroundSize = 'cover';
+    prev.style.backgroundPosition = 'center';
+    prev.style.opacity = '1';
+    toast('Foto do tom adicionada!','success');
+  }catch(e){
+    console.error(e); prev.style.opacity='1';
+    toast('Falha ao enviar: '+(e.message||''),'error');
+  }
+}
+
 function lerVariacoesDoForm(){
   const rows=[...document.querySelectorAll('#mprod-var-list .var-row')];
   const vars=[];
   for(const r of rows){
     const nome=r.querySelector('.var-nome').value.trim();
     const est=parseInt(r.querySelector('.var-estoque').value)||0;
-    if(nome) vars.push({nome, estoque:est});
+    if(nome){
+      const v = {nome, estoque:est};
+      // foto tem prioridade sobre cor
+      if(r.dataset.swatch) v.swatchImg = r.dataset.swatch;
+      else if(r.dataset.cor) v.cor = r.dataset.cor;
+      vars.push(v);
+    }
   }
   return vars;
 }
@@ -1377,7 +1433,7 @@ function editarProduto(id){
   const temVar=temVariacoes(p);
   document.getElementById('mprod-tem-var').checked=temVar;
   toggleVariacoes(temVar);
-  if(temVar) p.variacoes.forEach(v=>addLinhaVariacao(v.nome,v.estoque));
+  if(temVar) p.variacoes.forEach(v=>addLinhaVariacao(v.nome, v.estoque, v.cor||'', v.swatchImg||''));
   document.getElementById('mprod-titulo').textContent='Editar Produto';
   popularSelectParcelamento(p.parcelamento||'');
   openModal('modal-produto');
