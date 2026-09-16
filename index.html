@@ -2184,13 +2184,16 @@ function renderSecoesEditor(){
         <input id="sec-${i}-titulo" placeholder="Título (ex: Cursos e Treinamentos)" value="${(s.titulo||'').replace(/"/g,'&quot;')}" style="width:100%;padding:9px;border:1px solid var(--border);border-radius:8px;font-size:.85rem;font-family:inherit;margin-bottom:6px"/>
         <input id="sec-${i}-subtitulo" placeholder="Subtítulo (opcional)" value="${(s.subtitulo||'').replace(/"/g,'&quot;')}" style="width:100%;padding:9px;border:1px solid var(--border);border-radius:8px;font-size:.85rem;font-family:inherit;margin-bottom:6px"/>
         <input id="sec-${i}-ministrante" placeholder="Ministrante do curso (ex: Miriã Silva)" value="${(s.ministrante||'').replace(/"/g,'&quot;')}" style="width:100%;padding:9px;border:1px solid var(--border);border-radius:8px;font-size:.85rem;font-family:inherit;margin-bottom:6px"/>
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
-          <div id="sec-${i}-img-prev" style="width:64px;height:48px;border-radius:8px;background:var(--bg) center/cover no-repeat;border:1px solid var(--border);flex-shrink:0;${s.img?`background-image:url('${(s.img||'').replace(/'/g,"%27")}')`:''}"></div>
-          <input type="file" accept="image/*" id="sec-${i}-imgfile" style="display:none" onchange="uploadImagemCurso(${i}, event)"/>
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px">
+          <div id="sec-${i}-img-prev" style="width:70px;height:52px;border-radius:8px;border:1px solid var(--border);flex-shrink:0;overflow:hidden;background:var(--bg);display:flex;align-items:center;justify-content:center">
+            ${s.img?`<img src="${(s.img||'').replace(/"/g,'&quot;')}" style="width:100%;height:100%;object-fit:cover"/>`:'<span style="font-size:1.1rem;opacity:.4">🖼️</span>'}
+          </div>
+          <input type="file" accept="image/jpeg,image/png,image/webp" id="sec-${i}-imgfile" style="display:none" onchange="uploadImagemCurso(${i}, event)"/>
           <button type="button" class="btn btn-secondary btn-xs" onclick="document.getElementById('sec-${i}-imgfile').click()">${s.img?'Trocar imagem':'📷 Imagem do curso'}</button>
           ${s.img?`<button type="button" class="btn btn-xs" style="background:var(--bg);border:1px solid var(--border)" onclick="removerImagemCurso(${i})">Remover</button>`:''}
           <span id="sec-${i}-imgstatus" style="font-size:.72rem;color:var(--muted)"></span>
         </div>
+        <div style="font-size:.68rem;color:var(--muted);margin-bottom:8px">Formatos: JPG, PNG ou WEBP · máx. 5 MB · recomendado 800×450px (16:9)</div>
         <input type="hidden" id="sec-${i}-img" value="${(s.img||'').replace(/"/g,'&quot;')}"/>
         <textarea id="sec-${i}-texto" rows="3" placeholder="Texto da seção…" style="width:100%;padding:9px;border:1px solid var(--border);border-radius:8px;font-size:.85rem;font-family:inherit;margin-bottom:6px">${(s.texto||'').replace(/</g,'&lt;')}</textarea>
         <div class="form-row">
@@ -2218,9 +2221,9 @@ function mudarTipoSecao(i,tipo){ coletarSecoesDoDOM(); SECOES_EDIT[i].tipo=tipo;
 async function uploadImagemCurso(i, ev){
   const file = ev.target.files && ev.target.files[0];
   if(!file) return;
-  if(!file.type.startsWith('image/')){ toast('Selecione um arquivo de imagem.','error'); return; }
+  if(!/^image\/(jpeg|jpg|png|webp)$/.test(file.type)){ toast('Formato inválido. Use JPG, PNG ou WEBP.','error'); return; }
   if(file.size > 5*1024*1024){ toast('Imagem muito grande (máx. 5MB).','error'); return; }
-  coletarSecoesDoDOM();   // preserva o que já foi digitado antes de re-render
+  coletarSecoesDoDOM();   // preserva textos já digitados
   const status = document.getElementById(`sec-${i}-imgstatus`);
   if(status) status.textContent = 'Enviando…';
   try{
@@ -2229,8 +2232,11 @@ async function uploadImagemCurso(i, ev){
     const ref = storage.ref().child(path);
     const task = await ref.put(file);
     const url = await task.ref.getDownloadURL();
+    // Grava no modelo E no campo oculto do DOM, para não ser apagada no próximo coletar
     SECOES_EDIT[i].img = url;
-    renderSecoesEditor();
+    const hidden = document.getElementById(`sec-${i}-img`);
+    if(hidden) hidden.value = url;
+    renderSecoesEditor();   // agora o coletar interno lê a URL já presente no hidden
     toast('Imagem adicionada!','success');
   }catch(e){
     console.error(e);
@@ -2241,6 +2247,8 @@ async function uploadImagemCurso(i, ev){
 function removerImagemCurso(i){
   coletarSecoesDoDOM();
   SECOES_EDIT[i].img = '';
+  const hidden = document.getElementById(`sec-${i}-img`);
+  if(hidden) hidden.value = '';
   renderSecoesEditor();
 }
 
