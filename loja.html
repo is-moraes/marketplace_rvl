@@ -241,7 +241,15 @@
   .info-sec h2{font-family:var(--font-head,inherit);font-size:1.3rem;margin-bottom:4px;color:var(--text);line-height:1.25}
   .info-sec .info-sub{color:var(--muted);font-size:.82rem;margin-bottom:4px}
   .info-sec .info-ministrante{color:var(--purple-dark);font-size:.82rem;font-weight:600;margin-bottom:14px}
-  .info-sec p.info-txt{margin:0 0 20px;line-height:1.6;color:var(--text);white-space:pre-line;font-size:.92rem}
+  .info-sec p.info-txt{margin:0 0 12px;line-height:1.6;color:var(--text);white-space:pre-line;font-size:.92rem}
+  .info-lermais{background:none;border:none;color:var(--purple-dark);font-weight:600;font-size:.85rem;cursor:pointer;padding:0 0 14px;text-decoration:underline;text-underline-offset:2px}
+  .info-lermais:hover{opacity:.8}
+  /* Modal do curso (descrição completa) */
+  .curso-modal{max-width:520px;text-align:left}
+  .curso-modal-titulo{font-family:var(--font-head,inherit);font-size:1.5rem;color:var(--purple-dark);margin-bottom:4px;line-height:1.25}
+  .curso-modal-sub{color:var(--muted);font-size:.88rem;margin-bottom:2px}
+  .curso-modal-min{color:var(--purple-dark);font-size:.86rem;font-weight:600;margin-bottom:16px}
+  .curso-modal-txt{line-height:1.7;color:var(--text);white-space:pre-line;font-size:.95rem;max-height:60vh;overflow-y:auto}
   .info-sec .info-btn{display:inline-flex;align-items:center;gap:8px;background:var(--purple);color:#fff;padding:12px 22px;border-radius:30px;font-weight:600;font-size:.82rem;text-decoration:none;transition:transform .15s,box-shadow .2s;margin-top:auto}
   .info-sec .info-btn:hover{transform:translateY(-2px);box-shadow:0 6px 18px rgba(0,0,0,.15)}
   /* Depoimentos: ocupa a linha toda */
@@ -444,6 +452,16 @@
 </div>
 
 <!-- Modal Detalhe -->
+<div class="modal-bg" id="modal-curso">
+  <div class="modal curso-modal">
+    <button class="modal-close" onclick="closeModal('modal-curso')">✕</button>
+    <h2 id="curso-modal-titulo" class="curso-modal-titulo"></h2>
+    <div id="curso-modal-sub" class="curso-modal-sub"></div>
+    <div id="curso-modal-min" class="curso-modal-min"></div>
+    <p id="curso-modal-txt" class="curso-modal-txt"></p>
+  </div>
+</div>
+
 <div class="modal-bg" id="modal-detalhe">
   <div class="modal">
     <button class="modal-close" onclick="closeModal('modal-detalhe')">✕</button>
@@ -741,12 +759,17 @@ function renderSecoesInfo(){
       const url = num ? `https://wa.me/55${num}?text=${msg}` : `https://wa.me/?text=${msg}`;
       botao = `<a class="info-btn" href="${url}" target="_blank" rel="noopener">💬 ${escapeHtml(s.botaoTexto)}</a>`;
     }
+    const LIMITE = 220;
+    const textoLongo = (s.texto||'').length > LIMITE;
+    const textoCurto = textoLongo ? s.texto.slice(0, LIMITE).trim() + '…' : (s.texto||'');
+    const idSec = 'sec-full-' + Math.random().toString(36).slice(2,9);
     return `<div class="info-sec">
       ${s.img?`<div class="info-img"><img src="${escapeHtml(s.img)}" alt="${escapeHtml(s.titulo||'')}" loading="lazy"/></div>`:''}
       ${s.titulo?`<h2>${escapeHtml(s.titulo)}</h2>`:''}
       ${s.subtitulo?`<div class="info-sub">${escapeHtml(s.subtitulo)}</div>`:''}
       ${s.ministrante?`<div class="info-ministrante">com ${escapeHtml(s.ministrante)}</div>`:''}
-      ${s.texto?`<p class="info-txt">${escapeHtml(s.texto)}</p>`:''}
+      ${s.texto?`<p class="info-txt">${escapeHtml(textoCurto)}</p>`:''}
+      ${textoLongo?`<button class="info-lermais" onclick="abrirCursoDetalhe('${idSec}')">ler mais…</button><div id="${idSec}" style="display:none" data-titulo="${escapeHtml(s.titulo||'')}" data-sub="${escapeHtml(s.subtitulo||'')}" data-min="${escapeHtml(s.ministrante||'')}">${escapeHtml(s.texto)}</div>`:''}
       ${botao}
     </div>`;
   }).join('');
@@ -756,6 +779,22 @@ function renderSecoesInfo(){
 
 function escapeHtml(str){
   return String(str||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+/* Abre o pop-up com a descrição completa do curso */
+function abrirCursoDetalhe(id){
+  const dados = document.getElementById(id);
+  if(!dados) return;
+  const titulo = dados.getAttribute('data-titulo')||'';
+  const sub = dados.getAttribute('data-sub')||'';
+  const min = dados.getAttribute('data-min')||'';
+  const texto = dados.textContent||'';
+  document.getElementById('curso-modal-titulo').textContent = titulo;
+  document.getElementById('curso-modal-sub').textContent = sub;
+  const minEl = document.getElementById('curso-modal-min');
+  if(min){ minEl.textContent = 'com '+min; minEl.style.display=''; } else { minEl.style.display='none'; }
+  document.getElementById('curso-modal-txt').textContent = texto;
+  openModal('modal-curso');
 }
 
 function render(lista) {
