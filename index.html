@@ -598,6 +598,7 @@
         <div style="font-size:.78rem;color:var(--muted);margin:8px 0 16px">Blocos que aparecem na sua loja, abaixo dos produtos. Divulgue cursos (com botão de WhatsApp), fale sobre você, ou mostre depoimentos. Só aparece o que você preencher.</div>
         <div id="secoes-editor"></div>
         <button type="button" class="btn btn-primary btn-full" style="margin-top:14px" onclick="salvarSecoes()">Salvar cursos e informações</button>
+        <div style="font-size:.66rem;color:var(--muted);text-align:right;margin-top:8px">versão do painel: upload-de-imagem-v2</div>
       </div>
     </div>
 
@@ -2183,7 +2184,14 @@ function renderSecoesEditor(){
         <input id="sec-${i}-titulo" placeholder="Título (ex: Cursos e Treinamentos)" value="${(s.titulo||'').replace(/"/g,'&quot;')}" style="width:100%;padding:9px;border:1px solid var(--border);border-radius:8px;font-size:.85rem;font-family:inherit;margin-bottom:6px"/>
         <input id="sec-${i}-subtitulo" placeholder="Subtítulo (opcional)" value="${(s.subtitulo||'').replace(/"/g,'&quot;')}" style="width:100%;padding:9px;border:1px solid var(--border);border-radius:8px;font-size:.85rem;font-family:inherit;margin-bottom:6px"/>
         <input id="sec-${i}-ministrante" placeholder="Ministrante do curso (ex: Miriã Silva)" value="${(s.ministrante||'').replace(/"/g,'&quot;')}" style="width:100%;padding:9px;border:1px solid var(--border);border-radius:8px;font-size:.85rem;font-family:inherit;margin-bottom:6px"/>
-        <input id="sec-${i}-img" placeholder="Link da imagem do curso (opcional)" value="${(s.img||'').replace(/"/g,'&quot;')}" style="width:100%;padding:9px;border:1px solid var(--border);border-radius:8px;font-size:.85rem;font-family:inherit;margin-bottom:6px"/>
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
+          <div id="sec-${i}-img-prev" style="width:64px;height:48px;border-radius:8px;background:var(--bg) center/cover no-repeat;border:1px solid var(--border);flex-shrink:0;${s.img?`background-image:url('${(s.img||'').replace(/'/g,"%27")}')`:''}"></div>
+          <input type="file" accept="image/*" id="sec-${i}-imgfile" style="display:none" onchange="uploadImagemCurso(${i}, event)"/>
+          <button type="button" class="btn btn-secondary btn-xs" onclick="document.getElementById('sec-${i}-imgfile').click()">${s.img?'Trocar imagem':'📷 Imagem do curso'}</button>
+          ${s.img?`<button type="button" class="btn btn-xs" style="background:var(--bg);border:1px solid var(--border)" onclick="removerImagemCurso(${i})">Remover</button>`:''}
+          <span id="sec-${i}-imgstatus" style="font-size:.72rem;color:var(--muted)"></span>
+        </div>
+        <input type="hidden" id="sec-${i}-img" value="${(s.img||'').replace(/"/g,'&quot;')}"/>
         <textarea id="sec-${i}-texto" rows="3" placeholder="Texto da seção…" style="width:100%;padding:9px;border:1px solid var(--border);border-radius:8px;font-size:.85rem;font-family:inherit;margin-bottom:6px">${(s.texto||'').replace(/</g,'&lt;')}</textarea>
         <div class="form-row">
           <div class="fg" style="margin:0"><input id="sec-${i}-btntexto" placeholder="Texto do botão (ex: Quero saber mais)" value="${(s.botaoTexto||'').replace(/"/g,'&quot;')}" style="width:100%;padding:9px;border:1px solid var(--border);border-radius:8px;font-size:.85rem;font-family:inherit"/></div>
@@ -2205,6 +2213,36 @@ function renderSecoesEditor(){
   }).join('');
 }
 function mudarTipoSecao(i,tipo){ coletarSecoesDoDOM(); SECOES_EDIT[i].tipo=tipo; if(tipo==='depoimentos'&&!SECOES_EDIT[i].itens.length) SECOES_EDIT[i].itens=[{texto:'',autor:''}]; renderSecoesEditor(); }
+
+/* Upload da imagem de um curso direto do dispositivo para o Firebase Storage */
+async function uploadImagemCurso(i, ev){
+  const file = ev.target.files && ev.target.files[0];
+  if(!file) return;
+  if(!file.type.startsWith('image/')){ toast('Selecione um arquivo de imagem.','error'); return; }
+  if(file.size > 5*1024*1024){ toast('Imagem muito grande (máx. 5MB).','error'); return; }
+  coletarSecoesDoDOM();   // preserva o que já foi digitado antes de re-render
+  const status = document.getElementById(`sec-${i}-imgstatus`);
+  if(status) status.textContent = 'Enviando…';
+  try{
+    const ext = (file.name.split('.').pop()||'jpg').toLowerCase();
+    const path = `cursos/${uid}/${LOJA_ATUAL||'loja'}_${Date.now()}.${ext}`;
+    const ref = storage.ref().child(path);
+    const task = await ref.put(file);
+    const url = await task.ref.getDownloadURL();
+    SECOES_EDIT[i].img = url;
+    renderSecoesEditor();
+    toast('Imagem adicionada!','success');
+  }catch(e){
+    console.error(e);
+    if(status) status.textContent = '';
+    toast('Falha ao enviar imagem: '+(e.message||''),'error');
+  }
+}
+function removerImagemCurso(i){
+  coletarSecoesDoDOM();
+  SECOES_EDIT[i].img = '';
+  renderSecoesEditor();
+}
 
 /* Salva o texto "Sobre mim" na config da loja ativa */
 async function salvarSobre(){
