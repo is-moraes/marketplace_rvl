@@ -262,18 +262,71 @@
 
   /* Sobre mim — bloco no topo da loja, respeita quebra de linha */
   .sobre-mim{
-    max-width:1400px;margin:0 auto;padding:20px 40px 0;
+    max-width:760px;margin:0 auto;padding:32px 24px 4px;
   }
   .sobre-mim .sobre-box{
-    background:var(--surface);border:1px solid var(--border);border-radius:16px;
-    padding:22px 26px;line-height:1.65;color:var(--text);white-space:pre-line;font-size:.95rem;
+    position:relative;
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:20px;
+    padding:30px 34px 32px;
+    line-height:1.75;color:var(--text);white-space:pre-line;font-size:.96rem;
+    text-align:center;
+    box-shadow:0 6px 26px rgba(31,27,46,.05);
+    overflow:hidden;
   }
+  /* Aspa decorativa serifada ao fundo */
+  .sobre-mim .sobre-box::before{
+    content:'\\201C';
+    position:absolute; top:-6px; left:18px;
+    font-family:'DM Serif Display','Playfair Display',Georgia,serif;
+    font-size:5.2rem; line-height:1; color:var(--purple);
+    opacity:.13; pointer-events:none;
+  }
+  /* Filete fino no topo, no tom da marca */
+  .sobre-mim .sobre-box::after{
+    content:''; position:absolute; top:0; left:50%; transform:translateX(-50%);
+    width:64px; height:3px; border-radius:0 0 4px 4px;
+    background:linear-gradient(90deg, transparent, var(--purple), transparent);
+  }
+  .sobre-mim .sobre-titulo{
+    font-family:var(--font-head,'Playfair Display',Georgia,serif);
+    font-size:1.05rem; color:var(--purple-dark); letter-spacing:1px;
+    text-transform:uppercase; margin-bottom:10px; font-weight:600;
+  }
+  body.estilo-elegante .sobre-mim{max-width:780px}
   body.estilo-elegante .sobre-mim .sobre-box{
-    background:linear-gradient(180deg, rgba(255,255,255,.86), rgba(255,255,255,.66));
-    border:1px solid rgba(255,255,255,.7); backdrop-filter:blur(8px);
-    box-shadow:0 12px 34px rgba(58,39,51,.07);
+    background:linear-gradient(180deg, rgba(255,255,255,.9), rgba(255,255,255,.7));
+    border:1px solid rgba(255,255,255,.75); backdrop-filter:blur(10px);
+    box-shadow:0 14px 40px rgba(58,39,51,.09);
+    border-radius:22px;
+  }
+  body.estilo-elegante .sobre-mim .sobre-titulo{
+    background:linear-gradient(135deg, var(--purple-dark), var(--purple));
+    -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent;
   }
   .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:22px}
+  /* Rodapé da loja */
+  .loja-footer{
+    margin-top:48px;padding:32px 24px 40px;text-align:center;
+    border-top:1px solid var(--border);
+  }
+  .footer-portal{
+    display:inline-flex;align-items:center;gap:9px;
+    padding:12px 24px;border-radius:30px;text-decoration:none;
+    background:var(--surface);border:1px solid var(--border);
+    color:var(--purple-dark);font-weight:600;font-size:.88rem;
+    transition:transform .15s,box-shadow .2s,border-color .2s;
+  }
+  .footer-portal:hover{transform:translateY(-2px);box-shadow:0 8px 22px rgba(31,27,46,.1);border-color:var(--purple)}
+  .footer-portal-ico{font-size:1rem}
+  .footer-assinatura{margin-top:16px;font-size:.76rem;color:var(--muted)}
+  body.estilo-elegante .loja-footer{border-top:1px solid rgba(194,24,91,.12)}
+  body.estilo-elegante .footer-portal{
+    background:linear-gradient(135deg, rgba(255,255,255,.85), rgba(255,255,255,.65));
+    backdrop-filter:blur(8px);letter-spacing:.04em;text-transform:uppercase;font-size:.78rem;
+    box-shadow:0 6px 18px rgba(58,39,51,.06);
+  }
 
   .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;cursor:pointer;transition:transform .18s,box-shadow .18s;box-shadow:0 1px 2px rgba(31,27,46,.04)}
   .card:hover{transform:translateY(-5px);box-shadow:0 16px 32px rgba(124,58,237,.14)}
@@ -382,7 +435,9 @@
 
   @media(max-width:640px){
     .loja-header,.filtros,.loja-body{padding-left:18px;padding-right:18px}
-    .sobre-mim{padding-left:18px;padding-right:18px}
+    .sobre-mim{padding:22px 16px 4px}
+    .sobre-mim .sobre-box{padding:24px 20px 26px;font-size:.92rem}
+    .sobre-mim .sobre-box::before{font-size:4rem;left:12px}
     .grid{grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:14px}
     /* Título respeita quebra de linha e não vaza no mobile */
     .brand-name{font-size:1.25rem;line-height:1.2;white-space:normal;word-break:break-word;overflow-wrap:anywhere}
@@ -437,7 +492,7 @@
     <span class="cart-fab-badge" id="cart-badge" style="display:none">0</span>
   </button>
 
-  <div class="sobre-mim" id="sobre-mim" style="display:none"><div class="sobre-box" id="sobre-mim-txt"></div></div>
+  <div class="sobre-mim" id="sobre-mim" style="display:none"><div class="sobre-box"><div class="sobre-titulo">Sobre mim</div><div id="sobre-mim-txt"></div></div></div>
 
   <div class="filtros">
     <input class="busca" type="text" placeholder="🔍 Buscar produto…" oninput="filtrar(this.value)"/>
@@ -457,6 +512,14 @@
     </div>
     <div id="secoes-info"></div>
   </div>
+
+  <footer class="loja-footer" id="loja-footer" style="display:none">
+    <a id="footer-portal-link" href="#" target="_blank" rel="noopener" class="footer-portal">
+      <span class="footer-portal-ico">🔗</span>
+      <span id="footer-portal-txt">Portal da Consultora</span>
+    </a>
+    <div class="footer-assinatura" id="footer-assinatura"></div>
+  </footer>
 </div>
 
 <!-- Modal Detalhe -->
@@ -678,6 +741,20 @@ async function carregarLoja() {
       document.getElementById('sobre-mim').style.display = '';
     } else {
       document.getElementById('sobre-mim').style.display = 'none';
+    }
+
+    // Rodapé com link do portal da consultora (opcional)
+    const portalUrl = (CONFIG_LOJA.portalUrl || '').trim();
+    if (portalUrl) {
+      let href = portalUrl;
+      if (!/^https?:\/\//i.test(href)) href = 'https://' + href;
+      const linkEl = document.getElementById('footer-portal-link');
+      linkEl.href = href;
+      document.getElementById('footer-portal-txt').textContent = CONFIG_LOJA.portalTexto || 'Portal da Consultora';
+      document.getElementById('footer-assinatura').textContent = CONFIG_LOJA.nomeLoja ? `© ${new Date().getFullYear()} ${CONFIG_LOJA.nomeLoja}` : '';
+      document.getElementById('loja-footer').style.display = '';
+    } else {
+      document.getElementById('loja-footer').style.display = 'none';
     }
     // Logo da loja
     const brandIcon = document.getElementById('brand-icon');
