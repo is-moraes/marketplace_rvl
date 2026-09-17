@@ -553,6 +553,11 @@
             </select>
             <div style="font-size:.72rem;color:var(--muted);margin-top:4px">O estilo "Elegante" combina com cosméticos e beleza. A cor você define acima.</div>
           </div>
+          <div class="form-row">
+            <div class="fg"><label>Link do portal (rodapé)</label><input type="text" id="cfg-portal-url" placeholder="Ex: marykay.com.br/consultora"/></div>
+            <div class="fg"><label>Texto do link</label><input type="text" id="cfg-portal-txt" placeholder="Portal da Consultora"/></div>
+          </div>
+          <div style="font-size:.72rem;color:var(--muted);margin-top:-6px">Aparece no rodapé da loja. Use para o portal oficial que a marca oferece às consultoras. Deixe em branco para não exibir.</div>
         </div>
         <div class="chart-card" style="margin-bottom:16px">
           <h3>Dados PIX</h3>
@@ -2345,6 +2350,8 @@ function carregarFormCfg(){
   document.getElementById('cfg-pix-cidade').value=CONFIG.pixCidade||'';
   document.getElementById('cfg-cat-inicial').value=CONFIG.categoriaInicial||'';
   document.getElementById('cfg-estilo').value=CONFIG.estiloVisual||'';
+  document.getElementById('cfg-portal-url').value=CONFIG.portalUrl||'';
+  document.getElementById('cfg-portal-txt').value=CONFIG.portalTexto||'';
   document.getElementById('cfg-pix-tipo').value=CONFIG.pixTipo||'email';
   SECOES_EDIT = Array.isArray(CONFIG.secoes) ? JSON.parse(JSON.stringify(CONFIG.secoes)) : [];
   renderSecoesEditor();
@@ -2398,7 +2405,7 @@ async function salvarConfig(){
   coletarSecoesDoDOM();
   // Limpa seções totalmente vazias
   const secoes = SECOES_EDIT.filter(s => s.titulo || s.texto || (Array.isArray(s.itens)&&s.itens.some(d=>d.texto)));
-  CONFIG={nomeLoja:document.getElementById('cfg-loja').value,subtitulo:document.getElementById('cfg-slogan').value,logoUrl:document.getElementById('cfg-logo').value,whatsapp:document.getElementById('cfg-whats').value,pixChave:document.getElementById('cfg-pix').value,pixNome:document.getElementById('cfg-pix-nome').value,pixCidade:document.getElementById('cfg-pix-cidade').value,pixTipo:document.getElementById('cfg-pix-tipo').value,categoriaInicial:document.getElementById('cfg-cat-inicial').value,estiloVisual:document.getElementById('cfg-estilo').value,secoes,taxasJuros,corPrimaria};
+  CONFIG={nomeLoja:document.getElementById('cfg-loja').value,subtitulo:document.getElementById('cfg-slogan').value,logoUrl:document.getElementById('cfg-logo').value,whatsapp:document.getElementById('cfg-whats').value,pixChave:document.getElementById('cfg-pix').value,pixNome:document.getElementById('cfg-pix-nome').value,pixCidade:document.getElementById('cfg-pix-cidade').value,pixTipo:document.getElementById('cfg-pix-tipo').value,categoriaInicial:document.getElementById('cfg-cat-inicial').value,estiloVisual:document.getElementById('cfg-estilo').value,portalUrl:document.getElementById('cfg-portal-url').value.trim(),portalTexto:document.getElementById('cfg-portal-txt').value.trim(),secoes,taxasJuros,corPrimaria};
   const cfgRef = lojaRef().collection('meta').doc('config');
   await cfgRef.set(CONFIG,{merge:true});
   await cfgRef.update({taxasJuros: firebase.firestore.FieldValue.delete()});
