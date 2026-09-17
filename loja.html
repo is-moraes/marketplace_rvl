@@ -306,6 +306,22 @@
     -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent;
   }
   .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:22px}
+  /* Aviso de pronta entrega — faixa delicada acima dos produtos */
+  .aviso-entrega{
+    display:flex;align-items:center;justify-content:center;gap:12px;
+    margin:0 auto 26px;max-width:620px;padding:11px 22px;
+    background:var(--surface);border:1px solid var(--border);border-radius:30px;
+    color:var(--purple-dark);font-size:.86rem;font-weight:600;letter-spacing:.2px;
+    text-align:center;box-shadow:0 2px 12px rgba(31,27,46,.04);
+  }
+  .aviso-entrega-ico{font-size:.9rem;opacity:.7;flex-shrink:0}
+  body.estilo-elegante .aviso-entrega{
+    background:linear-gradient(135deg, rgba(255,255,255,.85), rgba(255,255,255,.6));
+    backdrop-filter:blur(8px);border:1px solid rgba(194,24,91,.14);
+    text-transform:uppercase;letter-spacing:.08em;font-size:.76rem;
+    box-shadow:0 6px 18px rgba(58,39,51,.06);
+  }
+  @media(max-width:640px){ .aviso-entrega{font-size:.78rem;padding:10px 16px;gap:8px} }
   /* Rodapé da loja */
   .loja-footer{
     margin-top:48px;padding:32px 24px 40px;text-align:center;
@@ -505,6 +521,11 @@
   </div>
 
   <div class="loja-body">
+    <div class="aviso-entrega" id="aviso-entrega" style="display:none">
+      <span class="aviso-entrega-ico">✨</span>
+      <span id="aviso-entrega-txt"></span>
+      <span class="aviso-entrega-ico">✨</span>
+    </div>
     <div class="grid" id="grid-produtos"></div>
     <div class="empty" id="empty-state" style="display:none">
       <span>🛍️</span>
@@ -741,6 +762,15 @@ async function carregarLoja() {
       document.getElementById('sobre-mim').style.display = '';
     } else {
       document.getElementById('sobre-mim').style.display = 'none';
+    }
+
+    // Aviso de pronta entrega (opcional)
+    const aviso = (CONFIG_LOJA.avisoEntrega || '').trim();
+    if (aviso) {
+      document.getElementById('aviso-entrega-txt').textContent = aviso;
+      document.getElementById('aviso-entrega').style.display = '';
+    } else {
+      document.getElementById('aviso-entrega').style.display = 'none';
     }
 
     // Rodapé com link do portal da consultora (opcional)
