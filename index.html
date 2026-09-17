@@ -305,6 +305,26 @@
 
   /* Avatar do usuário com degradê já existente, reforçado */
   .user-av{ box-shadow:0 3px 10px rgba(124,58,237,.3); }
+  /* Anotações */
+  .notas-layout{display:grid;grid-template-columns:300px 1fr;gap:20px;align-items:start}
+  .notas-lista{display:flex;flex-direction:column;gap:10px}
+  .nota-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px 16px;cursor:pointer;transition:transform .15s,box-shadow .2s;position:relative}
+  .nota-card:hover{transform:translateY(-2px);box-shadow:0 8px 22px rgba(31,27,46,.08)}
+  .nota-card.ativa{border-color:var(--purple);box-shadow:0 0 0 2px var(--purple-light)}
+  .nota-card h4{font-size:.95rem;margin-bottom:4px;color:var(--text);display:flex;align-items:center;gap:6px}
+  .nota-card .nota-previa{font-size:.78rem;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .nota-card .nota-data{font-size:.68rem;color:var(--muted);margin-top:6px}
+  .nota-card .alerta-tag{font-size:.62rem;background:#FEF3C7;color:#B45309;border-radius:20px;padding:2px 7px;font-weight:700}
+  .notas-editor{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:18px}
+  .nota-toolbar{display:flex;flex-wrap:wrap;gap:4px;align-items:center;padding:8px;background:var(--bg);border-radius:10px;margin-bottom:10px}
+  .nota-toolbar button{background:#fff;border:1px solid var(--border);border-radius:7px;padding:5px 10px;font-size:.82rem;cursor:pointer;color:var(--text)}
+  .nota-toolbar button:hover{border-color:var(--purple);color:var(--purple-dark)}
+  .nota-toolbar select{background:#fff;border:1px solid var(--border);border-radius:7px;padding:5px 8px;font-size:.8rem;cursor:pointer;font-family:inherit}
+  .nota-toolbar .tb-sep{width:1px;height:22px;background:var(--border);margin:0 3px}
+  .nota-corpo{min-height:260px;border:1px solid var(--border);border-radius:10px;padding:14px;font-size:.92rem;line-height:1.6;overflow-y:auto;outline:none}
+  .nota-corpo:focus{border-color:var(--purple)}
+  .nota-corpo ul,.nota-corpo ol{padding-left:24px;margin:6px 0}
+  @media(max-width:768px){ .notas-layout{grid-template-columns:1fr} }
 </style>
 </head>
 <body>
@@ -388,6 +408,10 @@
     <div class="nav-item" onclick="goPage('cursos')">
       <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
       Cursos e informações
+    </div>
+    <div class="nav-item" onclick="goPage('anotacoes')">
+      <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+      Anotações
     </div>
     <div class="nav-item" onclick="goPage('configuracoes')">
       <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
@@ -558,6 +582,9 @@
             <div class="fg"><label>Texto do link</label><input type="text" id="cfg-portal-txt" placeholder="Portal da Consultora"/></div>
           </div>
           <div style="font-size:.72rem;color:var(--muted);margin-top:-6px">Aparece no rodapé da loja. Use para o portal oficial que a marca oferece às consultoras. Deixe em branco para não exibir.</div>
+          <div class="fg"><label>Aviso acima dos produtos</label><input type="text" id="cfg-aviso-entrega" placeholder="Ex: Todos os produtos são pronta entrega ✨" maxlength="90"/>
+            <div style="font-size:.72rem;color:var(--muted);margin-top:4px">Uma faixa delicada acima da vitrine. Ótimo para avisar "pronta entrega". Deixe em branco para não exibir.</div>
+          </div>
         </div>
         <div class="chart-card" style="margin-bottom:16px">
           <h3>Dados PIX</h3>
@@ -607,6 +634,44 @@
       </div>
     </div>
 
+    <div class="page" id="page-anotacoes">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:8px">
+        <div id="notas-count" style="font-size:.8rem;color:var(--muted)"></div>
+        <button class="btn btn-primary btn-sm" onclick="novaNota()">+ Nova anotação</button>
+      </div>
+      <div class="notas-layout">
+        <div class="notas-lista" id="notas-lista"></div>
+        <div class="notas-editor" id="notas-editor" style="display:none">
+          <input type="text" id="nota-titulo" placeholder="Título da anotação" style="width:100%;padding:11px 13px;border:1px solid var(--border);border-radius:10px;font-size:1rem;font-weight:600;font-family:inherit;margin-bottom:10px"/>
+          <div class="nota-toolbar">
+            <button type="button" onclick="fmtNota('bold')" title="Negrito" style="font-weight:800">B</button>
+            <button type="button" onclick="fmtNota('italic')" title="Itálico" style="font-style:italic">I</button>
+            <button type="button" onclick="fmtNota('underline')" title="Sublinhado" style="text-decoration:underline">U</button>
+            <span class="tb-sep"></span>
+            <select onchange="fmtNota('fontSize',this.value);this.selectedIndex=0" title="Tamanho">
+              <option value="">Tam.</option><option value="2">Pequeno</option><option value="3">Normal</option><option value="5">Grande</option><option value="6">Enorme</option>
+            </select>
+            <input type="color" onchange="fmtNota('foreColor',this.value)" title="Cor do texto" value="#7C3AED" style="width:30px;height:28px;border:1px solid var(--border);border-radius:6px;padding:1px;cursor:pointer"/>
+            <span class="tb-sep"></span>
+            <button type="button" onclick="fmtNota('insertUnorderedList')" title="Lista">• Lista</button>
+            <button type="button" onclick="fmtNota('insertOrderedList')" title="Lista numerada">1. Lista</button>
+            <span class="tb-sep"></span>
+            <button type="button" onclick="fmtNota('removeFormat')" title="Limpar formatação">✕ Formato</button>
+          </div>
+          <div id="nota-corpo" class="nota-corpo" contenteditable="true"></div>
+          <label style="display:flex;align-items:center;gap:8px;margin-top:12px;cursor:pointer;font-size:.86rem">
+            <input type="checkbox" id="nota-alerta" style="width:auto"/>
+            Mostrar esta anotação como aviso ao entrar no portal
+          </label>
+          <div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap">
+            <button class="btn btn-primary btn-sm" onclick="salvarNota()">Salvar</button>
+            <button class="btn btn-secondary btn-sm" onclick="fecharEditorNota()">Cancelar</button>
+            <button class="btn btn-danger btn-sm" id="nota-excluir-btn" onclick="excluirNota()" style="margin-left:auto;display:none">Excluir</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <div class="page" id="page-plano">
       <div style="max-width:600px">
         <div id="plano-status-card" class="chart-card" style="margin-bottom:16px"></div>
@@ -622,6 +687,19 @@
 </div>
 
 <!-- MODAIS -->
+<div class="modal-bg" id="modal-aviso-notas">
+  <div class="modal" style="max-width:520px">
+    <button class="modal-close" onclick="closeModal('modal-aviso-notas')">✕</button>
+    <h2 style="margin-bottom:4px">📌 Lembretes</h2>
+    <div style="font-size:.8rem;color:var(--muted);margin-bottom:16px">Anotações marcadas como aviso</div>
+    <div id="aviso-notas-conteudo"></div>
+    <div style="display:flex;gap:8px;margin-top:16px;flex-wrap:wrap">
+      <button class="btn btn-secondary btn-sm" style="flex:1" onclick="closeModal('modal-aviso-notas')">Fechar</button>
+      <button class="btn btn-primary btn-sm" style="flex:1" onclick="naoMostrarNotasHoje()">Não mostrar de novo hoje</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-bg" id="modal-produto">
   <div class="modal">
     <button class="modal-close" onclick="closeModal('modal-produto')">✕</button>
@@ -890,6 +968,8 @@ async function iniciarApp(user) {
   renderSeletorLojas();
   await carregarDados();
   definirLinkLoja();
+  await carregarNotas();
+  mostrarAvisosNotas();
 }
 
 function showScreen(id) {
@@ -1111,6 +1191,127 @@ function renderSeletorLojas(){
 }
 
 let GASTOS=[];
+/* ══════════════════════════════════════════════════════════
+   ANOTAÇÕES — gerais da conta (usuarios/{uid}/anotacoes)
+   ══════════════════════════════════════════════════════════ */
+let NOTAS=[];
+let _notaEditandoId=null;
+const notasCol = () => db.collection('usuarios').doc(uid).collection('anotacoes');
+
+async function carregarNotas(){
+  try{
+    const snap = await notasCol().orderBy('atualizadoEm','desc').get();
+    NOTAS = snap.docs.map(d=>({id:d.id, ...d.data()}));
+  }catch(e){ console.warn('Falha ao carregar notas:', e); NOTAS=[]; }
+}
+
+function renderNotas(){
+  const lista=document.getElementById('notas-lista');
+  document.getElementById('notas-count').textContent = NOTAS.length ? `${NOTAS.length} anotação(ões)` : '';
+  if(!NOTAS.length){
+    lista.innerHTML='<div style="font-size:.82rem;color:var(--muted);padding:12px 0">Nenhuma anotação ainda. Clique em "+ Nova anotação".</div>';
+    return;
+  }
+  lista.innerHTML=NOTAS.map(n=>{
+    const previa=(n.corpo||'').replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').trim().slice(0,60);
+    return `<div class="nota-card ${n.id===_notaEditandoId?'ativa':''}" onclick="editarNota('${n.id}')">
+      <h4>${n.alerta?'📌 ':''}${escapeHtmlPainel(n.titulo||'Sem título')}${n.alerta?'<span class="alerta-tag">aviso</span>':''}</h4>
+      <div class="nota-previa">${escapeHtmlPainel(previa)||'—'}</div>
+      <div class="nota-data">${n.data||''}</div>
+    </div>`;
+  }).join('');
+}
+
+function escapeHtmlPainel(s){return String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+
+function novaNota(){
+  _notaEditandoId=null;
+  document.getElementById('nota-titulo').value='';
+  document.getElementById('nota-corpo').innerHTML='';
+  document.getElementById('nota-alerta').checked=false;
+  document.getElementById('nota-excluir-btn').style.display='none';
+  document.getElementById('notas-editor').style.display='';
+  renderNotas();
+  document.getElementById('nota-titulo').focus();
+}
+
+function editarNota(id){
+  const n=NOTAS.find(x=>x.id===id); if(!n)return;
+  _notaEditandoId=id;
+  document.getElementById('nota-titulo').value=n.titulo||'';
+  document.getElementById('nota-corpo').innerHTML=n.corpo||'';
+  document.getElementById('nota-alerta').checked=!!n.alerta;
+  document.getElementById('nota-excluir-btn').style.display='';
+  document.getElementById('notas-editor').style.display='';
+  renderNotas();
+}
+
+function fecharEditorNota(){
+  _notaEditandoId=null;
+  document.getElementById('notas-editor').style.display='none';
+  renderNotas();
+}
+
+function fmtNota(cmd, val){
+  document.getElementById('nota-corpo').focus();
+  document.execCommand(cmd, false, val||null);
+}
+
+async function salvarNota(){
+  const titulo=document.getElementById('nota-titulo').value.trim();
+  const corpo=document.getElementById('nota-corpo').innerHTML;
+  const alerta=document.getElementById('nota-alerta').checked;
+  if(!titulo && !corpo.replace(/<[^>]+>/g,'').trim()){ toast('Escreva algo na anotação.','error'); return; }
+  const dados={ titulo, corpo, alerta, data:new Date().toLocaleDateString('pt-BR'), atualizadoEm:new Date().toISOString() };
+  try{
+    if(_notaEditandoId){
+      await notasCol().doc(_notaEditandoId).update(dados);
+      const i=NOTAS.findIndex(x=>x.id===_notaEditandoId); if(i!==-1) Object.assign(NOTAS[i],dados);
+    }else{
+      const ref=await notasCol().add({criadoEm:new Date().toISOString(),...dados});
+      NOTAS.unshift({id:ref.id,...dados});
+      _notaEditandoId=ref.id;
+    }
+    // reordena por atualização
+    NOTAS.sort((a,b)=>String(b.atualizadoEm||'').localeCompare(String(a.atualizadoEm||'')));
+    document.getElementById('nota-excluir-btn').style.display='';
+    renderNotas();
+    // Se marcou como aviso, permite o pop-up reaparecer hoje (conteúdo mudou)
+    if(alerta){ try{ localStorage.removeItem(_chaveAvisoHoje()); }catch(e){} }
+    toast('Anotação salva!','success');
+  }catch(e){ console.error(e); toast('Não foi possível salvar.','error'); }
+}
+
+async function excluirNota(){
+  if(!_notaEditandoId) return;
+  if(!confirm('Excluir esta anotação?')) return;
+  try{
+    await notasCol().doc(_notaEditandoId).delete();
+    NOTAS=NOTAS.filter(x=>x.id!==_notaEditandoId);
+    fecharEditorNota();
+    toast('Anotação excluída.','success');
+  }catch(e){ console.error(e); toast('Não foi possível excluir.','error'); }
+}
+
+/* Pop-up de avisos ao entrar no portal (uma vez por dia se dispensado) */
+function _chaveAvisoHoje(){ return 'avisos_notas_dispensado_'+uid+'_'+new Date().toLocaleDateString('pt-BR'); }
+function mostrarAvisosNotas(){
+  const avisos = NOTAS.filter(n=>n.alerta);
+  if(!avisos.length) return;
+  // Se já foi dispensado hoje, não mostra
+  try{ if(localStorage.getItem(_chaveAvisoHoje())==='1') return; }catch(e){}
+  document.getElementById('aviso-notas-conteudo').innerHTML = avisos.map(n=>
+    `<div style="border:1px solid var(--border);border-left:3px solid var(--purple);border-radius:10px;padding:14px 16px;margin-bottom:10px">
+      <div style="font-weight:700;margin-bottom:6px;color:var(--purple-dark)">${escapeHtmlPainel(n.titulo||'Lembrete')}</div>
+      <div style="font-size:.9rem;line-height:1.55">${n.corpo||''}</div>
+    </div>`).join('');
+  openModal('modal-aviso-notas');
+}
+function naoMostrarNotasHoje(){
+  try{ localStorage.setItem(_chaveAvisoHoje(),'1'); }catch(e){}
+  closeModal('modal-aviso-notas');
+}
+
 async function carregarDados(){
   [PRODUTOS,CLIENTES,VENDAS,GASTOS] = await Promise.all([getAll('produtos'),getAll('clientes'),getAll('vendas'),getAll('gastos')]);
   const cfgDoc = await lojaRef().collection('meta').doc('config').get();
@@ -1124,7 +1325,7 @@ function goPage(p){
   document.querySelectorAll('.nav-item').forEach(el=>el.classList.remove('active'));
   document.getElementById('page-'+p).classList.add('active');
   document.querySelectorAll('.nav-item').forEach(n=>{if(n.textContent.trim().toLowerCase().includes(p.substring(0,5)))n.classList.add('active')});
-  const titles={dashboard:'Painel',produtos:'Produtos',vendas:'Vendas',clientes:'Clientes','minha-loja':'Minha Loja',configuracoes:'Configurações',plano:'Meu Plano',cursos:'Cursos e informações'};
+  const titles={dashboard:'Painel',produtos:'Produtos',vendas:'Vendas',clientes:'Clientes','minha-loja':'Minha Loja',configuracoes:'Configurações',plano:'Meu Plano',cursos:'Cursos e informações',anotacoes:'Anotações'};
   document.getElementById('page-title').textContent=titles[p]||p;
   document.getElementById('sidebar').classList.remove('open');
   const btnMap={dashboard:'+ Novo',produtos:'+ Produto',vendas:'+ Venda',clientes:'+ Cliente'};
@@ -1138,6 +1339,7 @@ function goPage(p){
   if(p==='gastos')renderGastos();
   if(p==='clientes')renderClientes();
   if(p==='configuracoes')carregarFormCfg();
+  if(p==='anotacoes'){ document.getElementById('notas-editor').style.display='none'; renderNotas(); }
   if(p==='cursos'){ if(!SECOES_EDIT.length && Array.isArray(CONFIG.secoes)) SECOES_EDIT=JSON.parse(JSON.stringify(CONFIG.secoes)); const sob=document.getElementById('cfg-sobre'); if(sob) sob.value=CONFIG.sobreMim||''; renderSecoesEditor(); }
   if(p==='plano')renderPlano();
 }
@@ -2352,6 +2554,7 @@ function carregarFormCfg(){
   document.getElementById('cfg-estilo').value=CONFIG.estiloVisual||'';
   document.getElementById('cfg-portal-url').value=CONFIG.portalUrl||'';
   document.getElementById('cfg-portal-txt').value=CONFIG.portalTexto||'';
+  document.getElementById('cfg-aviso-entrega').value=CONFIG.avisoEntrega||'';
   document.getElementById('cfg-pix-tipo').value=CONFIG.pixTipo||'email';
   SECOES_EDIT = Array.isArray(CONFIG.secoes) ? JSON.parse(JSON.stringify(CONFIG.secoes)) : [];
   renderSecoesEditor();
@@ -2405,7 +2608,7 @@ async function salvarConfig(){
   coletarSecoesDoDOM();
   // Limpa seções totalmente vazias
   const secoes = SECOES_EDIT.filter(s => s.titulo || s.texto || (Array.isArray(s.itens)&&s.itens.some(d=>d.texto)));
-  CONFIG={nomeLoja:document.getElementById('cfg-loja').value,subtitulo:document.getElementById('cfg-slogan').value,logoUrl:document.getElementById('cfg-logo').value,whatsapp:document.getElementById('cfg-whats').value,pixChave:document.getElementById('cfg-pix').value,pixNome:document.getElementById('cfg-pix-nome').value,pixCidade:document.getElementById('cfg-pix-cidade').value,pixTipo:document.getElementById('cfg-pix-tipo').value,categoriaInicial:document.getElementById('cfg-cat-inicial').value,estiloVisual:document.getElementById('cfg-estilo').value,portalUrl:document.getElementById('cfg-portal-url').value.trim(),portalTexto:document.getElementById('cfg-portal-txt').value.trim(),secoes,taxasJuros,corPrimaria};
+  CONFIG={nomeLoja:document.getElementById('cfg-loja').value,subtitulo:document.getElementById('cfg-slogan').value,logoUrl:document.getElementById('cfg-logo').value,whatsapp:document.getElementById('cfg-whats').value,pixChave:document.getElementById('cfg-pix').value,pixNome:document.getElementById('cfg-pix-nome').value,pixCidade:document.getElementById('cfg-pix-cidade').value,pixTipo:document.getElementById('cfg-pix-tipo').value,categoriaInicial:document.getElementById('cfg-cat-inicial').value,estiloVisual:document.getElementById('cfg-estilo').value,portalUrl:document.getElementById('cfg-portal-url').value.trim(),portalTexto:document.getElementById('cfg-portal-txt').value.trim(),avisoEntrega:document.getElementById('cfg-aviso-entrega').value.trim(),secoes,taxasJuros,corPrimaria};
   const cfgRef = lojaRef().collection('meta').doc('config');
   await cfgRef.set(CONFIG,{merge:true});
   await cfgRef.update({taxasJuros: firebase.firestore.FieldValue.delete()});
