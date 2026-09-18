@@ -326,6 +326,32 @@
   .nota-corpo:focus{border-color:var(--purple)}
   .nota-corpo ul,.nota-corpo ol{padding-left:24px;margin:6px 0}
   @media(max-width:768px){ .notas-layout{grid-template-columns:1fr} }
+  /* Calendário da agenda */
+  .agenda-box{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:14px}
+  .cal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+  .cal-head strong{font-size:.9rem;color:var(--text);text-transform:capitalize}
+  .cal-head button{background:var(--bg);border:1px solid var(--border);border-radius:8px;width:28px;height:28px;cursor:pointer;font-size:.9rem;color:var(--text)}
+  .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px}
+  .cal-dow{font-size:.62rem;color:var(--muted);text-align:center;font-weight:600;padding:2px 0}
+  .cal-day{aspect-ratio:1;display:flex;align-items:center;justify-content:center;font-size:.78rem;border-radius:8px;cursor:default;position:relative;color:var(--text)}
+  .cal-day.vazio{visibility:hidden}
+  .cal-day.hoje{background:var(--bg);font-weight:700;color:var(--purple-dark)}
+  .cal-day.tem-ag{background:var(--purple-light);color:var(--purple-dark);font-weight:700;cursor:pointer}
+  .cal-day.tem-ag::after{content:'';position:absolute;bottom:4px;width:5px;height:5px;border-radius:50%;background:var(--purple)}
+  .cal-day.tem-ag:hover{background:var(--purple);color:#fff}
+  .cal-day.tem-ag:hover::after{background:#fff}
+  /* Próximos compromissos */
+  .proximos-box{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:14px}
+  .proximos-box h4{font-size:.82rem;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px}
+  .prox-item{display:flex;gap:10px;align-items:flex-start;padding:8px;border-radius:10px;cursor:pointer;transition:background .15s}
+  .prox-item:hover{background:var(--bg)}
+  .prox-data{flex-shrink:0;text-align:center;background:var(--purple-light);border-radius:8px;padding:4px 8px;min-width:44px}
+  .prox-data .d{font-size:1rem;font-weight:800;color:var(--purple-dark);line-height:1}
+  .prox-data .m{font-size:.6rem;color:var(--purple-dark);text-transform:uppercase}
+  .prox-info{min-width:0}
+  .prox-info .t{font-size:.85rem;font-weight:600;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .prox-info .h{font-size:.72rem;color:var(--muted)}
+  .prox-info .l{font-size:.72rem;color:var(--purple-dark);font-weight:600;margin-top:2px}
 </style>
 </head>
 <body>
@@ -641,7 +667,11 @@
         <button class="btn btn-primary btn-sm" onclick="novaNota()">+ Nova anotação</button>
       </div>
       <div class="notas-layout">
-        <div class="notas-lista" id="notas-lista"></div>
+        <div style="display:flex;flex-direction:column;gap:16px">
+          <div class="agenda-box" id="agenda-box"></div>
+          <div class="proximos-box" id="proximos-box"></div>
+          <div class="notas-lista" id="notas-lista"></div>
+        </div>
         <div class="notas-editor" id="notas-editor" style="display:none">
           <input type="text" id="nota-titulo" placeholder="Título da anotação" style="width:100%;padding:11px 13px;border:1px solid var(--border);border-radius:10px;font-size:1rem;font-weight:600;font-family:inherit;margin-bottom:10px"/>
           <div class="nota-toolbar">
@@ -660,6 +690,13 @@
             <button type="button" onclick="fmtNota('removeFormat')" title="Limpar formatação">✕ Formato</button>
           </div>
           <div id="nota-corpo" class="nota-corpo" contenteditable="true"></div>
+          <div class="form-row" style="margin-top:12px">
+            <div class="fg" style="margin:0"><label>Data do compromisso (opcional)</label><input type="date" id="nota-data-ag"/></div>
+            <div class="fg" style="margin:0"><label>Horário</label><input type="time" id="nota-hora-ag"/></div>
+          </div>
+          <div class="fg" style="margin-top:10px"><label>Local (endereço ou link do Maps — opcional)</label><input type="text" id="nota-local" placeholder="Ex: Av. Paulista 1000, São Paulo — ou cole o link do Maps" oninput="atualizarBtnMapa()"/>
+            <a id="nota-mapa-link" href="#" target="_blank" rel="noopener" style="display:none;margin-top:8px;align-items:center;gap:6px;font-size:.82rem;color:var(--purple-dark);font-weight:600;text-decoration:none">📍 Abrir no mapa</a>
+          </div>
           <label style="display:flex;align-items:center;gap:8px;margin-top:12px;cursor:pointer;font-size:.86rem">
             <input type="checkbox" id="nota-alerta" style="width:auto"/>
             Mostrar esta anotação como aviso ao entrar no portal
@@ -1206,7 +1243,80 @@ async function carregarNotas(){
   }catch(e){ console.warn('Falha ao carregar notas:', e); NOTAS=[]; }
 }
 
+let _calMes = new Date().getMonth();
+let _calAno = new Date().getFullYear();
+const _MESES = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+const _MES_ABREV = ['JAN','FEV','MAR','ABR','MAI','JUN','JUL','AGO','SET','OUT','NOV','DEZ'];
+
+function mudarMesCal(delta){
+  _calMes += delta;
+  if(_calMes<0){ _calMes=11; _calAno--; }
+  if(_calMes>11){ _calMes=0; _calAno++; }
+  renderCalendario();
+}
+
+/* Datas (YYYY-MM-DD) que têm compromisso, com a nota associada */
+function agendaPorData(){
+  const mapa={};
+  NOTAS.forEach(n=>{ if(n.dataAgenda){ (mapa[n.dataAgenda]=mapa[n.dataAgenda]||[]).push(n); } });
+  return mapa;
+}
+
+function renderCalendario(){
+  const box=document.getElementById('agenda-box'); if(!box)return;
+  const mapa=agendaPorData();
+  const hoje=new Date(); const hojeStr=`${hoje.getFullYear()}-${String(hoje.getMonth()+1).padStart(2,'0')}-${String(hoje.getDate()).padStart(2,'0')}`;
+  const primeiro=new Date(_calAno,_calMes,1).getDay();
+  const diasNoMes=new Date(_calAno,_calMes+1,0).getDate();
+  const dow=['D','S','T','Q','Q','S','S'];
+  let html=`<div class="cal-head">
+    <button onclick="mudarMesCal(-1)">‹</button>
+    <strong>${_MESES[_calMes]} ${_calAno}</strong>
+    <button onclick="mudarMesCal(1)">›</button>
+  </div><div class="cal-grid">`;
+  html+=dow.map(d=>`<div class="cal-dow">${d}</div>`).join('');
+  for(let i=0;i<primeiro;i++) html+='<div class="cal-day vazio"></div>';
+  for(let d=1;d<=diasNoMes;d++){
+    const iso=`${_calAno}-${String(_calMes+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const temAg=!!mapa[iso];
+    const ehHoje=iso===hojeStr;
+    const cls=['cal-day', temAg?'tem-ag':'', ehHoje?'hoje':''].filter(Boolean).join(' ');
+    const clickAttr = temAg ? `onclick="editarNota('${mapa[iso][0].id}')" title="${mapa[iso].length} compromisso(s)"` : '';
+    html+=`<div class="${cls}" ${clickAttr}>${d}</div>`;
+  }
+  html+='</div>';
+  box.innerHTML=html;
+}
+
+function renderProximos(){
+  const box=document.getElementById('proximos-box'); if(!box)return;
+  const hoje=new Date(); hoje.setHours(0,0,0,0);
+  const comData=NOTAS.filter(n=>n.dataAgenda).map(n=>{
+    const [a,m,d]=n.dataAgenda.split('-').map(Number);
+    return {...n, _dt:new Date(a,m-1,d)};
+  }).filter(n=>n._dt>=hoje).sort((x,y)=> x._dt-y._dt || String(x.horaAgenda||'').localeCompare(String(y.horaAgenda||'')));
+
+  if(!comData.length){
+    box.innerHTML='<h4>Próximos compromissos</h4><div style="font-size:.8rem;color:var(--muted)">Nenhum compromisso agendado. Adicione uma data a uma anotação.</div>';
+    return;
+  }
+  box.innerHTML='<h4>Próximos compromissos</h4>'+comData.slice(0,8).map(n=>{
+    const dia=n._dt.getDate(); const mes=_MES_ABREV[n._dt.getMonth()];
+    const url=urlDoMapa(n.local);
+    return `<div class="prox-item" onclick="editarNota('${n.id}')">
+      <div class="prox-data"><div class="d">${dia}</div><div class="m">${mes}</div></div>
+      <div class="prox-info">
+        <div class="t">${escapeHtmlPainel(n.titulo||'Sem título')}</div>
+        <div class="h">${n.horaAgenda?'🕐 '+n.horaAgenda:'Dia todo'}</div>
+        ${n.local?`<div class="l" onclick="event.stopPropagation();window.open('${url}','_blank')">📍 Ver no mapa</div>`:''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
 function renderNotas(){
+  renderCalendario();
+  renderProximos();
   const lista=document.getElementById('notas-lista');
   document.getElementById('notas-count').textContent = NOTAS.length ? `${NOTAS.length} anotação(ões)` : '';
   if(!NOTAS.length){
@@ -1218,7 +1328,7 @@ function renderNotas(){
     return `<div class="nota-card ${n.id===_notaEditandoId?'ativa':''}" onclick="editarNota('${n.id}')">
       <h4>${n.alerta?'📌 ':''}${escapeHtmlPainel(n.titulo||'Sem título')}${n.alerta?'<span class="alerta-tag">aviso</span>':''}</h4>
       <div class="nota-previa">${escapeHtmlPainel(previa)||'—'}</div>
-      <div class="nota-data">${n.data||''}</div>
+      ${n.dataAgenda?`<div class="nota-data" style="color:var(--purple-dark);font-weight:600">📅 ${n.dataAgenda.split('-').reverse().join('/')}${n.horaAgenda?' · '+n.horaAgenda:''}</div>`:`<div class="nota-data">${n.data||''}</div>`}
     </div>`;
   }).join('');
 }
@@ -1230,6 +1340,10 @@ function novaNota(){
   document.getElementById('nota-titulo').value='';
   document.getElementById('nota-corpo').innerHTML='';
   document.getElementById('nota-alerta').checked=false;
+  document.getElementById('nota-data-ag').value='';
+  document.getElementById('nota-hora-ag').value='';
+  document.getElementById('nota-local').value='';
+  atualizarBtnMapa();
   document.getElementById('nota-excluir-btn').style.display='none';
   document.getElementById('notas-editor').style.display='';
   renderNotas();
@@ -1242,6 +1356,10 @@ function editarNota(id){
   document.getElementById('nota-titulo').value=n.titulo||'';
   document.getElementById('nota-corpo').innerHTML=n.corpo||'';
   document.getElementById('nota-alerta').checked=!!n.alerta;
+  document.getElementById('nota-data-ag').value=n.dataAgenda||'';
+  document.getElementById('nota-hora-ag').value=n.horaAgenda||'';
+  document.getElementById('nota-local').value=n.local||'';
+  atualizarBtnMapa();
   document.getElementById('nota-excluir-btn').style.display='';
   document.getElementById('notas-editor').style.display='';
   renderNotas();
@@ -1258,12 +1376,31 @@ function fmtNota(cmd, val){
   document.execCommand(cmd, false, val||null);
 }
 
+/* Monta a URL do mapa: se já é um link (http), usa direto; senão, monta busca por endereço */
+function urlDoMapa(local){
+  const v=(local||'').trim();
+  if(!v) return '';
+  if(/^https?:\/\//i.test(v)) return v;                 // já é um link (Maps, etc.)
+  return 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(v);
+}
+/* Atualiza o botão "Abrir no mapa" no editor conforme o campo é digitado */
+function atualizarBtnMapa(){
+  const local=document.getElementById('nota-local').value;
+  const link=document.getElementById('nota-mapa-link');
+  const url=urlDoMapa(local);
+  if(url){ link.href=url; link.style.display='inline-flex'; }
+  else { link.style.display='none'; }
+}
+
 async function salvarNota(){
   const titulo=document.getElementById('nota-titulo').value.trim();
   const corpo=document.getElementById('nota-corpo').innerHTML;
   const alerta=document.getElementById('nota-alerta').checked;
   if(!titulo && !corpo.replace(/<[^>]+>/g,'').trim()){ toast('Escreva algo na anotação.','error'); return; }
-  const dados={ titulo, corpo, alerta, data:new Date().toLocaleDateString('pt-BR'), atualizadoEm:new Date().toISOString() };
+  const dataAgenda=document.getElementById('nota-data-ag').value||'';
+  const horaAgenda=document.getElementById('nota-hora-ag').value||'';
+  const local=document.getElementById('nota-local').value.trim();
+  const dados={ titulo, corpo, alerta, dataAgenda, horaAgenda, local, data:new Date().toLocaleDateString('pt-BR'), atualizadoEm:new Date().toISOString() };
   try{
     if(_notaEditandoId){
       await notasCol().doc(_notaEditandoId).update(dados);
