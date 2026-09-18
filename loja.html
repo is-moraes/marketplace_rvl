@@ -262,6 +262,12 @@
   .info-lermais:hover{opacity:.8}
   /* Modal do curso (descrição completa) */
   .curso-modal{max-width:520px;text-align:left}
+  .curso-modal-img{margin-bottom:14px;border-radius:12px;overflow:hidden;aspect-ratio:16/9;background:var(--bg)}
+  .curso-modal-img img{width:100%;height:100%;object-fit:cover;display:block;cursor:zoom-in}
+  /* Zoom da imagem em tela cheia */
+  #modal-img-zoom .img-zoom-wrap{position:relative;max-width:92vw;max-height:88vh}
+  #modal-img-zoom #img-zoom-conteudo img{max-width:92vw;max-height:88vh;border-radius:12px;display:block;box-shadow:0 20px 60px rgba(0,0,0,.4)}
+  .info-img{cursor:zoom-in}
   .curso-modal-titulo{font-family:var(--font-head,inherit);font-size:1.5rem;color:var(--purple-dark);margin-bottom:4px;line-height:1.25}
   .curso-modal-sub{color:var(--muted);font-size:.88rem;margin-bottom:2px}
   .curso-modal-min{color:var(--purple-dark);font-size:.86rem;font-weight:600;margin-bottom:16px}
@@ -293,7 +299,7 @@
   }
   /* Aspa decorativa serifada ao fundo */
   .sobre-mim .sobre-box::before{
-    content:'\\Mih';
+    content:'\\201C';
     position:absolute; top:-6px; left:18px;
     font-family:'DM Serif Display','Playfair Display',Georgia,serif;
     font-size:5.2rem; line-height:1; color:var(--purple);
@@ -476,12 +482,17 @@
     .brand-name{font-size:1.25rem;line-height:1.2;white-space:normal;word-break:break-word;overflow-wrap:anywhere}
     body.estilo-elegante .brand-name{font-size:1.4rem}
     .brand-sub{white-space:normal}
-    /* Cursos continuam 2 lado a lado no mobile (não empilham) */
+    /* Cursos 2 lado a lado, mais compactos (menos "linguiça") no mobile */
     #secoes-info{grid-template-columns:1fr 1fr;gap:12px}
-    #secoes-info .info-sec{padding:16px 12px}
-    .info-sec h2{font-size:1.05rem}
-    .info-sec .info-btn{padding:10px 14px;font-size:.72rem}
-    .info-sec p.info-txt{font-size:.84rem}
+    #secoes-info .info-sec{padding:14px 12px}
+    .info-img{margin-bottom:10px !important;aspect-ratio:4/3}
+    .info-sec h2{font-size:.98rem;margin-bottom:2px}
+    .info-sec .info-sub{font-size:.72rem;margin-bottom:2px}
+    .info-sec .info-ministrante{font-size:.72rem;margin-bottom:8px}
+    .info-sec p.info-txt{font-size:.8rem;margin-bottom:8px;
+      display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden}
+    .info-lermais{font-size:.8rem;padding:0 0 10px}
+    .info-sec .info-btn{padding:9px 10px;font-size:.66rem;letter-spacing:.03em}
   }
 </style>
 </head>
@@ -564,10 +575,18 @@
 <div class="modal-bg" id="modal-curso">
   <div class="modal curso-modal">
     <button class="modal-close" onclick="closeModal('modal-curso')">✕</button>
+    <div id="curso-modal-img" class="curso-modal-img" style="display:none"></div>
     <h2 id="curso-modal-titulo" class="curso-modal-titulo"></h2>
     <div id="curso-modal-sub" class="curso-modal-sub"></div>
     <div id="curso-modal-min" class="curso-modal-min"></div>
     <p id="curso-modal-txt" class="curso-modal-txt"></p>
+  </div>
+</div>
+
+<div class="modal-bg" id="modal-img-zoom" onclick="closeModal('modal-img-zoom')">
+  <div class="img-zoom-wrap">
+    <button class="modal-close" onclick="closeModal('modal-img-zoom')" style="z-index:2">✕</button>
+    <div id="img-zoom-conteudo"></div>
   </div>
 </div>
 
@@ -907,12 +926,12 @@ function renderSecoesInfo(){
     const textoCurto = textoLongo ? s.texto.slice(0, LIMITE).trim() + '…' : (s.texto||'');
     const idSec = 'sec-full-' + Math.random().toString(36).slice(2,9);
     return `<div class="info-sec">
-      ${s.img?`<div class="info-img"><img src="${escapeHtml(s.img)}" alt="${escapeHtml(s.titulo||'')}" loading="lazy"/></div>`:''}
+      ${s.img?`<div class="info-img" onclick="abrirCursoImagem('${escapeHtml(s.img).replace(/'/g,"\\'")}')" title="Ampliar imagem"><img src="${escapeHtml(s.img)}" alt="${escapeHtml(s.titulo||'')}" loading="lazy"/></div>`:''}
       ${s.titulo?`<h2>${escapeHtml(s.titulo)}</h2>`:''}
       ${s.subtitulo?`<div class="info-sub">${escapeHtml(s.subtitulo)}</div>`:''}
       ${s.ministrante?`<div class="info-ministrante">com ${escapeHtml(s.ministrante)}</div>`:''}
       ${s.texto?`<p class="info-txt">${escapeHtml(textoCurto)}</p>`:''}
-      ${textoLongo?`<button class="info-lermais" onclick="abrirCursoDetalhe('${idSec}')">ler mais…</button><div id="${idSec}" style="display:none" data-titulo="${escapeHtml(s.titulo||'')}" data-sub="${escapeHtml(s.subtitulo||'')}" data-min="${escapeHtml(s.ministrante||'')}">${escapeHtml(s.texto)}</div>`:''}
+      ${textoLongo?`<button class="info-lermais" onclick="abrirCursoDetalhe('${idSec}')">ler mais…</button><div id="${idSec}" style="display:none" data-titulo="${escapeHtml(s.titulo||'')}" data-sub="${escapeHtml(s.subtitulo||'')}" data-min="${escapeHtml(s.ministrante||'')}" data-img="${escapeHtml(s.img||'')}">${escapeHtml(s.texto)}</div>`:''}
       ${botao}
     </div>`;
   }).join('');
@@ -939,13 +958,24 @@ function abrirCursoDetalhe(id){  const dados = document.getElementById(id);
   const titulo = dados.getAttribute('data-titulo')||'';
   const sub = dados.getAttribute('data-sub')||'';
   const min = dados.getAttribute('data-min')||'';
+  const img = dados.getAttribute('data-img')||'';
   const texto = dados.textContent||'';
+  const imgEl = document.getElementById('curso-modal-img');
+  if(img){ imgEl.innerHTML = `<img src="${img}" alt="${titulo}" onclick="abrirCursoImagem('${img.replace(/'/g,"\\'")}')"/>`; imgEl.style.display=''; }
+  else { imgEl.innerHTML=''; imgEl.style.display='none'; }
   document.getElementById('curso-modal-titulo').textContent = titulo;
   document.getElementById('curso-modal-sub').textContent = sub;
   const minEl = document.getElementById('curso-modal-min');
   if(min){ minEl.textContent = 'com '+min; minEl.style.display=''; } else { minEl.style.display='none'; }
   document.getElementById('curso-modal-txt').textContent = texto;
   openModal('modal-curso');
+}
+
+/* Pop-up só da imagem do curso (ampliada) */
+function abrirCursoImagem(url){
+  if(!url) return;
+  document.getElementById('img-zoom-conteudo').innerHTML = `<img src="${url}" alt="Imagem do curso"/>`;
+  openModal('modal-img-zoom');
 }
 
 /* Bolinhas de tom no card (cor ou mini-foto), no estilo Mary Kay.
