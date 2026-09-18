@@ -223,14 +223,19 @@
   .busca:focus{outline:none;border-color:var(--purple)}
   .filtro-chip{background:var(--bg);border:1px solid var(--border);border-radius:20px;padding:7px 16px;font-size:.82rem;color:var(--muted);font-weight:500;transition:all .15s}
   /* Ordenação: abas com linha fina (mais delicado que cápsula) */
-  .filtros-ord{gap:4px;padding-top:10px;padding-bottom:10px}
-  .ord-chip{background:transparent !important;border:none !important;border-radius:0 !important;
-    padding:8px 2px !important;margin:0 14px 0 0 !important;color:var(--muted);font-weight:500;
-    font-size:.84rem;letter-spacing:.2px;border-bottom:2px solid transparent !important;position:relative}
-  .ord-chip:hover{color:var(--purple-dark);border-color:transparent !important}
-  .ord-chip.active{background:transparent !important;color:var(--purple-dark) !important;
-    border-bottom:2px solid var(--purple) !important;font-weight:600}
-  body.estilo-elegante .ord-chip{text-transform:uppercase;letter-spacing:.08em;font-size:.74rem}
+  /* Ordenação: abas com linha fina (elegante) */
+  .filtros-ord{gap:22px;padding:14px 32px 0;border-bottom:1px solid var(--border);align-items:flex-end;background:transparent}
+  body.estilo-elegante .filtros-ord{background:transparent !important;backdrop-filter:none}
+  .ord-chip{
+    font-family:var(--font-head, Georgia, 'Times New Roman', serif);
+    font-size:.95rem;font-weight:400;color:var(--muted);
+    background:none;border:none;padding:0 0 9px;margin:0;
+    border-bottom:2px solid transparent;cursor:pointer;
+    transition:color .2s, border-color .2s;line-height:1;
+  }
+  .ord-chip:hover{color:var(--purple-dark)}
+  .ord-chip.active{color:var(--purple-dark);border-bottom-color:var(--purple);font-weight:600}
+  body.estilo-elegante .ord-chip{letter-spacing:.3px}
   .filtro-chip.active,.filtro-chip:hover{background:var(--purple-light);border-color:var(--purple);color:var(--purple-dark)}
 
   /* Body */
@@ -527,9 +532,9 @@
   </div>
   <div class="filtros filtros-cat" id="filtros-cat"></div>
   <div class="filtros filtros-ord">
-    <div class="filtro-chip ord-chip active" onclick="setOrdem('',this)">Relevância</div>
-    <div class="filtro-chip ord-chip" onclick="setOrdem('asc',this)">Menor preço</div>
-    <div class="filtro-chip ord-chip" onclick="setOrdem('desc',this)">Maior preço</div>
+    <div class="ord-chip active" onclick="setOrdem('',this)">Relevância</div>
+    <div class="ord-chip" onclick="setOrdem('asc',this)">Menor preço</div>
+    <div class="ord-chip" onclick="setOrdem('desc',this)">Maior preço</div>
   </div>
 
   <div class="loja-body">
