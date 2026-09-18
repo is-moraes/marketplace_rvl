@@ -312,7 +312,9 @@
   .nota-card:hover{transform:translateY(-2px);box-shadow:0 8px 22px rgba(31,27,46,.08)}
   .nota-card.ativa{border-color:var(--purple);box-shadow:0 0 0 2px var(--purple-light)}
   .nota-card h4{font-size:.95rem;margin-bottom:4px;color:var(--text);display:flex;align-items:center;gap:6px}
-  .nota-card .nota-previa{font-size:.78rem;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .nota-card .nota-previa{font-size:.78rem;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
+  .nota-card{min-width:0;overflow:hidden}
+  .nota-corpo{min-height:260px;border:1px solid var(--border);border-radius:10px;padding:14px;font-size:.92rem;line-height:1.6;overflow-y:auto;outline:none;word-wrap:break-word;overflow-wrap:anywhere;max-width:100%}
   .nota-card .nota-data{font-size:.68rem;color:var(--muted);margin-top:6px}
   .nota-card .alerta-tag{font-size:.62rem;background:#FEF3C7;color:#B45309;border-radius:20px;padding:2px 7px;font-weight:700}
   .notas-editor{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:18px}
@@ -321,7 +323,6 @@
   .nota-toolbar button:hover{border-color:var(--purple);color:var(--purple-dark)}
   .nota-toolbar select{background:#fff;border:1px solid var(--border);border-radius:7px;padding:5px 8px;font-size:.8rem;cursor:pointer;font-family:inherit}
   .nota-toolbar .tb-sep{width:1px;height:22px;background:var(--border);margin:0 3px}
-  .nota-corpo{min-height:260px;border:1px solid var(--border);border-radius:10px;padding:14px;font-size:.92rem;line-height:1.6;overflow-y:auto;outline:none}
   .nota-corpo:focus{border-color:var(--purple)}
   .nota-corpo ul,.nota-corpo ol{padding-left:24px;margin:6px 0}
   @media(max-width:768px){ .notas-layout{grid-template-columns:1fr} }
@@ -1196,7 +1197,7 @@ let GASTOS=[];
    ══════════════════════════════════════════════════════════ */
 let NOTAS=[];
 let _notaEditandoId=null;
-const notasCol = () => db.collection('usuarios').doc(uid).collection('anotacoes');
+const notasCol = () => lojaRef().collection('anotacoes');
 
 async function carregarNotas(){
   try{
@@ -1213,7 +1214,7 @@ function renderNotas(){
     return;
   }
   lista.innerHTML=NOTAS.map(n=>{
-    const previa=(n.corpo||'').replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').trim().slice(0,60);
+    const previa=(n.corpo||'').replace(/<[^>]+>/g,' ').replace(/&nbsp;/g,' ').replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/\s+/g,' ').trim().slice(0,60);
     return `<div class="nota-card ${n.id===_notaEditandoId?'ativa':''}" onclick="editarNota('${n.id}')">
       <h4>${n.alerta?'📌 ':''}${escapeHtmlPainel(n.titulo||'Sem título')}${n.alerta?'<span class="alerta-tag">aviso</span>':''}</h4>
       <div class="nota-previa">${escapeHtmlPainel(previa)||'—'}</div>
@@ -1294,7 +1295,7 @@ async function excluirNota(){
 }
 
 /* Pop-up de avisos ao entrar no portal (uma vez por dia se dispensado) */
-function _chaveAvisoHoje(){ return 'avisos_notas_dispensado_'+uid+'_'+new Date().toLocaleDateString('pt-BR'); }
+function _chaveAvisoHoje(){ return 'avisos_notas_dispensado_'+uid+'_'+(LOJA_ATUAL||'')+'_'+new Date().toLocaleDateString('pt-BR'); }
 function mostrarAvisosNotas(){
   const avisos = NOTAS.filter(n=>n.alerta);
   if(!avisos.length) return;
