@@ -217,13 +217,24 @@
 
   /* Filtros */
   .filtros{background:#fff;padding:16px 32px;border-bottom:1px solid var(--border);display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+  /* Conteúdo interno centralizado e com largura máxima consistente */
+  .loja-header, .filtros{padding-left:max(32px, calc((100% - 1240px)/2 + 32px));padding-right:max(32px, calc((100% - 1240px)/2 + 32px))}
   .busca{flex:1;min-width:200px;background:var(--bg);border:1px solid var(--border);border-radius:30px;padding:10px 18px;font-size:.9rem;color:var(--text)}
   .busca:focus{outline:none;border-color:var(--purple)}
   .filtro-chip{background:var(--bg);border:1px solid var(--border);border-radius:20px;padding:7px 16px;font-size:.82rem;color:var(--muted);font-weight:500;transition:all .15s}
+  /* Ordenação: abas com linha fina (mais delicado que cápsula) */
+  .filtros-ord{gap:4px;padding-top:10px;padding-bottom:10px}
+  .ord-chip{background:transparent !important;border:none !important;border-radius:0 !important;
+    padding:8px 2px !important;margin:0 14px 0 0 !important;color:var(--muted);font-weight:500;
+    font-size:.84rem;letter-spacing:.2px;border-bottom:2px solid transparent !important;position:relative}
+  .ord-chip:hover{color:var(--purple-dark);border-color:transparent !important}
+  .ord-chip.active{background:transparent !important;color:var(--purple-dark) !important;
+    border-bottom:2px solid var(--purple) !important;font-weight:600}
+  body.estilo-elegante .ord-chip{text-transform:uppercase;letter-spacing:.08em;font-size:.74rem}
   .filtro-chip.active,.filtro-chip:hover{background:var(--purple-light);border-color:var(--purple);color:var(--purple-dark)}
 
   /* Body */
-  .loja-body{padding:28px 32px;max-width:1400px;margin:0 auto}
+  .loja-body{padding:28px 32px;max-width:1304px;margin:0 auto}
   /* Seções informativas (cursos, sobre, depoimentos) — grade que preenche a largura */
   #secoes-info{
     display:grid; grid-template-columns:repeat(2, 1fr);
@@ -450,7 +461,8 @@
   @keyframes tin{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
 
   @media(max-width:640px){
-    .loja-header,.filtros,.loja-body{padding-left:18px;padding-right:18px}
+    .loja-header,.filtros{padding-left:16px !important;padding-right:16px !important}
+    .loja-body{padding-left:16px;padding-right:16px}
     .sobre-mim{padding:22px 16px 4px}
     .sobre-mim .sobre-box{padding:24px 20px 26px;font-size:.92rem}
     .sobre-mim .sobre-box::before{font-size:4rem;left:12px}
@@ -514,7 +526,7 @@
     <input class="busca" type="text" placeholder="🔍 Buscar produto…" oninput="filtrar(this.value)"/>
   </div>
   <div class="filtros filtros-cat" id="filtros-cat"></div>
-  <div class="filtros">
+  <div class="filtros filtros-ord">
     <div class="filtro-chip ord-chip active" onclick="setOrdem('',this)">Relevância</div>
     <div class="filtro-chip ord-chip" onclick="setOrdem('asc',this)">Menor preço</div>
     <div class="filtro-chip ord-chip" onclick="setOrdem('desc',this)">Maior preço</div>
