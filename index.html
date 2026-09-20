@@ -370,7 +370,11 @@
   .sec-card-tags{display:flex;gap:6px;margin:4px 0}
   .sec-tag{font-size:.66rem;font-weight:700;padding:2px 9px;border-radius:20px}
   .sec-card-previa{font-size:.78rem;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  .sec-card-acoes{display:flex;gap:6px;flex-shrink:0}
+  .sec-card-acoes{display:flex;gap:6px;flex-shrink:0;align-items:center}
+  .sec-mover{display:flex;flex-direction:column;gap:2px}
+  .sec-seta{width:26px;height:20px;display:flex;align-items:center;justify-content:center;background:var(--bg);border:1px solid var(--border);border-radius:6px;cursor:pointer;font-size:.72rem;color:var(--text);line-height:1;padding:0}
+  .sec-seta:hover:not(:disabled){border-color:var(--purple);color:var(--purple-dark)}
+  .sec-seta:disabled{opacity:.3;cursor:default}
   @media(max-width:640px){
     .sec-card{flex-wrap:wrap}
     .sec-card-acoes{width:100%;margin-top:6px}
@@ -2565,10 +2569,11 @@ function addSecao(tipo){
   abrirEditorSecao(SECOES_EDIT.length-1);   // já abre o modal para preencher
 }
 function removerSecao(i){ SECOES_EDIT.splice(i,1); renderSecoesEditor(); }
-function moverSecao(i,dir){
+async function moverSecao(i,dir){
   const j=i+dir; if(j<0||j>=SECOES_EDIT.length) return;
   [SECOES_EDIT[i],SECOES_EDIT[j]]=[SECOES_EDIT[j],SECOES_EDIT[i]];
   renderSecoesEditor();
+  await salvarSecoes();   // persiste a nova ordem (reflete na loja)
 }
 function addDepo(i){
   if(!Array.isArray(SECOES_EDIT[i].itens)) SECOES_EDIT[i].itens=[];
@@ -2615,7 +2620,10 @@ function renderSecoesEditor(){
         <div class="sec-card-previa">${escapeHtmlPainel(previa)}</div>
       </div>
       <div class="sec-card-acoes">
-        <button type="button" class="btn btn-secondary btn-xs" onclick="visualizarSecao(${i})">Visualizar</button>
+        <div class="sec-mover">
+          <button type="button" class="sec-seta" onclick="moverSecao(${i},-1)" ${i===0?'disabled':''} title="Subir">↑</button>
+          <button type="button" class="sec-seta" onclick="moverSecao(${i},1)" ${i===SECOES_EDIT.length-1?'disabled':''} title="Descer">↓</button>
+        </div>
         <button type="button" class="btn btn-primary btn-xs" onclick="abrirEditorSecao(${i})">Editar</button>
       </div>
     </div>`;
