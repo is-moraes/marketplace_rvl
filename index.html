@@ -3,6 +3,13 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<link rel="manifest" href="manifest-painel.json"/>
+<meta name="theme-color" content="#7C3AED"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="default"/>
+<meta name="apple-mobile-web-app-title" content="Painel"/>
+<link rel="apple-touch-icon" href="icon-painel-192.png"/>
 <title>Meu Closet – Painel do Vendedor</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
@@ -352,6 +359,23 @@
   .prox-info .t{font-size:.85rem;font-weight:600;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .prox-info .h{font-size:.72rem;color:var(--muted)}
   .prox-info .l{font-size:.72rem;color:var(--purple-dark);font-weight:600;margin-top:2px}
+  /* Cards da lista de Cursos e informações */
+  .sec-card{display:flex;align-items:center;gap:14px;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:12px 14px;margin-bottom:10px;transition:box-shadow .2s}
+  .sec-card:hover{box-shadow:0 6px 20px rgba(31,27,46,.07)}
+  .sec-thumb{width:60px;height:52px;border-radius:10px;overflow:hidden;flex-shrink:0;background:var(--bg)}
+  .sec-thumb img{width:100%;height:100%;object-fit:cover}
+  .sec-thumb-vazio{display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:.7rem;font-weight:700;letter-spacing:.05em}
+  .sec-card-info{flex:1;min-width:0}
+  .sec-card-titulo{font-size:.95rem;font-weight:600;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .sec-card-tags{display:flex;gap:6px;margin:4px 0}
+  .sec-tag{font-size:.66rem;font-weight:700;padding:2px 9px;border-radius:20px}
+  .sec-card-previa{font-size:.78rem;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .sec-card-acoes{display:flex;gap:6px;flex-shrink:0}
+  @media(max-width:640px){
+    .sec-card{flex-wrap:wrap}
+    .sec-card-acoes{width:100%;margin-top:6px}
+    .sec-card-acoes .btn{flex:1}
+  }
 </style>
 </head>
 <body>
@@ -725,6 +749,25 @@
 </div>
 
 <!-- MODAIS -->
+<div class="modal-bg" id="modal-secao">
+  <div class="modal" style="max-width:560px">
+    <button class="modal-close" onclick="closeModal('modal-secao')">✕</button>
+    <h2 id="sec-modal-titulo-h" style="margin-bottom:12px">Editar seção</h2>
+    <div class="fg"><label>Tipo de conteúdo</label>
+      <select id="secm-tipo" onchange="trocarTipoModal()">
+        <option value="padrao">Curso / Informação (com botão WhatsApp)</option>
+        <option value="depoimentos">Depoimentos</option>
+      </select>
+    </div>
+    <div id="secm-corpo"></div>
+    <div style="display:flex;gap:8px;margin-top:16px;flex-wrap:wrap">
+      <button class="btn btn-primary btn-sm" onclick="salvarSecaoModal()">Salvar</button>
+      <button class="btn btn-secondary btn-sm" onclick="closeModal('modal-secao')">Cancelar</button>
+      <button class="btn btn-danger btn-sm" style="margin-left:auto" onclick="excluirSecaoModal()">Excluir</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-bg" id="modal-aviso-notas">
   <div class="modal" style="max-width:520px">
     <button class="modal-close" onclick="closeModal('modal-aviso-notas')">✕</button>
@@ -2519,6 +2562,7 @@ let SECOES_EDIT = [];
 function addSecao(tipo){
   SECOES_EDIT.push({ tipo: tipo||'padrao', titulo:'', subtitulo:'', texto:'', botaoTexto:'', botaoMsg:'', itens:[] });
   renderSecoesEditor();
+  abrirEditorSecao(SECOES_EDIT.length-1);   // já abre o modal para preencher
 }
 function removerSecao(i){ SECOES_EDIT.splice(i,1); renderSecoesEditor(); }
 function moverSecao(i,dir){
@@ -2535,88 +2579,181 @@ function removerDepo(i,j){ SECOES_EDIT[i].itens.splice(j,1); renderSecoesEditor(
 
 /* Lê os valores dos campos de volta para o array (antes de re-render ou salvar) */
 function coletarSecoesDoDOM(){
-  SECOES_EDIT.forEach((s,i)=>{
-    const g=id=>document.getElementById(`sec-${i}-${id}`);
-    if(g('titulo')) s.titulo=g('titulo').value;
-    if(g('subtitulo')) s.subtitulo=g('subtitulo').value;
+  /* A edição agora acontece no modal (coletarModalSecao).
+     Mantido como no-op para compatibilidade com chamadas antigas. */
+}
+
+/* Lista de cards enxutos — cada seção é um card com título, tipo, prévia e ações */
+function renderSecoesEditor(){
+  const el=document.getElementById('secoes-editor'); if(!el)return;
+  if(!SECOES_EDIT.length){
+    el.innerHTML=`<div style="font-size:.85rem;color:var(--muted);padding:24px;text-align:center;border:1px dashed var(--border);border-radius:12px">Nenhum conteúdo ainda. Clique em <strong>+ Adicionar</strong> para criar um curso, depoimentos ou uma seção sobre você.</div>`;
+    return;
+  }
+  el.innerHTML=SECOES_EDIT.map((s,i)=>{
+    const ehDepo = s.tipo==='depoimentos';
+    const tipoLabel = ehDepo ? 'Depoimentos' : 'Curso';
+    const tipoCor = ehDepo ? 'background:#EDE9FE;color:#5B21B6' : 'background:#EDE9FE;color:#5B21B6';
+    // "status": rascunho se não tem título nem texto; senão publicado
+    const vazio = !(s.titulo || s.texto || (ehDepo && (s.itens||[]).some(d=>d.texto)));
+    const stTag = vazio ? 'background:#FEF3C7;color:#B45309' : 'background:#DCFCE7;color:#15803D';
+    const stLabel = vazio ? 'Rascunho' : 'Publicado';
+    let previa;
+    if(ehDepo){ const n=(s.itens||[]).filter(d=>d.texto).length; previa = n?`${n} depoimento(s)`:'Sem depoimentos ainda'; }
+    else { previa = (s.texto||'').replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').trim().slice(0,70) || 'Sem descrição'; }
+    const thumb = (!ehDepo && s.img)
+      ? `<div class="sec-thumb"><img src="${(s.img||'').replace(/"/g,'&quot;')}"/></div>`
+      : `<div class="sec-thumb sec-thumb-vazio">${ehDepo?'💬':'IMG'}</div>`;
+    return `<div class="sec-card">
+      ${thumb}
+      <div class="sec-card-info">
+        <div class="sec-card-titulo">${escapeHtmlPainel(s.titulo||'Sem título')}</div>
+        <div class="sec-card-tags">
+          <span class="sec-tag" style="${tipoCor}">${tipoLabel}</span>
+          <span class="sec-tag" style="${stTag}">${stLabel}</span>
+        </div>
+        <div class="sec-card-previa">${escapeHtmlPainel(previa)}</div>
+      </div>
+      <div class="sec-card-acoes">
+        <button type="button" class="btn btn-secondary btn-xs" onclick="visualizarSecao(${i})">Visualizar</button>
+        <button type="button" class="btn btn-primary btn-xs" onclick="abrirEditorSecao(${i})">Editar</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+/* ── MODAL de edição de uma seção ── */
+let _secEditandoIdx = null;
+
+function abrirEditorSecao(i){
+  _secEditandoIdx = i;
+  const s = SECOES_EDIT[i];
+  document.getElementById('sec-modal-titulo-h').textContent = (s.titulo||'Nova seção');
+  const tipo = s.tipo==='depoimentos' ? 'depoimentos' : 'padrao';
+  document.getElementById('secm-tipo').value = tipo;
+  renderCorpoModalSecao();
+  openModal('modal-secao');
+}
+
+function renderCorpoModalSecao(){
+  const i = _secEditandoIdx; if(i===null) return;
+  const s = SECOES_EDIT[i];
+  const tipo = document.getElementById('secm-tipo').value;
+  const box = document.getElementById('secm-corpo');
+  if(tipo==='depoimentos'){
+    const depos=(s.itens||[]).map((d,j)=>`
+      <div style="display:flex;gap:6px;margin-bottom:6px;align-items:flex-start">
+        <textarea id="secm-depo-${j}-txt" rows="2" placeholder="Depoimento do cliente" style="flex:1;padding:8px;border:1px solid var(--border);border-radius:8px;font-size:.85rem;font-family:inherit">${(d.texto||'').replace(/</g,'&lt;')}</textarea>
+        <input id="secm-depo-${j}-aut" placeholder="Nome" value="${(d.autor||'').replace(/"/g,'&quot;')}" style="width:110px;padding:8px;border:1px solid var(--border);border-radius:8px;font-size:.85rem;font-family:inherit"/>
+        <button type="button" onclick="removerDepoModal(${j})" style="background:none;color:var(--danger);font-size:1.1rem;padding:4px">✕</button>
+      </div>`).join('');
+    box.innerHTML=`
+      <div class="fg"><label>Título</label><input id="secm-titulo" value="${(s.titulo||'').replace(/"/g,'&quot;')}" placeholder="Ex: O que dizem sobre mim"/></div>
+      <div class="fg"><label>Subtítulo (opcional)</label><input id="secm-subtitulo" value="${(s.subtitulo||'').replace(/"/g,'&quot;')}"/></div>
+      <label style="font-size:.8rem;font-weight:600;color:var(--muted)">Depoimentos</label>
+      <div id="secm-depos" style="margin-top:6px">${depos}</div>
+      <button type="button" class="btn btn-secondary btn-xs" onclick="addDepoModal()">+ Depoimento</button>`;
+  } else {
+    box.innerHTML=`
+      <div class="fg"><label>Título</label><input id="secm-titulo" value="${(s.titulo||'').replace(/"/g,'&quot;')}" placeholder="Ex: Curso de Automaquiagem"/></div>
+      <div class="fg"><label>Subtítulo (opcional)</label><input id="secm-subtitulo" value="${(s.subtitulo||'').replace(/"/g,'&quot;')}" placeholder="Ex: Inscrições abertas"/></div>
+      <div class="fg"><label>Ministrante (opcional)</label><input id="secm-ministrante" value="${(s.ministrante||'').replace(/"/g,'&quot;')}" placeholder="Ex: Miriã Silva"/></div>
+      <div class="fg"><label>Imagem</label>
+        <div style="display:flex;align-items:center;gap:10px">
+          <div id="secm-img-prev" style="width:84px;height:60px;border-radius:8px;border:1px solid var(--border);overflow:hidden;background:var(--bg);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+            ${s.img?`<img src="${(s.img||'').replace(/"/g,'&quot;')}" style="width:100%;height:100%;object-fit:cover"/>`:'<span style="opacity:.4">🖼️</span>'}
+          </div>
+          <input type="file" accept="image/jpeg,image/png,image/webp" id="secm-imgfile" style="display:none" onchange="uploadImagemCursoModal(event)"/>
+          <button type="button" class="btn btn-secondary btn-xs" onclick="document.getElementById('secm-imgfile').click()">${s.img?'Trocar':'📷 Adicionar'}</button>
+          ${s.img?`<button type="button" class="btn btn-xs" style="background:var(--bg);border:1px solid var(--border)" onclick="removerImagemModal()">Remover</button>`:''}
+          <span id="secm-imgstatus" style="font-size:.72rem;color:var(--muted)"></span>
+        </div>
+        <div style="font-size:.68rem;color:var(--muted);margin-top:4px">JPG, PNG ou WEBP · máx. 5 MB · ideal 800×450px</div>
+        <input type="hidden" id="secm-img" value="${(s.img||'').replace(/"/g,'&quot;')}"/>
+      </div>
+      <div class="fg"><label>Descrição</label><textarea id="secm-texto" rows="4" placeholder="Descreva o curso ou a informação…">${(s.texto||'').replace(/</g,'&lt;')}</textarea></div>
+      <div class="form-row">
+        <div class="fg"><label>Texto do botão</label><input id="secm-btntexto" value="${(s.botaoTexto||'').replace(/"/g,'&quot;')}" placeholder="Ex: Quero saber mais"/></div>
+        <div class="fg"><label>Mensagem no WhatsApp</label><input id="secm-btnmsg" value="${(s.botaoMsg||'').replace(/"/g,'&quot;')}" placeholder="Ex: Quero informações"/></div>
+      </div>
+      <div style="font-size:.7rem;color:var(--muted)">Deixe o botão em branco se a seção for só informativa.</div>`;
+  }
+}
+
+/* Lê os campos do modal para o objeto da seção */
+function coletarModalSecao(){
+  const i=_secEditandoIdx; if(i===null) return;
+  const s=SECOES_EDIT[i];
+  const g=id=>document.getElementById('secm-'+id);
+  s.tipo = document.getElementById('secm-tipo').value==='depoimentos' ? 'depoimentos' : 'padrao';
+  if(g('titulo')) s.titulo=g('titulo').value;
+  if(g('subtitulo')) s.subtitulo=g('subtitulo').value;
+  if(s.tipo==='depoimentos'){
+    if(!Array.isArray(s.itens)) s.itens=[];
+    s.itens.forEach((d,j)=>{
+      const dt=document.getElementById(`secm-depo-${j}-txt`), da=document.getElementById(`secm-depo-${j}-aut`);
+      if(dt) d.texto=dt.value; if(da) d.autor=da.value;
+    });
+  } else {
     if(g('ministrante')) s.ministrante=g('ministrante').value;
     if(g('img')) s.img=g('img').value;
     if(g('texto')) s.texto=g('texto').value;
     if(g('btntexto')) s.botaoTexto=g('btntexto').value;
     if(g('btnmsg')) s.botaoMsg=g('btnmsg').value;
-    if(s.tipo==='depoimentos' && Array.isArray(s.itens)){
-      s.itens.forEach((d,j)=>{
-        const dt=document.getElementById(`sec-${i}-depo-${j}-txt`);
-        const da=document.getElementById(`sec-${i}-depo-${j}-aut`);
-        if(dt) d.texto=dt.value;
-        if(da) d.autor=da.value;
-      });
-    }
-  });
+  }
 }
 
-function renderSecoesEditor(){
-  coletarSecoesDoDOM();
-  const el=document.getElementById('secoes-editor'); if(!el)return;
-  if(!SECOES_EDIT.length){
-    el.innerHTML=`<div style="font-size:.8rem;color:var(--muted);padding:10px 0">Nenhuma seção ainda. Clique em "Adicionar seção" para criar uma área de cursos, sobre você, ou depoimentos.</div>`;
-    return;
-  }
-  el.innerHTML=SECOES_EDIT.map((s,i)=>{
-    const tipoSel=`<select onchange="mudarTipoSecao(${i},this.value)" style="padding:6px 9px;border:1px solid var(--border);border-radius:8px;font-size:.8rem;font-family:inherit">
-      <option value="padrao" ${s.tipo==='padrao'?'selected':''}>Texto + botão WhatsApp</option>
-      <option value="depoimentos" ${s.tipo==='depoimentos'?'selected':''}>Depoimentos</option>
-    </select>`;
-    let corpo;
-    if(s.tipo==='depoimentos'){
-      const depos=(s.itens||[]).map((d,j)=>`
-        <div style="display:flex;gap:6px;margin-bottom:6px;align-items:flex-start">
-          <textarea id="sec-${i}-depo-${j}-txt" rows="2" placeholder="Depoimento do cliente" style="flex:1;padding:8px;border:1px solid var(--border);border-radius:8px;font-size:.82rem;font-family:inherit">${(d.texto||'').replace(/</g,'&lt;')}</textarea>
-          <input id="sec-${i}-depo-${j}-aut" placeholder="Nome" value="${(d.autor||'').replace(/"/g,'&quot;')}" style="width:110px;padding:8px;border:1px solid var(--border);border-radius:8px;font-size:.82rem;font-family:inherit"/>
-          <button type="button" onclick="removerDepo(${i},${j})" style="background:none;color:var(--danger);font-size:1.1rem;padding:4px">✕</button>
-        </div>`).join('');
-      corpo=`
-        <input id="sec-${i}-titulo" placeholder="Título (ex: O que dizem sobre mim)" value="${(s.titulo||'').replace(/"/g,'&quot;')}" style="width:100%;padding:9px;border:1px solid var(--border);border-radius:8px;font-size:.85rem;font-family:inherit;margin-bottom:6px"/>
-        <input id="sec-${i}-subtitulo" placeholder="Subtítulo (opcional)" value="${(s.subtitulo||'').replace(/"/g,'&quot;')}" style="width:100%;padding:9px;border:1px solid var(--border);border-radius:8px;font-size:.85rem;font-family:inherit;margin-bottom:8px"/>
-        ${depos}
-        <button type="button" class="btn btn-secondary btn-xs" onclick="addDepo(${i})">+ Depoimento</button>`;
-    } else {
-      corpo=`
-        <input id="sec-${i}-titulo" placeholder="Título (ex: Cursos e Treinamentos)" value="${(s.titulo||'').replace(/"/g,'&quot;')}" style="width:100%;padding:9px;border:1px solid var(--border);border-radius:8px;font-size:.85rem;font-family:inherit;margin-bottom:6px"/>
-        <input id="sec-${i}-subtitulo" placeholder="Subtítulo (opcional)" value="${(s.subtitulo||'').replace(/"/g,'&quot;')}" style="width:100%;padding:9px;border:1px solid var(--border);border-radius:8px;font-size:.85rem;font-family:inherit;margin-bottom:6px"/>
-        <input id="sec-${i}-ministrante" placeholder="Ministrante do curso (ex: Miriã Silva)" value="${(s.ministrante||'').replace(/"/g,'&quot;')}" style="width:100%;padding:9px;border:1px solid var(--border);border-radius:8px;font-size:.85rem;font-family:inherit;margin-bottom:6px"/>
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px">
-          <div id="sec-${i}-img-prev" style="width:70px;height:52px;border-radius:8px;border:1px solid var(--border);flex-shrink:0;overflow:hidden;background:var(--bg);display:flex;align-items:center;justify-content:center">
-            ${s.img?`<img src="${(s.img||'').replace(/"/g,'&quot;')}" style="width:100%;height:100%;object-fit:cover"/>`:'<span style="font-size:1.1rem;opacity:.4">🖼️</span>'}
-          </div>
-          <input type="file" accept="image/jpeg,image/png,image/webp" id="sec-${i}-imgfile" style="display:none" onchange="uploadImagemCurso(${i}, event)"/>
-          <button type="button" class="btn btn-secondary btn-xs" onclick="document.getElementById('sec-${i}-imgfile').click()">${s.img?'Trocar imagem':'📷 Imagem do curso'}</button>
-          ${s.img?`<button type="button" class="btn btn-xs" style="background:var(--bg);border:1px solid var(--border)" onclick="removerImagemCurso(${i})">Remover</button>`:''}
-          <span id="sec-${i}-imgstatus" style="font-size:.72rem;color:var(--muted)"></span>
-        </div>
-        <div style="font-size:.68rem;color:var(--muted);margin-bottom:8px">Formatos: JPG, PNG ou WEBP · máx. 5 MB · recomendado 800×450px (16:9)</div>
-        <input type="hidden" id="sec-${i}-img" value="${(s.img||'').replace(/"/g,'&quot;')}"/>
-        <textarea id="sec-${i}-texto" rows="3" placeholder="Texto da seção…" style="width:100%;padding:9px;border:1px solid var(--border);border-radius:8px;font-size:.85rem;font-family:inherit;margin-bottom:6px">${(s.texto||'').replace(/</g,'&lt;')}</textarea>
-        <div class="form-row">
-          <div class="fg" style="margin:0"><input id="sec-${i}-btntexto" placeholder="Texto do botão (ex: Quero saber mais)" value="${(s.botaoTexto||'').replace(/"/g,'&quot;')}" style="width:100%;padding:9px;border:1px solid var(--border);border-radius:8px;font-size:.85rem;font-family:inherit"/></div>
-          <div class="fg" style="margin:0"><input id="sec-${i}-btnmsg" placeholder="Mensagem WhatsApp ao clicar" value="${(s.botaoMsg||'').replace(/"/g,'&quot;')}" style="width:100%;padding:9px;border:1px solid var(--border);border-radius:8px;font-size:.85rem;font-family:inherit"/></div>
-        </div>
-        <div style="font-size:.7rem;color:var(--muted);margin-top:4px">Deixe o botão em branco se a seção for só informativa. O WhatsApp usa o número configurado acima.</div>`;
-    }
-    return `<div style="border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:12px;background:var(--bg)">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;gap:8px;flex-wrap:wrap">
-        <div style="display:flex;gap:6px;align-items:center">${tipoSel}</div>
-        <div style="display:flex;gap:4px">
-          <button type="button" onclick="moverSecao(${i},-1)" title="Subir" style="background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:4px 8px;cursor:pointer">↑</button>
-          <button type="button" onclick="moverSecao(${i},1)" title="Descer" style="background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:4px 8px;cursor:pointer">↓</button>
-          <button type="button" onclick="removerSecao(${i})" class="btn btn-danger btn-xs">Remover</button>
-        </div>
-      </div>
-      ${corpo}
-    </div>`;
-  }).join('');
+function trocarTipoModal(){ coletarModalSecao(); const i=_secEditandoIdx; if(document.getElementById('secm-tipo').value==='depoimentos' && !SECOES_EDIT[i].itens?.length){ SECOES_EDIT[i].itens=[{texto:'',autor:''}]; } renderCorpoModalSecao(); }
+function addDepoModal(){ const i=_secEditandoIdx; coletarModalSecao(); if(!Array.isArray(SECOES_EDIT[i].itens)) SECOES_EDIT[i].itens=[]; SECOES_EDIT[i].itens.push({texto:'',autor:''}); renderCorpoModalSecao(); }
+function removerDepoModal(j){ const i=_secEditandoIdx; coletarModalSecao(); SECOES_EDIT[i].itens.splice(j,1); renderCorpoModalSecao(); }
+
+/* Salvar a seção do modal (grava tudo na loja) */
+async function salvarSecaoModal(){
+  coletarModalSecao();
+  await salvarSecoes();          // persiste no Firestore
+  renderSecoesEditor();          // atualiza a lista
+  closeModal('modal-secao');
 }
-function mudarTipoSecao(i,tipo){ coletarSecoesDoDOM(); SECOES_EDIT[i].tipo=tipo; if(tipo==='depoimentos'&&!SECOES_EDIT[i].itens.length) SECOES_EDIT[i].itens=[{texto:'',autor:''}]; renderSecoesEditor(); }
+
+/* Excluir a seção sendo editada */
+async function excluirSecaoModal(){
+  const i=_secEditandoIdx; if(i===null) return;
+  if(!confirm('Excluir esta seção?')) return;
+  SECOES_EDIT.splice(i,1);
+  await salvarSecoes();
+  renderSecoesEditor();
+  closeModal('modal-secao');
+}
+
+/* Upload/remoção de imagem dentro do modal */
+async function uploadImagemCursoModal(ev){
+  const file=ev.target.files && ev.target.files[0]; if(!file) return;
+  if(!/^image\/(jpeg|jpg|png|webp)$/.test(file.type)){ toast('Use JPG, PNG ou WEBP.','error'); return; }
+  if(file.size>5*1024*1024){ toast('Imagem muito grande (máx. 5MB).','error'); return; }
+  coletarModalSecao();
+  const status=document.getElementById('secm-imgstatus'); if(status) status.textContent='Enviando…';
+  try{
+    const ext=(file.name.split('.').pop()||'jpg').toLowerCase();
+    const path=`cursos/${uid}/${LOJA_ATUAL||'loja'}_${Date.now()}.${ext}`;
+    const ref=storage.ref().child(path);
+    const task=await ref.put(file);
+    const url=await task.ref.getDownloadURL();
+    SECOES_EDIT[_secEditandoIdx].img=url;
+    document.getElementById('secm-img').value=url;
+    renderCorpoModalSecao();
+    toast('Imagem adicionada!','success');
+  }catch(e){ console.error(e); if(status)status.textContent=''; toast('Falha ao enviar: '+(e.message||''),'error'); }
+}
+function removerImagemModal(){ coletarModalSecao(); SECOES_EDIT[_secEditandoIdx].img=''; document.getElementById('secm-img').value=''; renderCorpoModalSecao(); }
+
+/* Visualizar: abre a loja na aba nova, focando a seção (simples: abre a loja) */
+function visualizarSecao(i){
+  const link=document.getElementById('link-loja-vend')?.textContent;
+  if(link) window.open(link, '_blank');
+  else toast('Configure o link da loja em "Minha Loja".','info');
+}
+
+function mudarTipoSecao(i,tipo){ SECOES_EDIT[i].tipo=tipo; if(tipo==='depoimentos'&&!SECOES_EDIT[i].itens?.length) SECOES_EDIT[i].itens=[{texto:'',autor:''}]; renderSecoesEditor(); }
 
 /* Upload da imagem de um curso direto do dispositivo para o Firebase Storage */
 async function uploadImagemCurso(i, ev){
@@ -2792,6 +2929,9 @@ function renderPlano(){
 }
 
 function contatarAdmin(){const num=PLATFORM_CONFIG.whatsSuporte||'';const msg=encodeURIComponent(`Olá! Quero renovar o acesso da minha loja "${VENDEDOR_DOC?.nomeLoja||''}".`);window.open(num?`https://wa.me/${num}?text=${msg}`:`https://wa.me/?text=${msg}`,'_blank')}
+</script>
+<script>
+if('serviceWorker' in navigator){ window.addEventListener('load',()=>{ navigator.serviceWorker.register('sw.js').catch(()=>{}); }); }
 </script>
 </body>
 </html>
