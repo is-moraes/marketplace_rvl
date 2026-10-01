@@ -335,6 +335,41 @@
     -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent;
   }
   .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:22px}
+
+  /* ═══ Seletor de exibição (o comprador escolhe como ver os produtos) ═══ */
+  .view-switch{margin-left:auto;align-self:flex-end;margin-bottom:5px;
+    display:flex;gap:2px;background:var(--bg);border:1px solid var(--border);
+    border-radius:999px;padding:3px}
+  .view-btn{width:36px;height:30px;border-radius:999px;background:transparent;
+    color:var(--muted);display:flex;align-items:center;justify-content:center;
+    transition:background .15s,color .15s,box-shadow .15s}
+  .view-btn svg{width:17px;height:17px;display:block}
+  .view-btn:hover{color:var(--purple-dark)}
+  .view-btn.active{background:var(--purple);color:#fff;box-shadow:0 2px 8px rgba(124,58,237,.3)}
+  body.estilo-elegante .view-switch{background:rgba(255,255,255,.55);border-color:var(--border);backdrop-filter:blur(6px)}
+  body.estilo-elegante .view-btn.active{background:linear-gradient(135deg,var(--purple),var(--purple-dark));box-shadow:0 4px 12px rgba(194,24,91,.28)}
+
+  /* Vista COMPACTA: mais itens por linha, cards menores */
+  .grid.view-compacto{grid-template-columns:repeat(auto-fill,minmax(155px,1fr));gap:14px}
+  .grid.view-compacto .card-info{padding:11px 12px 13px}
+  .grid.view-compacto .card-name{font-size:.84rem}
+  .grid.view-compacto .card-price{font-size:1rem}
+  .grid.view-compacto .btn-ver{padding:7px;font-size:.78rem;margin-top:8px}
+
+  /* Vista LISTA: um por linha, imagem à esquerda e dados à direita */
+  .grid.view-lista{grid-template-columns:1fr;gap:12px}
+  .grid.view-lista .card{display:flex;flex-direction:row;align-items:stretch}
+  .grid.view-lista .card-img{width:118px;flex-shrink:0;aspect-ratio:3/4;border-radius:0}
+  .grid.view-lista .card-info{flex:1;min-width:0;text-align:left;display:flex;flex-direction:column;justify-content:center;gap:2px}
+  .grid.view-lista .card-name{white-space:normal}
+  .grid.view-lista .card-swatches{justify-content:flex-start}
+  .grid.view-lista .btn-ver{width:auto;align-self:flex-start;padding:8px 18px}
+  body.estilo-elegante .grid.view-lista .card-info{text-align:left}
+  body.estilo-elegante .grid.view-lista .card-img{border-radius:18px 0 0 18px}
+  @media(max-width:640px){
+    .grid.view-lista .card-img{width:92px}
+    .grid.view-lista .btn-ver{width:100%}
+  }
   /* Aviso de pronta entrega — faixa delicada acima dos produtos */
   .aviso-entrega{
     display:flex;align-items:center;justify-content:center;gap:12px;
@@ -552,6 +587,17 @@
     <div class="ord-chip active" onclick="setOrdem('',this)">Relevância</div>
     <div class="ord-chip" onclick="setOrdem('asc',this)">Menor preço</div>
     <div class="ord-chip" onclick="setOrdem('desc',this)">Maior preço</div>
+    <div class="view-switch" id="view-switch" role="group" aria-label="Como exibir os produtos">
+      <button class="view-btn" data-view="conforto" onclick="setView('conforto')" title="Confortável" aria-label="Confortável">
+        <svg viewBox="0 0 20 20" fill="currentColor"><rect x="2" y="3" width="7" height="14" rx="1.6"/><rect x="11" y="3" width="7" height="14" rx="1.6"/></svg>
+      </button>
+      <button class="view-btn" data-view="compacto" onclick="setView('compacto')" title="Compacto" aria-label="Compacto">
+        <svg viewBox="0 0 20 20" fill="currentColor"><rect x="2" y="2" width="4.4" height="4.4" rx="1"/><rect x="7.8" y="2" width="4.4" height="4.4" rx="1"/><rect x="13.6" y="2" width="4.4" height="4.4" rx="1"/><rect x="2" y="7.8" width="4.4" height="4.4" rx="1"/><rect x="7.8" y="7.8" width="4.4" height="4.4" rx="1"/><rect x="13.6" y="7.8" width="4.4" height="4.4" rx="1"/><rect x="2" y="13.6" width="4.4" height="4.4" rx="1"/><rect x="7.8" y="13.6" width="4.4" height="4.4" rx="1"/><rect x="13.6" y="13.6" width="4.4" height="4.4" rx="1"/></svg>
+      </button>
+      <button class="view-btn" data-view="lista" onclick="setView('lista')" title="Lista" aria-label="Lista">
+        <svg viewBox="0 0 20 20" fill="currentColor"><rect x="2" y="3.5" width="5" height="5" rx="1"/><rect x="9" y="4" width="9" height="1.7" rx=".85"/><rect x="9" y="7" width="6" height="1.7" rx=".85"/><rect x="2" y="11.5" width="5" height="5" rx="1"/><rect x="9" y="12" width="9" height="1.7" rx=".85"/><rect x="9" y="15" width="6" height="1.7" rx=".85"/></svg>
+      </button>
+    </div>
   </div>
 
   <div class="loja-body">
@@ -841,6 +887,9 @@ async function carregarLoja() {
     document.getElementById('loading-screen').style.display = 'none';
     document.getElementById('loja-app').style.display = '';
 
+    // Restaura a forma de exibição escolhida pelo comprador (lembra a preferência)
+    restaurarView();
+
     // Monta os chips de categoria só com as categorias que TÊM produto.
     renderChipsCategoria();
 
@@ -1101,6 +1150,27 @@ function setOrdem(o, el) {
   document.querySelectorAll('.ord-chip').forEach(c=>c.classList.remove('active'));
   el.classList.add('active');
   filtrar(document.querySelector('.busca').value);
+}
+
+/* ─── Exibição escolhida pelo comprador (conforto | compacto | lista) ─── */
+let VIEW_ATUAL = 'conforto';
+function viewStorageKey(){ return 'loja_view_'+(VENDEDOR_ID||'')+'_'+(LOJA_SLUG||''); }
+function aplicarView(v){
+  const grid = document.getElementById('grid-produtos');
+  if(!grid) return;
+  grid.classList.remove('view-conforto','view-compacto','view-lista');
+  grid.classList.add('view-'+v);
+  document.querySelectorAll('.view-btn').forEach(b=>
+    b.classList.toggle('active', b.getAttribute('data-view')===v));
+}
+function setView(v){
+  VIEW_ATUAL = v;
+  try{ localStorage.setItem(viewStorageKey(), v); }catch(e){}
+  aplicarView(v);
+}
+function restaurarView(){
+  try{ const s = localStorage.getItem(viewStorageKey()); if(s) VIEW_ATUAL = s; }catch(e){}
+  aplicarView(VIEW_ATUAL);
 }
 
 function verDetalhe(id) {
