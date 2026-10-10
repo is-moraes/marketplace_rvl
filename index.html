@@ -1402,7 +1402,7 @@ let _zModal=500;
 function openModal(id){const el=document.getElementById(id);el.style.zIndex=String(++_zModal);el.classList.add('open')}
 function closeModal(id){document.getElementById(id).classList.remove('open')}
 document.querySelectorAll('.modal-bg').forEach(bg=>bg.addEventListener('click',e=>{if(e.target===bg && !bg.hasAttribute('data-fixo'))bg.classList.remove('open')}));
-function toast(msg,type='info'){const d=document.createElement('div');d.className=`toast ${type}`;d.textContent=msg;document.getElementById('toast-area').appendChild(d);setTimeout(()=>d.remove(),3000)}
+function toast(msg,type='info',ms=3000){const d=document.createElement('div');d.className=`toast ${type}`;d.textContent=msg;d.style.whiteSpace='pre-line';d.onclick=()=>d.remove();document.getElementById('toast-area').appendChild(d);setTimeout(()=>d.remove(),ms)}
 
 /* ══════════════════════════════════════════════════════════
    MULTI-LOJA — cada conta pode ter várias lojas independentes.
@@ -3949,25 +3949,34 @@ document.getElementById('modal-scanner').addEventListener('click',e=>{ if(e.targ
    ══════════════════════════════════════════════════════════ */
 const IA_CONFIG = {
   sdk: '13.0.0',                 // versão do Firebase JS SDK carregada só para a IA
-  modelo: 'gemini-3.5-flash',    // modelo estável, aceita imagem
+  modelos: ['gemini-3.5-flash','gemini-3.1-flash-lite','gemini-3.5-flash-lite','gemini-3-flash-preview','gemini-2.5-flash'], // tenta na ordem até um responder
   recaptchaSiteKey: '6LdZeugtAAAAAG3veqs3Y02F-Wf6IMMacORTdhJg',          // ⬅️ cole aqui, entre as aspas, a CHAVE DE SITE do reCAPTCHA (nunca a secreta)
   recaptchaTipo: 'enterprise'            // 'v3' se registrou no App Check como "reCAPTCHA"; 'enterprise' se registrou como "Fraud Defense / reCAPTCHA Enterprise"
 };
-let _iaModelo=null;
-async function obterModeloIA(){
-  if(_iaModelo) return _iaModelo;
+let _iaAI=null, _iaModMod=null;
+async function obterAI(){
+  if(_iaAI) return _iaAI;
   const base=`https://www.gstatic.com/firebasejs/${IA_CONFIG.sdk}`;
   const appMod=await import(`${base}/firebase-app.js`);
-  const aiMod=await import(`${base}/firebase-ai.js`);
+  _iaModMod=await import(`${base}/firebase-ai.js`);
   const app=appMod.getApps().find(a=>a.name==='ia') || appMod.initializeApp(firebaseConfig,'ia');
   if(IA_CONFIG.recaptchaSiteKey){
-    const ac=await import(`${base}/firebase-app-check.js`);
-    const Prov = IA_CONFIG.recaptchaTipo==='enterprise' ? ac.ReCaptchaEnterpriseProvider : ac.ReCaptchaV3Provider;
-    try{ ac.initializeAppCheck(app,{provider:new Prov(IA_CONFIG.recaptchaSiteKey.trim()),isTokenAutoRefreshEnabled:true}); }catch(e){ /* já iniciado */ }
+    try{
+      const ac=await import(`${base}/firebase-app-check.js`);
+      const Prov = IA_CONFIG.recaptchaTipo==='enterprise' ? ac.ReCaptchaEnterpriseProvider : ac.ReCaptchaV3Provider;
+      ac.initializeAppCheck(app,{provider:new Prov(IA_CONFIG.recaptchaSiteKey.trim()),isTokenAutoRefreshEnabled:true});
+    }catch(e){ console.warn('App Check:',e); }
   }
-  const ai=aiMod.getAI(app,{backend:new aiMod.GoogleAIBackend()});
-  _iaModelo=aiMod.getGenerativeModel(ai,{model:IA_CONFIG.modelo, generationConfig:{responseMimeType:'application/json', temperature:0.2}});
-  return _iaModelo;
+  _iaAI=_iaModMod.getAI(app,{backend:new _iaModMod.GoogleAIBackend()});
+  return _iaAI;
+}
+function modeloIA(nome){
+  return _iaModMod.getGenerativeModel(_iaAI,{model:nome, generationConfig:{responseMimeType:'application/json', temperature:0.2}});
+}
+/* erro de "modelo não existe / não disponível" → vale tentar o próximo da lista */
+function erroDeModelo(e){
+  const m=String(e?.message||'').toLowerCase(), st=e?.customErrorData?.status;
+  return st===404 || m.includes('[404') || m.includes('not found') || m.includes('is not supported') || m.includes('no longer available') || m.includes('deprecated') || (m.includes('[400') && m.includes('model'));
 }
 /* Reduz a foto (até 1600px, JPEG) para enviar mais rápido e gastar menos */
 function prepararImagem(file, max=1600){
@@ -3985,20 +3994,49 @@ function prepararImagem(file, max=1600){
   });
 }
 function mensagemErroIA(e){
-  const m=String(e?.message||e||'').toLowerCase();
-  console.warn('IA:',e);
-  if(m.includes('app-check')||m.includes('appcheck')||m.includes('app check')) return 'A IA ainda não está liberada: falta configurar o App Check (reCAPTCHA) no Firebase.';
-  if(m.includes('api-not-enabled')||m.includes('has not been used')||m.includes('is disabled')||m.includes('not enabled')) return 'Ative o Firebase AI Logic no console do Firebase para usar a leitura por foto.';
-  if(m.includes('quota')||m.includes('429')||m.includes('resource_exhausted')) return 'Limite gratuito da IA atingido por agora. Tente de novo em alguns minutos.';
-  if(m.includes('failed to fetch')||m.includes('network')||m.includes('import')) return 'Sem conexão com o serviço de IA. Verifique a internet e tente de novo.';
-  return 'Não consegui ler a foto agora. Tente outra foto ou preencha manualmente.';
+  const raw=String(e?.message||e||'');
+  const m=raw.toLowerCase();
+  console.warn('IA (erro completo):',e);
+  const det='\n\nDetalhe técnico: '+raw.replace(/\s+/g,' ').slice(0,220);
+  if(m.includes('[403')||m.includes('permission')||m.includes('api_key_service_blocked')||m.includes('blocked'))
+    return 'O Google recusou o acesso (403). Provável causa: a chave de API do Firebase está restrita e não inclui a "Firebase AI Logic API". Veja o passo a passo enviado no chat.'+det;
+  if(m.includes('api-not-enabled')||m.includes('has not been used')||m.includes('is disabled')||m.includes('not enabled'))
+    return 'A API do Firebase AI Logic não está ativa neste projeto. Abra AI Logic no console e conclua o "Get started" com a Gemini Developer API.'+det;
+  if(m.includes('app check')||m.includes('appcheck')||m.includes('app-check')||m.includes('[401'))
+    return 'O App Check recusou a chamada. Confira a chave de site e se o domínio está na chave reCAPTCHA.'+det;
+  if(m.includes('quota')||m.includes('[429')||m.includes('resource_exhausted'))
+    return 'Limite gratuito da IA atingido por agora. Tente de novo em alguns minutos.'+det;
+  if(m.includes('failed to fetch')||m.includes('networkerror')||m.includes('importing a module')||m.includes('dynamically imported'))
+    return 'Sem conexão com o serviço de IA (internet ou bloqueio do navegador).'+det;
+  if(e instanceof SyntaxError || m.includes('json'))
+    return 'A IA respondeu num formato inesperado. Tente de novo ou use outra foto.'+det;
+  if(erroDeModelo(e))
+    return 'Nenhum modelo Gemini da lista está disponível no seu projeto.'+det;
+  return 'Não consegui ler a foto.'+det;
 }
 async function perguntarIA(prompt, file){
-  const modelo=await obterModeloIA();
+  await obterAI();
   const b64=await prepararImagem(file);
-  const r=await modelo.generateContent([prompt,{inlineData:{data:b64,mimeType:'image/jpeg'}}]);
-  const txt=r.response.text().trim().replace(/^```(?:json)?\s*/i,'').replace(/```$/,'');
-  return JSON.parse(txt);
+  let lista=[...IA_CONFIG.modelos];
+  try{ const ok=localStorage.getItem('ia_modelo_ok'); if(ok && lista.includes(ok)) lista=[ok,...lista.filter(x=>x!==ok)]; }catch(_){}
+  let ultimoErro=null;
+  for(const nome of lista){
+    try{
+      const r=await modeloIA(nome).generateContent([prompt,{inlineData:{data:b64,mimeType:'image/jpeg'}}]);
+      let txt=r.response.text().trim().replace(/^```(?:json)?\s*/i,'').replace(/```\s*$/,'').trim();
+      const a=txt.indexOf('{'), z=txt.lastIndexOf('}');
+      if(a>0 || (z>=0 && z<txt.length-1)) txt=txt.slice(a,z+1);
+      let d=JSON.parse(txt); if(Array.isArray(d)) d=d[0]||{};
+      try{ localStorage.setItem('ia_modelo_ok',nome); }catch(_){}
+      console.info('IA: usando o modelo',nome);
+      return d;
+    }catch(e){
+      ultimoErro=e;
+      if(!erroDeModelo(e)) throw e;          // erro que não é do modelo: não adianta tentar outro
+      console.warn('IA: modelo indisponível, tentando o próximo →',nome,e?.message);
+    }
+  }
+  throw ultimoErro||new Error('Nenhum modelo disponível');
 }
 
 const PROMPT_PRODUTO = `Você ajuda a cadastrar produtos de uma pequena loja brasileira (roupas, suplementos, cosméticos e Mary Kay).
@@ -4042,7 +4080,7 @@ async function iaProcessarFotoProduto(input){
       const rd=new FileReader(); rd.onload=e=>mostrarPreviewImagem(e.target.result); rd.readAsDataURL(f);
     }
     toast(vars.length>=2?`Preenchido! Confira os dados e informe o estoque de cada uma das ${vars.length} variações.`:'Preenchido! Confira os dados e informe o estoque.','success');
-  }catch(e){ toast(mensagemErroIA(e),'error'); }
+  }catch(e){ toast(mensagemErroIA(e),'error',15000); }
   finally{ load.classList.remove('on'); }
 }
 
@@ -4062,7 +4100,7 @@ async function iaProcessarFotoGasto(input){
     const cats=[...document.getElementById('mg-cat').options].map(o=>o.value);
     if(cats.includes(d.categoria)) set('mg-cat', d.categoria);
     toast('Nota lida! Confira os valores antes de salvar.','success');
-  }catch(e){ toast(mensagemErroIA(e),'error'); }
+  }catch(e){ toast(mensagemErroIA(e),'error',15000); }
   finally{ load.classList.remove('on'); }
 }
 
