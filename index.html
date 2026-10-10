@@ -3953,9 +3953,9 @@ const IA_CONFIG = {
   recaptchaSiteKey: '6LdZeugtAAAAAG3veqs3Y02F-Wf6IMMacORTdhJg',          // ⬅️ cole aqui, entre as aspas, a CHAVE DE SITE do reCAPTCHA (nunca a secreta)
   recaptchaTipo: 'enterprise'            // 'v3' se registrou no App Check como "reCAPTCHA"; 'enterprise' se registrou como "Fraud Defense / reCAPTCHA Enterprise"
 };
-let _iaAI=null, _iaModMod=null;
-async function obterAI(){
-  if(_iaAI) return _iaAI;
+let _iaAI=null, _iaModMod=null, _iaBackend='';
+async function obterAI(backend='google'){
+  if(_iaAI && _iaBackend===backend) return _iaAI;
   const base=`https://www.gstatic.com/firebasejs/${IA_CONFIG.sdk}`;
   const appMod=await import(`${base}/firebase-app.js`);
   _iaModMod=await import(`${base}/firebase-ai.js`);
@@ -3967,15 +3967,18 @@ async function obterAI(){
       ac.initializeAppCheck(app,{provider:new Prov(IA_CONFIG.recaptchaSiteKey.trim()),isTokenAutoRefreshEnabled:true});
     }catch(e){ console.warn('App Check:',e); }
   }
-  _iaAI=_iaModMod.getAI(app,{backend:new _iaModMod.GoogleAIBackend()});
+  const B = backend==='agent' ? (_iaModMod.AgentPlatformBackend||_iaModMod.VertexAIBackend) : _iaModMod.GoogleAIBackend;
+  _iaAI=_iaModMod.getAI(app,{backend:new B()}); _iaBackend=backend;
   return _iaAI;
 }
 function modeloIA(nome){
   return _iaModMod.getGenerativeModel(_iaAI,{model:nome, generationConfig:{responseMimeType:'application/json', temperature:0.2}});
 }
 /* erro de "modelo não existe / não disponível" → vale tentar o próximo da lista */
+function erroDeConfig(e){ return String(e?.message||'').toLowerCase().includes('config not found'); }
 function erroDeModelo(e){
   const m=String(e?.message||'').toLowerCase(), st=e?.customErrorData?.status;
+  if(erroDeConfig(e)) return false;
   return st===404 || m.includes('[404') || m.includes('not found') || m.includes('is not supported') || m.includes('no longer available') || m.includes('deprecated') || (m.includes('[400') && m.includes('model'));
 }
 /* Reduz a foto (até 1600px, JPEG) para enviar mais rápido e gastar menos */
@@ -3998,6 +4001,8 @@ function mensagemErroIA(e){
   const m=raw.toLowerCase();
   console.warn('IA (erro completo):',e);
   const det='\n\nDetalhe técnico: '+raw.replace(/\s+/g,' ').slice(0,220);
+  if(erroDeConfig(e))
+    return 'O Firebase AI Logic ainda não tem um provedor Gemini ativado (ou acabou de ser ativado e ainda está propagando). Veja o passo a passo no chat.'+det;
   if(m.includes('[403')||m.includes('permission')||m.includes('api_key_service_blocked')||m.includes('blocked'))
     return 'O Google recusou o acesso (403). Provável causa: a chave de API do Firebase está restrita e não inclui a "Firebase AI Logic API". Veja o passo a passo enviado no chat.'+det;
   if(m.includes('api-not-enabled')||m.includes('has not been used')||m.includes('is disabled')||m.includes('not enabled'))
@@ -4015,7 +4020,16 @@ function mensagemErroIA(e){
   return 'Não consegui ler a foto.'+det;
 }
 async function perguntarIA(prompt, file){
-  await obterAI();
+  let backends=['google','agent'];
+  try{ const b=localStorage.getItem('ia_backend_ok'); if(b==='agent') backends=['agent','google']; }catch(_){}
+  let erro=null;
+  for(const bk of backends){
+    try{ await obterAI(bk); const d=await perguntarIAModelos(prompt,file); try{ localStorage.setItem('ia_backend_ok',bk); }catch(_){} return d; }
+    catch(e){ erro=e; if(!erroDeConfig(e)) throw e; console.warn('IA: sem configuração no provedor',bk,'— tentando o outro'); }
+  }
+  throw erro;
+}
+async function perguntarIAModelos(prompt, file){
   const b64=await prepararImagem(file);
   let lista=[...IA_CONFIG.modelos];
   try{ const ok=localStorage.getItem('ia_modelo_ok'); if(ok && lista.includes(ok)) lista=[ok,...lista.filter(x=>x!==ok)]; }catch(_){}
